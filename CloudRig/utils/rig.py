@@ -291,10 +291,13 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
     return True
 
 
-def points_define_plane(p1, p2, p3, eps=1e-8) -> bool:
+def points_define_plane(p1, p2, p3, eps=1e-12) -> bool:
     v1 = p2 - p1
     v2 = p3 - p1
-    return v1.cross(v2).length > eps
+    # length_squared is cheaper, it avoids a squareroot op.
+    cross_sq = v1.cross(v2).length_squared
+    scale = v1.length_squared * v2.length_squared
+    return cross_sq > (eps**2) * scale
 
 
 def get_flattened_coords(eb_chain: list[EditBone]) -> list[tuple[Vector, Vector]]:
