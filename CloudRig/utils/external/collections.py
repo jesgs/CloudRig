@@ -17,7 +17,8 @@ def ensure_collection(
         collection.hide_viewport = hidden
         collection.hide_render = hidden
 
-    parent_collection.children.link(collection)
+    if collection not in set(parent_collection.children):
+        parent_collection.children.link(collection)
 
     view_layer = context.view_layer
     layer_collection = find_layer_collection_by_collection(

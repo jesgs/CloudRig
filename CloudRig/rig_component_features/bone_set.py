@@ -357,7 +357,8 @@ class CLOUDRIG_UL_bone_sets(UIList):
     def filter_items(self, context, data, propname):
         flt_flags = []
         flt_neworder = []
-        ui_bone_sets = getattr(data, propname)
+        component = data
+        ui_bone_sets = getattr(component, propname)
 
         helper_funcs = UI_UL_list
 
@@ -376,7 +377,6 @@ class CLOUDRIG_UL_bone_sets(UIList):
         # Filter to only show bone sets that are relevant to this component type with the current settings.
         metarig = context.object
         prefs = get_addon_prefs(context)
-        component = get_component_in_ui(context)
         component_class = component.component_class
 
         for idx, ui_bone_set in enumerate(ui_bone_sets):
@@ -398,10 +398,10 @@ class CLOUDRIG_UL_bone_sets(UIList):
         return flt_flags, flt_neworder
 
     def draw_item(
-        self, context, layout, _data, item, _icon_value, _active_data, _active_propname
+        self, context, layout, data, item, _icon_value, _active_data, _active_propname
     ):
         ui_bone_set = item
-        component = _data
+        component = data
         bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
 
         prefs = get_addon_prefs(context)

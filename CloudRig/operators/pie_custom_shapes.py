@@ -424,15 +424,20 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
         if not (pbone and bone):
             return
 
+        draw_all = False
         if is_cloud_metarig(pbone.id_data):
             # If we are editing a Metarig, the logical properties to draw are a bit different.
             component = pbone.cloudrig_component.inherited_component
-            if component and component.component_class.__name__ not in ('Component_CopyBone', 'Component_TweakBone'):
-                self.draw_cloudrig_settings(context, layout, pbone)
-                return
+            if component:
+                comp_name = component.component_class.__name__
+                if comp_name == 'Component_CopyBone':
+                    draw_all = True
+                elif comp_name not in ('Component_TweakBone', 'Component_RawCopy'):
+                    self.draw_cloudrig_settings(context, layout, pbone)
+                    return
         self.draw_bone_color_settings(layout, pbone)
         layout.separator()
-        self.draw_bone_shape_settings(layout, pbone)
+        self.draw_bone_shape_settings(layout, pbone, draw_all=draw_all)
 
     def draw_cloudrig_settings(self, context, layout, pbone: PoseBone):
         header, panel = layout.panel("CloudRig Bone Display Active Bone")
@@ -477,7 +482,8 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
             force_wire=True,
             transforms=True,
             bone_size=True,
-            wire_width=True
+            wire_width=True,
+            draw_all=False,
         ):
         if custom_shape:
             layout.prop(pbone, "custom_shape", text="Custom Shape Object")
@@ -485,7 +491,8 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
         if display_type:
             if not pbone.custom_shape:
                 layout.prop(pbone.bone, "display_type", text="Display As")
-                return
+                if not draw_all:
+                    return
 
         if override_transform:
             layout.prop_search(pbone, "custom_shape_transform", pbone.id_data.pose, "bones", text="Override Transform")

@@ -24,8 +24,6 @@ class CLOUDRIG_UL_rig_components(UIList):
         if not rig_component.component_type:
             return
 
-        addon_prefs = get_addon_prefs(context)
-
         row = layout.row(align=True)
         main_split = row.split(factor=0.5)
         row = main_split.row(align=True)
