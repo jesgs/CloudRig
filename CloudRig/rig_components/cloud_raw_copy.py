@@ -10,4 +10,16 @@ class Component_RawCopy(Component_Base):
 
     ui_name = "Raw Copy"
 
+    @classmethod
+    def poll_draw_parenting_params(cls, context, params):
+        return False
+
+    @classmethod
+    def poll_draw_control_params(cls, context, params):
+        return False
+
+    @classmethod
+    def poll_draw_appearance_params(cls, context, params):
+        return False
+
 RIG_COMPONENT_CLASS = Component_RawCopy
