@@ -38,8 +38,6 @@ class CloudRig_MainPanel:
         text = "Generate CloudRig"
         if metarig.cloudrig.generator.target_rig:
             text = "Re-Generate CloudRig"
-        if is_rigify_metarig(metarig):
-            layout.operator("armature.convert_rigify_to_cloudrig")
 
         layout.operator("pose.cloudrig_generate", text=text)
 
@@ -53,6 +51,9 @@ class CloudRig_MainPanel:
 
         if not context.object.cloudrig.enabled:
             return
+
+        draw_rigify_convert_panel(context, layout)
+
         draw_general_panel(context, layout)
 
         draw_log_panel(context, layout)
@@ -113,6 +114,27 @@ def metarig_contains_fk_chain(metarig: Object) -> bool:
             if 'cloud_fk_chain' in str(rig_component.component_class.mro()):
                 return True
     return False
+
+
+def draw_rigify_convert_panel(context, layout):
+    metarig = context.object
+    if not is_rigify_metarig(metarig):
+        return
+
+    header, panel = layout.panel("CloudRig Rigify Convert", default_closed=True)
+    header.label(text="Convert Rigify")
+    if not panel:
+        return
+
+    layout = panel
+    layout.use_property_split = True
+    layout.use_property_decorate = False
+
+    layout.operator("armature.convert_rigify_to_cloudrig")
+    if metarig.data.rigify_target_rig:
+        layout.operator("armature.replace_rigify_with_cloudrig_rig")
+
+    # TODO: Operator to delete all Rigify data.
 
 
 def draw_general_panel(context, layout):
@@ -191,6 +213,7 @@ def draw_custom_shapes_panel(context, layout):
 
     if not generator.preserve_shapes_properties:
         col.row().prop(generator, 'base_wire_width')
+
 
 def draw_cloudrig_popover(self, context):
     prefs = get_addon_prefs(context)
