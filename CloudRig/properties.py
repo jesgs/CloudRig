@@ -617,11 +617,11 @@ class Properties_CloudRig(PropertyGroup):
         # Select the bone of this rig component
         rig = self.id_data
         active_component = self.active_component
-        for pbone in rig.pose.bones:
-            pbone.select = pbone.cloudrig_component == active_component
-        rig.data.bones.active = rig.data.bones[self.active_component_index]
-
         if self.active_component:
+            for pbone in rig.pose.bones:
+                pbone.select = pbone.cloudrig_component == active_component
+            rig.data.bones.active = rig.data.bones[self.active_component_index]
+
             self.active_component.component_type = self.active_component.component_type
 
     active_component_index: IntProperty(
@@ -632,8 +632,10 @@ class Properties_CloudRig(PropertyGroup):
     def active_component(self) -> RigComponent | None:
         if len(self.rig_component_bones) == 0:
             return
-
         rig_ob = self.id_data
+        if self.active_component_index > len(rig_ob.pose.bones)-1:
+            return
+
         active_comp = rig_ob.pose.bones[self.active_component_index].cloudrig_component
         if not active_comp.should_draw:
             return
