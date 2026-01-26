@@ -81,6 +81,7 @@ class BoneSet(LinkedList):
             source: BoneInfo | PoseBone | None=None,
             keep_collections=False,
             keep_colors=False,
+            keep_wire_width=False,
             **kwargs) -> BoneInfo:
         """Create and add a new BoneInfo to self."""
 
@@ -108,6 +109,9 @@ class BoneSet(LinkedList):
                 inferred['color_palette_base'] = source.color_palette_base
             else:
                 inferred['color_palette_base'] = source.bone.color.palette
+        if keep_wire_width:
+            inferred['custom_shape_wire_width'] = source.custom_shape_wire_width
+
         effective_kwargs = dict(self.defaults)
         effective_kwargs.update(inferred)
         effective_kwargs.update(kwargs)
@@ -212,11 +216,12 @@ class BoneSetMixin:
             prefs, 'bone_set_show_advanced', text="", emboss=False, icon=eye_icon
         )
 
+        col = layout.column(align=True)
         if not any(CLOUDRIG_UL_bone_sets.flt_flags):
-            layout.label(text="No bone sets to show. Clear the search filter,")
+            col.label(text="No bone sets to show. Clear the search filter,")
             if not prefs.bone_set_show_advanced:
-                layout.label(text="enable mechanism collections via the eye icon to the right, ")
-            layout.label(text="or regenerate the rig.")
+                col.label(text="enable mechanism collections via the eye icon to the right, ")
+            col.label(text="or regenerate the rig.")
             return
         elif not CLOUDRIG_UL_bone_sets.flt_flags[component.bone_sets_active_index]:
             # If the active item is not visible

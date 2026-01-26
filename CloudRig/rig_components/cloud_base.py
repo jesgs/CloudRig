@@ -156,6 +156,7 @@ class Component_Base(
                 allow_pose_transforms=bool(self.painter),
                 keep_collections=type(self).keep_original_bones_collections,
                 keep_colors=type(self).keep_original_bones_colors,
+                keep_wire_width=True,
             )
             if not bone_info:
                 self.raise_generation_error(
