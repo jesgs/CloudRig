@@ -96,6 +96,12 @@ def convert_components(metarig_ob: Object):
         rigify_type = get_rigify_type(pbone)
         if not rigify_type:
             continue
+
+        rigify_pb_chain = [
+            metarig_ob.pose.bones.get(name) for name in
+            rigify.utils.rig.connected_children_names(metarig_ob, pbone.name)
+        ]
+
         # Do some quick and dirty conversions for proof of concept...
         if rigify_type == 'limbs.leg':
             comp.component_type = 'Limb: Biped Leg'
@@ -123,6 +129,13 @@ def convert_components(metarig_ob: Object):
             # I think this rigify type affects its siblings...
             for pbone in pbone.parent.children:
                 pbone.cloudrig_component.component_type = 'Chain: FK'
+        elif rigify_type == 'basic.copy_chain':
+            # https://docs.blender.org/manual/en/latest/addons/rigging/rigify/rig_types/basic.html#basic-copy-chain
+            for pb in rigify_pb_chain:
+                pb.cloudrig_component.component_type = 'Single Control'
+                pb.cloudrig_component.params.copy.create_deform = pbone.rigify_parameters.make_deforms
+                if not pb.custom_shape:
+                    pb.cloudrig_component.params.copy.shape_control.shape_name = 'Taper Rect'
         else:
             skipped += 1
             continue
