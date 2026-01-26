@@ -113,9 +113,11 @@ class Component_FaceChain(Component_ToonChain):
                 break
 
         if not intersection_control:
-            org_names = [bi.source for bi in cluster]
-            combined_name = self.naming.combine_names(org_names)
-            bone_name = self.naming.add_prefix(combined_name, "STR-I")
+            combined_name = rig_component.naming.combine_names(cluster)
+
+            slices = rig_component.naming.slice_name(combined_name)
+            # Discard prefixes, put STR-I.
+            bone_name = rig_component.naming.make_name(["STR", "I"], slices[1], slices[2])
 
             intersection_control = rig_component.bone_sets['Intersection Controls'].new(
                 name=bone_name,

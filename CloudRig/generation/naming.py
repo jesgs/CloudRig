@@ -327,39 +327,37 @@ def combine_names(things: list[Any]) -> str:
     """
 
     names = [get_name(thing) for thing in things]
-    prefix = ""
-    suffix = ""
-    zeroes = ""
 
-    sliced_names = [get_name_parts(n) for n in names]
+    slices = [slice_name(n) for n in names]
 
-    any_left = any([side_is_left(name) is True for name in names])
-    any_right = any([side_is_left(name) is False for name in names])
-    if any_left and any_right:
-        # Discard all side indicators.
-        new_names = []
-        for name in names:
-            prefix, base, suffix, zeroes = get_name_parts(name)
-            new_names.append(base+zeroes)
-        names = new_names
-    elif any_left or any_right:
-        for slices in sliced_names:
-            if slices[0]:
-                prefix = slices[0]
-                break
-            elif slices[2]:
-                suffix = slices[2]
-                break
+    prefixes = []
+    for slice in slices:
+        for prefix in slice[0]:
+            if prefix not in prefixes:
+                prefixes.append(prefix)
 
-    bases = list(set([s[1] for s in sliced_names]))
+    suffixes = []
+    for slice in slices:
+        for suffix in slice[2]:
+            if suffix not in suffixes:
+                suffixes.append(suffix)
+
+    bases = list(set([s[1] for s in slices]))
+
+    # If matching pairs of side suffixes are in the suffix list, remove both.
+    # For example, if L and R are both present, remove them.
+    for suf in suffixes:
+        flip_suf = flip_name("A."+suf)[2:]
+        if flip_suf != suf and flip_suf in suffixes:
+            suffixes.remove(suf)
+            suffixes.remove(flip_suf)
 
     ### Combine bases
     # Sort by length and pick the first one.
     shortest_base = sorted(bases, key=lambda b: len(b))[0]
 
     base_start = ""
-    # Don't repeat matching characters, eg. "Lip_Top1" and "Lip_Bot1" should combine
-    # into "Lip_Top1+Bot1" instead of "Lip_Top1+Lip_Bot1"
+    # Don't repeat matching characters, eg. "Lip_Top1" and "Lip_Bot1" should combine into "Lip_Top1+Bot1" instead of "Lip_Top1+Lip_Bot1"
     for i, char in enumerate(shortest_base):
         matching = all([base[i] == char for base in bases])
         if matching:
@@ -373,7 +371,7 @@ def combine_names(things: list[Any]) -> str:
 
     bases.sort(reverse=True)
 
-    combined_name = prefix + base_start + "+".join(bases) + suffix
+    combined_name = make_name(prefixes, base_start + "+".join(bases), suffixes)
 
     if len(combined_name) > 59:
         raise ValueError(
