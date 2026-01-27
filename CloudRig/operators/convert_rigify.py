@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from math import pi
+
 import bpy
 import rigify
 from bpy.props import BoolProperty
@@ -77,22 +79,29 @@ class CLOUDRIG_OT_replace_rigify_rig(Operator):
         return {'FINISHED'}
 
 def convert_rigify_to_cloudrig(metarig_ob: Object):
-    convert_actions(metarig_ob)
-    convert_components(metarig_ob)
-    convert_bone_collections_ui(metarig_ob)
     for pb in metarig_ob.pose.bones:
         if not pb.custom_shape:
             pb.custom_shape_scale_xyz = [1, 1, 1]
             pb.custom_shape_translation = [0, 0, 0]
             pb.custom_shape_rotation_euler = [0, 0, 0]
+            pb.use_custom_shape_bone_size = True
+    convert_actions(metarig_ob)
+    convert_components(metarig_ob)
+    convert_bone_collections_ui(metarig_ob)
 
 
 def convert_components(metarig_ob: Object):
+    """Convert Rigify's "Rig Type" assignments to as-close-as-possible CloudRig component type assignments.
+
+    Rigify's docs can be helpful:
+    https://docs.blender.org/manual/en/latest/addons/rigging/rigify/rig_types
+    """
     skipped = 0
     converted = 0
     for pbone in metarig_ob.pose.bones:
         comp = pbone.cloudrig_component
-        params = comp.params
+        cr_params = comp.params
+        rigify_params = pbone.rigify_parameters
         rigify_type = get_rigify_type(pbone)
         if not rigify_type:
             continue
@@ -102,25 +111,88 @@ def convert_components(metarig_ob: Object):
             rigify.utils.rig.connected_children_names(metarig_ob, pbone.name)
         ]
 
-        # Do some quick and dirty conversions for proof of concept...
-        if rigify_type == 'limbs.leg':
+        if rigify_type == 'basic.copy_chain':
+            # I don't really want to implement this as a component type, because users should just rely on
+            # implicit raw copy, but for the sake of conversion, let's convert each bone of the chain to a
+            # Single Control.
+            for pb in rigify_pb_chain:
+                comp.component_type = 'Single Control'
+                cr_params.copy.create_deform = pbone.rigify_parameters.make_deforms
+                if not pb.custom_shape:
+                    cr_params.copy.shape_control.shape_name = 'Taper Rect'
+        elif rigify_type == 'basic.pivot':
+            # Weird things:
+            # - If you enable both "Switchable Parent" and "Register Parent", it generates a dependency cycle.
+            # - If you enable "Master Control", but NOT "Pivot Control", then it just generates a bone without
+            # any constraints on the original bone... So, it's no longer a pivot rig at all.
+            comp.component_type = 'Single Control'
+            cr_params.copy.custom_pivot = not (rigify_params.make_extra_control and not rigify_params.make_control)
+            cr_params.copy.create_deform = rigify_params.make_extra_deform
+        elif rigify_type == 'basic.raw_copy':
+            # Assigning this is optional in CloudRig, but doing it will let the user distinguish between bones
+            # that used to have Rigify's raw_copy assigned vs those that did not. (both will behave the same)
+            pbone.cloudrig_component.component_type = 'Raw Copy'
+        elif rigify_type == 'basic.super_copy':
+            # Special case: Shoulder bone
+            any_arm_child = any(get_rigify_type(child)=='limbs.arm' for child in pbone.children)
+            if any_arm_child:
+                pbone.cloudrig_component.component_type = 'Shoulder Bone'
+                continue
+            # General case weird things:
+            # - You can turn everything off, and then this just generates a useless locked ORG bone.
+            # - I don't get the point of turning off Relink Constraints, you would always want it. (It's even off by default!?)
+            widget_map = {
+                'bone': 'Circle', # idk what to tell ya.
+                'circle': 'Circle',
+                'cube': 'Cube',
+                'cube_truncated': 'Cube 2',
+                'cuboctahedron': 'Cube 2',
+                'diamond': 'Diamond', # Scale x2 on X/Z
+                'gear': 'Cog 3',
+                'jaw': 'Jaw', # Offset Y position by full bone length.
+                'limb': 'Circle', # Offset Y position by half bone length.
+                'line': 'Line',
+                'palm': 'Foot 2',
+                'palm_z': 'Foot 2', # Offset Y rotation by 90.
+                'pivot': 'Axes 6',
+                'pivot_cross': 'Axes 6',
+                'shoulder': 'Shoulder', # Offset Y position by half bone length.
+                'sphere': 'Sphere',
+                'teeth': 'Shoulder 4', # Offset X rotation by 90 and Y position by half bone length.
+            }
+            comp.component_type = 'Single Control'
+            cr_params.copy.create_deform = rigify_params.make_deform
+
+            rigify_wgt = rigify_params.super_copy_widget_type
+            if rigify_params.make_widget:
+                cr_params.copy.shape_control.shape_name = widget_map.get(rigify_wgt, "Circle")
+                print(rigify_wgt)
+                if rigify_wgt == 'diamond':
+                    pbone.custom_shape_scale_xyz = (2, 1, 2)
+                if rigify_wgt == 'jaw':
+                    pbone.custom_shape_translation.y = pbone.bone.length
+                    print("Offset by full bone length:", pbone.bone.length, pbone.custom_shape_translation, pbone.id_data, pbone.name)
+                elif rigify_wgt in ('limb', 'shoulder', 'teeth'):
+                    pbone.custom_shape_translation.y = pbone.bone.length/2
+                    if rigify_wgt == 'teeth':
+                        pbone.custom_shape_rotation_euler.x += pi/2
+                elif rigify_wgt == 'palm_z':
+                    pbone.custom_shape_rotation_euler.y += pi/2
+            else:
+                cr_params.copy.shape_control.shape_name = "Taper Rect"
+
+        elif rigify_type == 'limbs.leg':
             comp.component_type = 'Limb: Biped Leg'
-            params.leg.shape_footroll.shape_name = 'Heel'
+            cr_params.leg.shape_footroll.shape_name = 'Heel'
             for pb in pbone.children_recursive:
                 bone = pb.bone
                 if not bone.use_connect and not bone.children and not is_rigify_base_bone(pb):
-                    params.leg.heel_bone = bone.name
+                    cr_params.leg.heel_bone = bone.name
                     break
         elif rigify_type == 'limbs.arm':
             pbone.cloudrig_component.component_type = 'Limb: Generic'
         elif rigify_type == 'spines.basic_spine':
             pbone.cloudrig_component.component_type = 'Spine: Cartoon'
-        elif rigify_type == 'basic.super_copy':
-            any_arm_child = any(get_rigify_type(child)=='limbs.arm' for child in pbone.children)
-            if any_arm_child:
-                pbone.cloudrig_component.component_type = 'Shoulder Bone'
-            else:
-                pbone.cloudrig_component.component_type = 'Single Control'
         elif rigify_type == 'spines.super_head':
             pbone.cloudrig_component.component_type = 'Chain: FK'
         elif rigify_type == 'limbs.super_finger':
@@ -129,13 +201,6 @@ def convert_components(metarig_ob: Object):
             # I think this rigify type affects its siblings...
             for pbone in pbone.parent.children:
                 pbone.cloudrig_component.component_type = 'Chain: FK'
-        elif rigify_type == 'basic.copy_chain':
-            # https://docs.blender.org/manual/en/latest/addons/rigging/rigify/rig_types/basic.html#basic-copy-chain
-            for pb in rigify_pb_chain:
-                pb.cloudrig_component.component_type = 'Single Control'
-                pb.cloudrig_component.params.copy.create_deform = pbone.rigify_parameters.make_deforms
-                if not pb.custom_shape:
-                    pb.cloudrig_component.params.copy.shape_control.shape_name = 'Taper Rect'
         else:
             skipped += 1
             continue
