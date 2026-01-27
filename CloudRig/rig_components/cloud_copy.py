@@ -87,7 +87,7 @@ class Component_CopyBone(Component_Base):
             )
 
         if self.params.copy.custom_pivot:
-            self.root_bone = self.copy__make_custom_pivot(bone_info, bone_set=self.bone_sets['Pivot Control'])
+            self.root_bone = self.__make_custom_pivot(bone_info, bone_set=self.bone_sets['Pivot Control'])
 
         if self.params.copy.ensure_free and len(bone_info.constraint_infos) > 0:
             self.root_bone = self.create_parent_constraint_holder(bone_info, bone_set=self.bone_sets['Mechanism Bones'])
@@ -95,13 +95,16 @@ class Component_CopyBone(Component_Base):
     ##############################
     # Single Control functions.
 
-    def copy__make_custom_pivot(self, boneinfo, bone_set=None):
+    def __make_custom_pivot(self, boneinfo, bone_set=None):
         if not bone_set:
             bone_set = boneinfo.bone_set
         pivot = self.create_parent_bone(boneinfo, bone_set)
         pivot.name = pivot.name.replace("P-", "PVT-")
         boneinfo.add_constraint(
-            'COPY_LOCATION', subtarget=pivot, invert_xyz=[True, True, True]
+            'COPY_LOCATION',
+            subtarget=pivot,
+            invert_xyz=[True, True, True],
+            use_offset=True,
         )
         pivot.custom_shape_name = self.params.copy.shape_pivot.shape_name
         pivot.custom_shape_scale_xyz = Vector([max(boneinfo.custom_shape_scale_xyz)] * 3)

@@ -19,7 +19,7 @@ from bpy.types import (
     PoseBone,
     bpy_prop_array,
 )
-from mathutils import Euler, Matrix, Vector
+from mathutils import Matrix, Vector
 from rna_prop_ui import rna_idprop_has_properties
 
 from ..generation import naming
@@ -27,7 +27,6 @@ from ..rig_component_features.mechanism import copy_relink_real_driver
 from ..utils.external.mechanism import make_driver
 from ..utils.maths import flat
 from ..utils.rig import (
-    align_bone_axis_to_vector,
     calc_roll_to_align_axis,
     wrap_angle_pi,
 )
@@ -182,8 +181,7 @@ class BoneInfo:
         self.color_palette_base = kwargs.get('color_palette_base', 'DEFAULT')
         self.color_palette_pose = kwargs.get('color_palette_pose', 'DEFAULT')
 
-
-        self.custom_shape_name = ""
+        self._custom_shape_name = ""
         self._source = self
 
         # If True, this bone won't be auto-parented to the root if it doesn't have a parent.
@@ -486,9 +484,9 @@ class BoneInfo:
 
     @property
     def length(self) -> float:
-        l = (self.tail - self.head).length
-        assert l > 0, f"Length of bone must not be 0: {self}, {self.head}, {self.tail}"
-        return l
+        lgt = (self.tail - self.head).length
+        assert lgt > 0, f"Length of bone must not be 0: {self}, {self.head}, {self.tail}"
+        return lgt
 
     @length.setter
     def length(self, value: float):
@@ -596,6 +594,15 @@ class BoneInfo:
         """Set custom widget display position as a factor along the bone's length."""
         reference = self.custom_shape_transform or self
         self.custom_shape_translation.y = reference.length * value
+
+    @property
+    def custom_shape_name(self):
+        return self._custom_shape_name
+
+    @custom_shape_name.setter
+    def custom_shape_name(self, value: str):
+        self.custom_shape = None
+        self._custom_shape_name = value
 
     def copy_custom_shape(self, other: BoneInfo | PoseBone):
         if not other.custom_shape:
@@ -708,7 +715,6 @@ class BoneInfo:
         # Custom Properties.
         for prop_name, prop in self.custom_props_edit.items():
             make_property(edit_bone, prop_name, **prop)
-
 
     def write_pose_data(self, context, metarig, pose_bone: PoseBone):
         """Write relevant data of this BoneInfo into a PoseBone."""

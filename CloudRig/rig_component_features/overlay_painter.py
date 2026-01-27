@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import functools
-import hashlib
-import json
 from time import time
 from typing import TYPE_CHECKING
 
@@ -17,7 +15,6 @@ from bpy.props import FloatProperty, StringProperty
 from bpy.types import BoneCollection, EditBone, Object, PoseBone
 from gpu_extras.batch import batch_for_shader
 from mathutils import Color, Euler, Matrix, Vector
-from rna_prop_ui import IDPropertyGroup
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.ui import label_split
@@ -569,6 +566,7 @@ def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> str:
         pbone.name,
         transforms,
         pbone.select if prefs.overlay_mode != 'VISIBLE' else "",
+        pbone.custom_shape.name if pbone.custom_shape else "",
         pbone.custom_shape_translation,
         pbone.custom_shape_rotation_euler,
         pbone.custom_shape_scale_xyz,
