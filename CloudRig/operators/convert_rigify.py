@@ -91,7 +91,9 @@ def convert_rigify_to_cloudrig(metarig_ob: Object):
 
 
 def convert_components(metarig_ob: Object):
-    """Convert Rigify's "Rig Type" assignments to as-close-as-possible CloudRig component type assignments.
+    """
+    Convert Rigify's "Rig Type" assignments to as-close-as-possible CloudRig
+    component type assignments.
 
     Rigify's docs can be helpful:
     https://docs.blender.org/manual/en/latest/addons/rigging/rigify/rig_types
@@ -112,9 +114,9 @@ def convert_components(metarig_ob: Object):
         ]
 
         if rigify_type == 'basic.copy_chain':
-            # I don't really want to implement this as a component type, because users should just rely on
-            # implicit raw copy, but for the sake of conversion, let's convert each bone of the chain to a
-            # Single Control.
+            # I don't really want to implement this as a component type, because users should just
+            # rely on implicit raw copy, but for the sake of conversion, let's convert each bone of
+            # the chain to a Single Control component.
             for pb in rigify_pb_chain:
                 comp.component_type = 'Single Control'
                 cr_params.copy.create_deform = pbone.rigify_parameters.make_deforms
@@ -122,15 +124,16 @@ def convert_components(metarig_ob: Object):
                     cr_params.copy.shape_control.shape_name = 'Taper Rect'
         elif rigify_type == 'basic.pivot':
             # Weird things:
-            # - If you enable both "Switchable Parent" and "Register Parent", it generates a dependency cycle.
-            # - If you enable "Master Control", but NOT "Pivot Control", then it just generates a bone without
-            # any constraints on the original bone... So, it's no longer a pivot rig at all.
+            # - If Switchable Parent==Register Parent==True, it generates a dependency cycle.
+            # - If Master Control==True and Pivot Control==False, then it doesn't generate a
+            # pivot rig at all.
             comp.component_type = 'Single Control'
             cr_params.copy.custom_pivot = not (rigify_params.make_extra_control and not rigify_params.make_control)
             cr_params.copy.create_deform = rigify_params.make_extra_deform
         elif rigify_type == 'basic.raw_copy':
-            # Assigning this is optional in CloudRig, but doing it will let the user distinguish between bones
-            # that used to have Rigify's raw_copy assigned vs those that did not. (both will behave the same)
+            # Assigning this is optional in CloudRig, but doing it will let the user distinguish
+            # between bones that used to have Rigify's raw_copy assigned vs those that did not.
+            # (both will behave the same)
             pbone.cloudrig_component.component_type = 'Raw Copy'
         elif rigify_type == 'basic.super_copy':
             # Special case: Shoulder bone
@@ -140,7 +143,7 @@ def convert_components(metarig_ob: Object):
                 continue
             # General case weird things:
             # - You can turn everything off, and then this just generates a useless locked ORG bone.
-            # - I don't get the point of turning off Relink Constraints, you would always want it. (It's even off by default!?)
+            # - I don't get the point of turning off Relink Constraints, you would always want it.
             widget_map = {
                 'bone': 'Circle', # idk what to tell ya.
                 'circle': 'Circle',
@@ -181,6 +184,18 @@ def convert_components(metarig_ob: Object):
             else:
                 cr_params.copy.shape_control.shape_name = "Taper Rect"
 
+        elif rigify_type == 'limbs.simple_tentacle':
+            # TODO
+            pass
+        elif rigify_type == 'limbs.super_finger':
+            pbone.cloudrig_component.component_type = 'Chain: FK'
+            # TODO details
+        elif rigify_type == 'limbs.super_limb':
+            # TODO
+            pass
+        elif rigify_type == 'limbs.arm':
+            pbone.cloudrig_component.component_type = 'Limb: Generic'
+            # TODO details
         elif rigify_type == 'limbs.leg':
             comp.component_type = 'Limb: Biped Leg'
             cr_params.leg.shape_footroll.shape_name = 'Heel'
@@ -189,18 +204,36 @@ def convert_components(metarig_ob: Object):
                 if not bone.use_connect and not bone.children and not is_rigify_base_bone(pb):
                     cr_params.leg.heel_bone = bone.name
                     break
-        elif rigify_type == 'limbs.arm':
-            pbone.cloudrig_component.component_type = 'Limb: Generic'
-        elif rigify_type == 'spines.basic_spine':
-            pbone.cloudrig_component.component_type = 'Spine: Cartoon'
-        elif rigify_type == 'spines.super_head':
-            pbone.cloudrig_component.component_type = 'Chain: FK'
-        elif rigify_type == 'limbs.super_finger':
-            pbone.cloudrig_component.component_type = 'Chain: FK'
+        elif rigify_type == 'limbs.paw':
+            # TODO
+            pass
+        elif rigify_type == 'limbs.front_paw':
+            # TODO
+            pass
+        elif rigify_type == 'limbs.rear_paw':
+            # TODO
+            pass
         elif rigify_type == 'limbs.super_palm':
             # I think this rigify type affects its siblings...
+            # TODO check implementation to see if it uses the same logic.
             for pbone in pbone.parent.children:
                 pbone.cloudrig_component.component_type = 'Chain: FK'
+        elif rigify_type == 'limbs.spline_tentacle':
+            # TODO
+            pass
+
+        elif rigify_type == 'spines.super_spine':
+            # TODO
+            pass
+        elif rigify_type == 'spines.basic_spine':
+            pbone.cloudrig_component.component_type = 'Spine: Cartoon'
+            # TODO details
+        elif rigify_type == 'spines.basic_tail':
+            # TODO
+            pass
+        elif rigify_type == 'spines.super_head':
+            pbone.cloudrig_component.component_type = 'Chain: FK'
+            # TODO details
         else:
             skipped += 1
             continue
