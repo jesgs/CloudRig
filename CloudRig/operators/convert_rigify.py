@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from itertools import pairwise
 from math import pi
 
 import bpy
@@ -7,6 +8,7 @@ import rigify
 from bpy.props import BoolProperty
 from bpy.types import Object, Operator, PoseBone
 
+from ..rig_component_features.mechanism import find_or_create_constraint
 from ..rig_component_features.properties_ui import add_property_to_ui
 
 
@@ -108,7 +110,7 @@ def convert_components(metarig_ob: Object):
         if not rigify_type:
             continue
 
-        rigify_pb_chain = [
+        rigify_pb_chain = [pbone] + [
             metarig_ob.pose.bones.get(name) for name in
             rigify.utils.rig.connected_children_names(metarig_ob, pbone.name)
         ]
@@ -185,16 +187,35 @@ def convert_components(metarig_ob: Object):
                 cr_params.copy.shape_control.shape_name = "Taper Rect"
 
         elif rigify_type == 'limbs.simple_tentacle':
-            # TODO
-            pass
+            # - Bendy bones segments are copied from metarig bones.
+            # - Always uses Automatic handles
+            # - Stretch constraints have Volume Variation at 1
+            # I think I will implement the curl behaviour here with constraints, because
+            # a curl behaviour that can be split per axis seems too niche.
+            comp.component_type = 'Chain: FK'
+            cr_params.chain.bbone_density = 10 if any([pb.bone.bbone_segments > 1 for pb in rigify_pb_chain]) else 0
+            cr_params.fk_chain.counter_rotate_stretch_bones = 0.5
+            if any(rigify_params.copy_rotation_axes):
+                for first, second in pairwise(rigify_pb_chain):
+                    copyrot = find_or_create_constraint(second, 'COPY_ROTATION', f"Copy Rotation@FK-{first.name}")
+                    copyrot.use_x, copyrot.use_y, copyrot.use_z = rigify_params.copy_rotation_axes
+                    copyrot.mix_mode = 'BEFORE'
+                    copyrot.target_space = copyrot.owner_space = 'LOCAL'
         elif rigify_type == 'limbs.super_finger':
-            pbone.cloudrig_component.component_type = 'Chain: FK'
-            # TODO details
+            if rigify_params.make_extra_ik_control:
+                comp.component_type = 'Chain: Finger'
+            else:
+                comp.component_type = 'Chain: FK'
+            cr_params.chain.sharp = True
+            cr_params.chain.bbone_density = rigify_params.bbones if rigify_params.bbones > 1 else 0
+            cr_params.fk_chain.root = True
+            cr_params.fk_chain.create_curl_control = True
+            cr_params.fk_chain.counter_rotate_stretch_bones = 0.5
         elif rigify_type == 'limbs.super_limb':
             # TODO
             pass
         elif rigify_type == 'limbs.arm':
-            pbone.cloudrig_component.component_type = 'Limb: Generic'
+            comp.component_type = 'Limb: Generic'
             # TODO details
         elif rigify_type == 'limbs.leg':
             comp.component_type = 'Limb: Biped Leg'
@@ -226,13 +247,13 @@ def convert_components(metarig_ob: Object):
             # TODO
             pass
         elif rigify_type == 'spines.basic_spine':
-            pbone.cloudrig_component.component_type = 'Spine: Cartoon'
+            comp.component_type = 'Spine: Cartoon'
             # TODO details
         elif rigify_type == 'spines.basic_tail':
             # TODO
             pass
         elif rigify_type == 'spines.super_head':
-            pbone.cloudrig_component.component_type = 'Chain: FK'
+            comp.component_type = 'Chain: FK'
             # TODO details
         else:
             skipped += 1
