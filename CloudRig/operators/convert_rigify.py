@@ -262,14 +262,23 @@ def convert_components(metarig_ob: Object):
             # TODO
             pass
         elif rigify_type == 'limbs.super_palm':
-            # I think this rigify type affects its siblings...
-            # TODO check implementation to see if it uses the same logic.
+            # This rigify type affects its siblings.
+            # TODO: Decide how to do this. I'd prefer not implementing a component type that affects its siblings,
+            # since there's no precedent for that in CloudRig currently, and it would raise questions about execution order...
+            # I guess it could affect siblings which don't have their own component type?
+            # But still, it would be quite some code restructuring to support this.
             for pbone in pbone.parent.children:
                 pbone.cloudrig_component.component_type = 'Chain: FK'
         elif rigify_type == 'limbs.spline_tentacle':
-            # TODO
-            pass
-
+            # - Extra Start/End Controls: I don't think it's working.
+            # - sik_stretch_control: No clue what this is doing.
+            # - Radius Scaling: This is always on in CloudRig, as it should be.
+            # - Maximum Radius: Pointless.
+            comp.component_type = 'Curve: Spline IK'
+            comp.spline_ik.match_hooks = False
+            comp.spline_ik.hooks = rigify_params.sik_mid_controls + 2
+            comp.spline_ik.create_fk_chain = rigify_params.sik_fk_controls
+            comp.spline_ik.deform_setup = 'CREATE'
         elif rigify_type == 'spines.super_spine':
             # TODO
             pass
