@@ -115,6 +115,15 @@ def convert_components(metarig_ob: Object):
             rigify.utils.rig.connected_children_names(metarig_ob, pbone.name)
         ]
 
+        if rigify_type == 'limbs.super_limb':
+            # Un-wrap super_limb compatibility layer.
+            if rigify_params.limb_type == 'Arm':
+                rigify_type = 'limbs.arm'
+            elif rigify_params.limb_type == 'Leg':
+                rigify_type = 'limbs.leg'
+            elif rigify_params.limb_type == 'Paw':
+                rigify_type = 'limbs.paw'
+
         if rigify_type == 'basic.copy_chain':
             # I don't really want to implement this as a component type, because users should just
             # rely on implicit raw copy, but for the sake of conversion, let's convert each bone of
@@ -211,14 +220,32 @@ def convert_components(metarig_ob: Object):
             cr_params.fk_chain.root = True
             cr_params.fk_chain.create_curl_control = True
             cr_params.fk_chain.counter_rotate_stretch_bones = 0.5
-        elif rigify_type == 'limbs.super_limb':
-            # TODO
-            pass
         elif rigify_type == 'limbs.arm':
-            comp.component_type = 'Limb: Generic'
-            # TODO details
+            # - IK Wrist Pivot, Custom IK Pivot, IK Local Location: Useless imo.
+            #   Will ignore until a user asks for these.
+            # - Rotation Axis: Anything other than Automatic seems pointless.
+            # - Auto-Align Hand: I don't think this is doing anything at all.
+            # - Support Uniform Scaling: There's no reason to turn this off
+            #   (which is the default because of course it is),
+            #   and a scalable root is already built into CloudRig's IK chain.
+            # and CloudRig's FK Root control already provides this functionality.
+            # While CloudRig (for now) allows disabling generation of an IK Pole,
+            # and Rigify starts out without an IK pole by default, I'd rather discourage that.
+            comp.component_type = 'Chain: IK'
+            cr_params.chain.segments = rigify_params.segments
+            cr_params.chain.bbone_density = rigify_params.bbones if rigify_params.bbones > 1 else 0
         elif rigify_type == 'limbs.leg':
+            # - Foot Pivot: This should never be just "Toe".
+            #   A toe pivot should be an optional addition on top of the foot bone
+            #   which pivots at the ankle.
+            # - Separate IK Toe: Pointless; CloudRig's FK toe works fine in IK mode.
+            # - Toe Tip Roll: I think CloudRig's behaviour is more lifelike, so ignoring this.
+            # For other options, see comments of `limbs.arm`.
+            # While CloudRig (for now) allows disabling generation of an IK Pole,
+            # and Rigify starts out without an IK pole by default, I'd rather discourage that.
             comp.component_type = 'Limb: Biped Leg'
+            cr_params.chain.segments = rigify_params.segments
+            cr_params.chain.bbone_density = rigify_params.bbones if rigify_params.bbones > 1 else 0
             cr_params.leg.shape_footroll.shape_name = 'Heel'
             for pb in pbone.children_recursive:
                 bone = pb.bone
@@ -226,7 +253,7 @@ def convert_components(metarig_ob: Object):
                     cr_params.leg.heel_bone = bone.name
                     break
         elif rigify_type == 'limbs.paw':
-            # TODO
+            # TODO: Need to implement as a new component type in CloudRig, probably.
             pass
         elif rigify_type == 'limbs.front_paw':
             # TODO
