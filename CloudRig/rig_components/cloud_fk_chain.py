@@ -298,13 +298,31 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 influence=influence,
                 subtarget=curl_control,
             )
-            fk_bone.add_constraint(
-                "COPY_ROTATION",
+            transcon = fk_bone.add_constraint(
+                "TRANSFORM",
+                name="Transform (Copy Channel Space Rotation)",
                 space="LOCAL",
-                mix_mode="BEFORE",
-                influence=influence,
+                map_from='ROTATION',
+                map_to='ROTATION',
+                mix_mode_rot="BEFORE",
+                influence=1.0,
                 subtarget=curl_control,
             )
+            for axis in "xyz":
+                transcon.drivers.append({
+                    "prop": f"to_min_{axis}_rot",
+                    "expression": f"var / {len(fk_chain)}",
+                    "variables": {
+                        "var": {
+                            "type": "SINGLE_PROP",
+                            "targets": [
+                                {
+                                    "data_path": f'pose.bones["{curl_control.name}"].rotation_euler.{axis}'
+                                }
+                            ],
+                        },
+                    },
+                })
             fk_bone.add_constraint(
                 "COPY_SCALE",
                 space="LOCAL",
