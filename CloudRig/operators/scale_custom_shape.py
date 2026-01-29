@@ -20,7 +20,7 @@ class POSE_OT_scale_custom_shape(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        rig = find_cloudrig(context)
+        rig = find_cloudrig(context) or context.pose_object or context.active_object
         bones = [
             pb for pb in get_pbones_of_selected(context, whole_ebone=True)
             if (pb.custom_shape or is_cloud_metarig(rig))
@@ -31,7 +31,7 @@ class POSE_OT_scale_custom_shape(bpy.types.Operator):
         return True
 
     def invoke(self, context, event):
-        rig = find_cloudrig(context)
+        rig = find_cloudrig(context) or context.pose_object or context.active_object
         self.pbones = [
             pb for pb in get_pbones_of_selected(context, whole_ebone=True)
             if (pb.custom_shape or is_cloud_metarig(rig))
