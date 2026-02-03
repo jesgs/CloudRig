@@ -594,6 +594,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         for bone_info in self.bone_infos:
             if not bone_info.preserve:
+                eb = self.target_rig.data.edit_bones.get(bone_info.name)
+                if eb:
+                    self.target_rig.data.edit_bones.remove(eb)
                 continue
             if bone_info.name in self.target_rig.data.edit_bones:
                 # This happens for ORG bones that we load into BoneInfo objects,
