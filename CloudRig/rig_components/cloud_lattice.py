@@ -25,7 +25,7 @@ class Component_Lattice(Component_Base):
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         self.__check_lattice_already_used()
-        self.lattice_root = self.__make_lattice_root(self.root_bone)
+        self.root_bone = self.lattice_root = self.__make_lattice_root(self.root_bone)
         self.hook_bone = self.__make_hook_ctrl(self.lattice_root)
 
     def create_helper_objects(self, context):
@@ -64,7 +64,7 @@ class Component_Lattice(Component_Base):
                         },
                     )
 
-    def __make_lattice_root(self, org_bi):
+    def __make_lattice_root(self, org_bi: BoneInfo) -> BoneInfo:
         root_bone = self.bone_sets['Lattice Controls'].new(
             name=self.naming.add_prefix(org_bi, "ROOT-LTC"),
             source=org_bi,
@@ -77,7 +77,7 @@ class Component_Lattice(Component_Base):
             root_bone.use_custom_shape_bone_size=True
         return root_bone
 
-    def __make_hook_ctrl(self, root_bone):
+    def __make_hook_ctrl(self, root_bone: BoneInfo) -> BoneInfo:
         hook_bone = self.bone_sets['Lattice Controls'].new(
             name=self.naming.add_prefix(root_bone.source, "LTC"),
             source=root_bone,
@@ -98,8 +98,12 @@ class Component_Lattice(Component_Base):
         return lattice_ob
 
     def __reset_lattice(
-        self, context, lattice_ob: Object, root_bone: BoneInfo, hook_bone: BoneInfo
-    ):
+        self,
+        context,
+        lattice_ob: Object,
+        root_bone: BoneInfo,
+        hook_bone: BoneInfo,
+    ) -> Object:
         # If lattice doesn't exist, create it.
         if not lattice_ob:
             lattice_name = hook_bone.name
