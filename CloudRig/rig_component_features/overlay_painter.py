@@ -248,7 +248,7 @@ def draw_rig_preview():
     metarig = context.active_object
     animdata = metarig.animation_data
     metarig_is_animated = animdata and (animdata.action or animdata.drivers)
-    is_playback = context.screen.is_animation_playing and metarig_is_animated
+    is_animating = context.screen.is_animation_playing and metarig_is_animated
     selection = set([pb.name for pb in get_pbones_of_selected(context, whole_ebone=False)])
     selection_changed = SELECTION_CACHE != selection
     mode_changed = context.mode != MODE_CACHE
@@ -264,7 +264,7 @@ def draw_rig_preview():
             view_moved = True
     view_3d.shading.cloudrig_prev_view = view_matrix_str
 
-    if view_moved or is_modal_navi_running(context) or is_playback or selection_changed or mode_changed:
+    if (view_moved or is_modal_navi_running(context)) and not (is_animating or selection_changed or mode_changed):
         # During viewport navigation, if the metarig isn't animating,
         # re-draw entirely from cache. (This takes <0.1ms.)
         draw_batch_cache()
