@@ -3,6 +3,7 @@
 import importlib
 from types import ModuleType
 
+import bpy
 from bpy.utils import register_class, unregister_class
 
 from . import (
@@ -16,6 +17,7 @@ from . import (
     properties,
     rig_component_features,
     rig_components,
+    translations,
     ui,
     utils,
 )
@@ -73,6 +75,7 @@ def register():
     """Very first CloudRig code execution entry point, called by Blender."""
     if __name__.startswith("rigify"):
         raise Exception("CloudRig is not a Rigify feature set!")
+    bpy.app.translations.register(__name__, translations.translations)
     recurive_register(modules, True)
 
 
@@ -83,4 +86,5 @@ def unregister():
     # This should be done before unregistering anything, otherwise things can fail.
     prefs.update_prefs_on_file()
 
+    bpy.app.translations.unregister(__name__)
     recurive_register(modules, False)
