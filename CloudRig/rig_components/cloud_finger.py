@@ -57,19 +57,43 @@ class Component_Finger(Component_Chain_IKFK):
             **kwargs
         )
 
+    def ik_chain__make_ik_chain(
+        self,
+        org_chain: list[BoneInfo],
+        ik_mstr: BoneInfo,
+        pole_target: BoneInfo=None,
+    ) -> list[BoneInfo]:
+        ik_chain = super().ik_chain__make_ik_chain(org_chain, ik_mstr, pole_target)
+        ik_mstr.parent = self.root_bone
+
+        self.ik2_chain = self.__create_two_bone_ik_chain(
+            self.bones_org[:-1],
+            ik_mstr,
+            self.pole_ctrl,
+        )
+
+        return ik_chain
+
     @no_overlay
-    def ik_chain__make_pole_follow_switch(
-        self, ik_pole, ik_mstr, _stretch_bone, _default=0.0
-    ):
+    def ik_chain__make_ik_stretch(
+        self,
+        org_chain: list[BoneInfo],
+        ik_chain: list[BoneInfo],
+        ik_mstr: BoneInfo
+    ) -> BoneInfo:
+        stretch_bone = super().ik_chain__make_ik_stretch(org_chain, ik_chain, ik_mstr)
+        stretch_bone.add_constraint('COPY_ROTATION', subtarget=ik_mstr, index=0, use_xyz=[False, True, False])
+        if self.pole_ctrl:
+            self.pole_ctrl.parent = stretch_bone
+        return stretch_bone
+
+    @no_overlay
+    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, _default=0.0):
         """Avoid creating complex inherited set-up. Just parent the pole to the master."""
         ik_pole.parent = ik_mstr
 
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
         """Disable IK pole parent switching for finger components."""
-        pass
-
-    def ik_chain__world_align_fk(self):
-        """Don't world align FK for fingers, only IK."""
         pass
 
     @no_overlay(return_value={})
@@ -93,18 +117,51 @@ class Component_Finger(Component_Chain_IKFK):
         ui_data['op_kwargs']['map_on'] = map_on
         return ui_data
 
-    def create_bone_infos(self, context):
-        super().create_bone_infos(context)
+    @no_overlay
+    def ik_chain__attach_org_to_ik(self, org_chain: list[BoneInfo], ik_chain: list[BoneInfo]):
+        # Note: Runs after fk_chain__attach_org_to_fk().
 
-        self.ik_mstr.parent = self.root_bone
+        # Add Copy Transforms constraints to the ORG bones to copy the IK bones.
+        # Put driver on the influence to be able to disable IK.
+        for org_bone, ik_bone in zip(org_chain, ik_chain):
+            # Copy Transforms of IK bone
+            ct_ik = org_bone.add_constraint(
+                "COPY_TRANSFORMS",
+                space="WORLD",
+                subtarget=ik_bone.name,
+                name="Copy Transforms IK Full",
+            )
 
-        if self.params.ik_chain.use_pole:
-            # Parent the pole target to the stretch bone
-            self.pole_ctrl.parent = self.stretch_bone
+            ct_ik.drivers.append(
+                {
+                    "prop": "influence",
+                    "variables": {
+                        "ik": (self.properties_bone.name, self.ikfk_name),
+                        "ik_full": (self.properties_bone.name, self.full_length_ik_name)
+                    },
+                    "expression": "ik * ik_full"
+                }
+            )
 
-        self.__create_two_bone_ik_chain(
-            self.bones_org[:-1], self.ik_chain, self.pole_ctrl
-        )
+        for org_bone, ik2_bone in zip(org_chain, self.ik2_chain):
+            # Copy Transforms of IK bone
+            ct_ik = org_bone.add_constraint(
+                "COPY_TRANSFORMS",
+                space="WORLD",
+                subtarget=ik2_bone.name,
+                name="Copy Transforms IK",
+            )
+
+            ct_ik.drivers.append(
+                {
+                    "prop": "influence",
+                    "variables": {
+                        "ik": (self.properties_bone.name, self.ikfk_name),
+                        "ik_full": (self.properties_bone.name, self.full_length_ik_name)
+                    },
+                    "expression": "ik * (1-ik_full)"
+                }
+            )
 
     ##############################
     # Finger functions.
@@ -113,8 +170,8 @@ class Component_Finger(Component_Chain_IKFK):
     def __create_two_bone_ik_chain(
         self,
         org_chain: list[BoneInfo],
-        ik_chain: list[BoneInfo],
-        pole_target: BoneInfo,
+        ik_mstr: BoneInfo,
+        pole_target: BoneInfo | None,
     ) -> list[BoneInfo]:
         """We create an additional IK chain (besides what's inherited from cloud_ik_chain)
         for the 2-length IK behaviour.
@@ -128,24 +185,6 @@ class Component_Finger(Component_Chain_IKFK):
                 parent=ik2_chain[-1] if ik2_chain else self.root_bone,
             )
             ik2_chain.append(ik2_bone)
-            # Change ORG bone copy transform targets from IK to IK2.
-            org_bone.constraint_infos[-1].subtarget = ik2_bone
-
-        ik2_dt = self.bone_sets['IK Mechanism'].new(
-            name=self.naming.add_prefix(org_bone, "IK2-DT"),
-            source=self.ik_mstr,
-            parent=self.ik_tgt_bone,
-        )
-        dt_con = ik2_dt.add_constraint(
-            'DAMPED_TRACK', subtarget=ik_chain[-2], track_axis='TRACK_NEGATIVE_Y'
-        )
-
-        ik2_rot = self.bone_sets['IK Mechanism'].new(
-            name=self.naming.add_prefix(org_bone, "IK2-ROT"),
-            source=self.ik_mstr,
-            parent=ik2_dt,
-        )
-        copyrot_con = ik2_rot.add_constraint('COPY_ROTATION', subtarget=self.ik_mstr)
 
         last_ik2 = ik2_chain[-1]
         # Add the IK constraint to the previous bone, targetting this one.
@@ -157,7 +196,7 @@ class Component_Finger(Component_Chain_IKFK):
             subtarget=last_ik2,
             chain_count=2,
         )
-        last_ik2.parent = ik2_rot
+        last_ik2.parent = ik_mstr
 
         # Add UI data for switching between the two IK types
 
@@ -173,15 +212,6 @@ class Component_Finger(Component_Chain_IKFK):
                 'description': 'When enabled, the last bone in the chain is also considered part of the IK chain',
             },
         )
-
-        # Add driver to switch between the two IK types
-        driver = {
-            'prop': 'influence',
-            'expression': "var",
-            'variables': [(self.properties_bone.name, self.full_length_ik_name)],
-        }
-        copyrot_con.drivers.append(driver.copy())
-        dt_con.drivers.append(driver)
 
         return ik2_chain
 
