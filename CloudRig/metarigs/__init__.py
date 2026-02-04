@@ -250,8 +250,6 @@ modules = [versioning]
 def delayed_refresh_metarig_list(c=1, s=2):
     refresh_metarig_list()
     refresh_rig_sample_list()
-    bpy.app.handlers.load_post.remove(delayed_refresh_metarig_list)
-
 
 def register():
     bpy.app.handlers.load_post.append(delayed_refresh_metarig_list)

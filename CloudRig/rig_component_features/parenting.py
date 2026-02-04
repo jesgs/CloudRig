@@ -197,6 +197,7 @@ class CloudParentingMixin:
         # Create parent bone that will hold the Armature constraint.
         arm_con_bone = self.create_parent_bone(child_bone, self.bones_mch)
         arm_con_bone.custom_shape = None
+        arm_con_bone.custom_shape_name = ""
         self.create_driven_armature_constraint(
             arm_con_bone,
             parent_bone_names,

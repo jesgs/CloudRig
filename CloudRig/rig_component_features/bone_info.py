@@ -1189,7 +1189,7 @@ class ConstraintInfo(dict):
         elif self.type in ['LIMIT_LOCATION', 'LIMIT_ROTATION']:
             self.use_transform_limit = True
         elif self.type == 'IK':
-            self.chain_count = 2
+            self.ik_chain_count = 2
 
     def make_real(self, pose_bone: PoseBone):
         """Create a constraint based on this ConstraintInfo on a given pose bone."""

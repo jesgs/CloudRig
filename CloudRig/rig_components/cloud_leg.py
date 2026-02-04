@@ -38,7 +38,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         self.ik_pole_offset = 5
         self.pole_side = -1
-        self.chain_count -= 1
+        self.ik_chain_count -= 1
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)

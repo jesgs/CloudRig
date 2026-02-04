@@ -46,9 +46,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # Will be passed to the IK constraint's chain_count.
         # Elements of the rig can use this to avoid having to make assumptions about correlations
         # between the length of the ORG chain vs how long the IK chain is.
-        self.chain_count = self.bone_count - 1
+        self.ik_chain_count = self.bone_count - 1
         if self.params.ik_chain.at_tip:
-            self.chain_count += 1
+            self.ik_chain_count += 1
         if not self.params.parenting.parent_switching:
             self.params.ik_chain.pole_parent_switch = 'FOLLOW'
 
@@ -215,7 +215,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # Create IK Master control
         self.ik_mstr = self.ik_chain__make_master_ctr(
             self.bone_sets["IK Controls"],
-            self.bones_org[self.chain_count],
+            self.bones_org[self.ik_chain_count],
         )
 
         self.__store_ik_info()
@@ -346,7 +346,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             else:
                 ik_bone.parent = ik_chain[-2]
 
-            if i == self.chain_count:
+            if i == self.ik_chain_count:
                 # Add the IK constraint to the previous bone, targetting this one.
                 ik_chain[-2].add_constraint(
                     "IK",
@@ -374,7 +374,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         Some extra stuff is in ik_chain__attach_org_to_ik.
         # TODO: Put these things under a parameter, so IK Stretch can be disabled when not needed.
         """
-        ik_org_bone = org_chain[-1]
+        ik_org_bone = org_chain[self.ik_chain_count]
         stretch_bone = self.bone_sets["IK Mechanism"].new(
             name=self.naming.add_prefix(org_chain[0], "IK-STR"),
             source=org_chain[0],
@@ -392,7 +392,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         )
 
         chain_length = 0
-        for ik_bone in ik_chain[:-1]:
+        for ik_bone in ik_chain[:self.ik_chain_count]:
             chain_length += ik_bone.length
 
         length_factor = chain_length / stretch_bone.length
@@ -437,7 +437,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         )
 
         # Last IK bone should copy location of the tail of the stretchy bone.
-        self.ik_tgt_bone = ik_chain[-1]
+        self.ik_tgt_bone = ik_chain[self.ik_chain_count]
         self.ik_tgt_bone.add_constraint(
             "COPY_LOCATION",
             space="WORLD",
