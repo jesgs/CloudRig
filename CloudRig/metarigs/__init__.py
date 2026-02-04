@@ -247,13 +247,14 @@ modules = [versioning]
 
 # Registering is a bit tricky because we need to load a resource .blend file,
 # which is not allowed by bpy during registration, so we have to do it with a delay.
-def delayed_refresh_metarig_list():
+def delayed_refresh_metarig_list(c=1, s=2):
     refresh_metarig_list()
     refresh_rig_sample_list()
+    bpy.app.handlers.load_post.remove(delayed_refresh_metarig_list)
 
 
 def register():
-    bpy.app.timers.register(delayed_refresh_metarig_list)
+    bpy.app.handlers.load_post.append(delayed_refresh_metarig_list)
     bpy.types.VIEW3D_MT_armature_add.append(draw_cloudrig_metarig_menu)
     versioning.update_all_metarigs()
 
