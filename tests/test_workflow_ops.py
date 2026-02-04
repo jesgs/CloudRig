@@ -2,8 +2,8 @@ import bpy
 from bpy.types import EditBone, Object, PoseBone
 
 
-def test_copy_mirror_component(context, scene_workflow):
-    metarig = context.active_object
+def test_copy_mirror_component(context_workflow):
+    metarig = context_workflow.active_object
     bpy.ops.object.mode_set(mode='POSE')
     left_pbone = metarig.pose.bones['UpperArm.L']
     right_pbone = metarig.pose.bones['UpperArm.R']
@@ -14,8 +14,8 @@ def test_copy_mirror_component(context, scene_workflow):
     assert left_pbone.cloudrig_component.component_type == 'Limb: Generic'
     assert left_pbone.cloudrig_component.params.parenting.parent_slots[3].bone == 'ROOT-UpperArm.L'
 
-def test_symmetrize(context, scene_workflow):
-    metarig = context.active_object
+def test_symmetrize(context_workflow):
+    metarig = context_workflow.active_object
     bpy.ops.object.mode_set(mode='POSE')
     for pb in metarig.pose.bones:
         pb.select = pb.name.endswith(".L")
@@ -36,24 +36,24 @@ def test_symmetrize(context, scene_workflow):
     select_bone(metarig, 'LipRing4.L')
     bpy.ops.pose.delete_selected()
 
-def test_better_bone_extrude(context, scene_workflow):
-    metarig = context.active_object
+def test_better_bone_extrude(context_workflow):
+    metarig = context_workflow.active_object
     bpy.ops.object.mode_set(mode='EDIT')
     my_bone = metarig.data.edit_bones['LipRing3.L']
     select_ebone(my_bone)
     metarig.data.use_mirror_x = True
     bpy.ops.armature.better_bone_duplicate()
-    new_bone = context.active_bone
+    new_bone = context_workflow.active_bone
     assert new_bone.name == 'LipRing6.L', f"Bone name didn't increment correctly: {new_bone.name}"
     assert 'LipRing6.R' in metarig.data.edit_bones, "Mirror bone name didn't increment correctly"
     bpy.ops.armature.select_all(action='DESELECT')
     metarig.data.edit_bones['LipRing6.L'].select_tail = True
     bpy.ops.armature.better_bone_extrude()
-    new_bone = context.active_bone
+    new_bone = context_workflow.active_bone
     assert new_bone.name == 'LipRing7.L', f"Bone name didn't increment correctly: {new_bone.name}"
 
-def test_bone_parent_ops(context, scene_simple):
-    rig = context.active_object
+def test_bone_parent_ops(context_simple):
+    rig = context_simple.active_object
     rig.data.use_mirror_x = True
     def run_bone_parent_ops(mode):
         # Need to have the same state by the end of this function as at the start,
@@ -85,23 +85,23 @@ def test_bone_parent_ops(context, scene_simple):
     for mode in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
         bpy.ops.object.mode_set(mode='OBJECT')
         if mode == 'WEIGHT_PAINT':
-            cylinder = scene_simple.objects['Cylinder']
+            cylinder = context_simple.scene.objects['Cylinder']
             cylinder.select_set(True)
-            context.view_layer.objects.active = cylinder
+            context_simple.view_layer.objects.active = cylinder
 
         bpy.ops.object.mode_set(mode=mode)
         run_bone_parent_ops(mode)
 
-def test_separate_and_obj_parent(context, scene_simple):
-    rig = context.active_object
+def test_separate_and_obj_parent(context_simple):
+    rig = context_simple.active_object
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.armature.select_all(action='SELECT')
     bpy.ops.armature.hide()
     bpy.ops.object.mode_set(mode='POSE')
     select_bone(rig, 'Bone3.L')
     bpy.ops.pose.separate_selected_bones()
-    assert context.active_object.name == 'META-Simple.001'
-    assert context.active_object.pose.bones['Bone3.L']
+    assert context_simple.active_object.name == 'META-Simple.001'
+    assert context_simple.active_object.pose.bones['Bone3.L']
     cylinder = bpy.data.objects['Cylinder']
     cylinder.select_set(True)
     bpy.ops.object.mode_set(mode='POSE')
@@ -109,14 +109,14 @@ def test_separate_and_obj_parent(context, scene_simple):
     arm_con_tar = cylinder.constraints[0].targets[0]
     assert arm_con_tar.target.name == 'META-Simple.001' and arm_con_tar.subtarget == 'Bone3.L'
 
-def test_bone_select_ops(context, scene_workflow):
+def test_bone_select_ops(context_workflow):
     assert bpy.ops.object.cloudrig_metarig_toggle() == {'FINISHED'}, "Failed to toggle metarig"
     for mode in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
         bpy.ops.object.mode_set(mode='OBJECT')
         if mode == 'WEIGHT_PAINT':
-            suzanne = scene_workflow.objects['Suzanne']
+            suzanne = context_workflow.scene.objects['Suzanne']
             suzanne.select_set(True)
-            context.view_layer.objects.active = suzanne
+            context_workflow.view_layer.objects.active = suzanne
         assert bpy.ops.object.mode_set(mode=mode) == {'FINISHED'}
         assert bpy.ops.pose.select_by_name_search(bone_name="IK-STR-UpperArm.L") == {'FINISHED'}
         assert bpy.ops.pose.select_parent_bone() == {'FINISHED'}

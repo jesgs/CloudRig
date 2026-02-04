@@ -1,12 +1,12 @@
 import bpy
 
-from .conftest import select_scene_and_object
+from .conftest import select_obj
 from .install_this import disable_this, enable_this
 from .test_pose_consistency import MatchingPose
 
 
-def test_snap_bake_ops(context, scene_poses):
-    select_scene_and_object(context, scene_poses.name, "RIG-Cloud_Human")
+def test_snap_bake_ops(context_poses):
+    select_obj(context_poses, "RIG-Cloud_Human")
     assert bpy.ops.pose.cloudrig_generate() == {'FINISHED'}, "Failed to regenerate Cloud Human in tests.blend."
 
     # I re-register the add-on because if we're running the rig UI operators now, we're running
@@ -17,13 +17,13 @@ def test_snap_bake_ops(context, scene_poses):
     disable_this()
     enable_this()
 
-    rig = context.active_object
+    rig = context_poses.active_object
     bpy.ops.object.mode_set(mode='POSE')
 
     # We snap FK to IK, then IK back to FK, and assert that the IK bones are in the exact same transforms as they started out with.
     # This snapping logic is perceptibly perfect, but we still have to crank the matrix tolerance up a fair bit, even for it to pass
     # on my work PC.
-    with MatchingPose(context, rig, frame=13, bone_subset=['IK-Wrist.L', 'POLE-UpperArm.L', 'IK-M-UpperArm.L'], matrix_tol=0.1):
+    with MatchingPose(context_poses, rig, frame=13, bone_subset=['IK-Wrist.L', 'POLE-UpperArm.L', 'IK-M-UpperArm.L'], matrix_tol=0.1):
         for i in range(3):
             bpy.ops.pose.cloudrig_toggle_ikfk_bake(
                 prop_bone="Properties",
@@ -51,9 +51,9 @@ def test_snap_bake_ops(context, scene_poses):
             )
 
 
-def test_rig_ops(context, scene_poses):
-    context.view_layer.objects.active = bpy.data.objects['RIG-Cloud_Human']
-    rig = context.active_object
+def test_rig_ops(context_poses):
+    context_poses.view_layer.objects.active = bpy.data.objects['RIG-Cloud_Human']
+    rig = context_poses.active_object
     assert bpy.ops.pose.cloudrig_keyframe_all_settings() == {'FINISHED'}, "Failed to Keyframe All Settings."
     assert bpy.ops.pose.armature_reset(
         reset_action=True,

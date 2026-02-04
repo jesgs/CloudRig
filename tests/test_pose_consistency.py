@@ -4,7 +4,7 @@ from bpy.types import Object, PoseBone
 from mathutils import Matrix, Vector
 
 
-def test_pose_consistency(context, scene_poses):
+def test_pose_consistency(context_poses):
     obj_frame_map = {
         'META-toon_chain_tests_1': 10,
         'META-Cloud_Human': 20,
@@ -13,7 +13,7 @@ def test_pose_consistency(context, scene_poses):
         'META-grid_chain_tests': 30,
         'META-relinking': 40,
     }
-    metarigs_test(context, obj_frame_map)
+    metarigs_test(context_poses, obj_frame_map)
 
 def test_curves(context_curves):
     obj_frame_map = {

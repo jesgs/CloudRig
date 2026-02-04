@@ -8,14 +8,14 @@ def test_run_in_blender(context):
     file = Path(__file__).parent / Path("run_in_blender.py")
     run_file_in_blender(file)
 
-def test_post_gen_utils(context, scene_simple):
+def test_post_gen_utils(context_simple):
     post_gen = Path(__file__).parent / Path("post_gen.py")
     text = load_in_blender(post_gen)
-    metarig = context.active_object
+    metarig = context_simple.active_object
     metarig.cloudrig.generator.custom_script = text
     assert bpy.ops.pose.cloudrig_generate() == {'FINISHED'}
     # run_file_in_blender(post_gen)
-    assert len(context.active_object.cloudrig.generator.logs) == 0
+    assert len(context_simple.active_object.cloudrig.generator.logs) == 0
 
 def test_bone_colors(context):
     assert bpy.ops.preferences.set_bone_color_presets(preset='BLENDER') == {'FINISHED'}
