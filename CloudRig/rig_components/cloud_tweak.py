@@ -119,6 +119,8 @@ class Component_TweakBone(Component_Base):
             for prop_name in meta_pbone.custom_props:
                 bone_to_tweak.custom_props[prop_name] = meta_pbone.custom_props[prop_name]
 
+        bone_to_tweak.drivers_to_copy = org_boneinfo.drivers_to_copy
+
         super().create_component_interactions(context)
 
         if self.params.tweak.ensure_free and len(bone_to_tweak.constraint_infos) > 0:
