@@ -246,22 +246,9 @@ class Component_Limb_BipedLeg(Component_Limb):
         # Create bone to use as pivot point when rolling back.
         # This is read from the metarig and should be placed at
         # the heel of the shoe, pointing forward.
-        heel_pivot_bone = self.__get_heel_pivot_meta_bone()
-
-        # Take the bone shape size of the foot controls from the heel pivot bone b-bone scale.
-        self.ik_mstr._bbone_x = heel_pivot_bone.bone.bbone_x
-        self.ik_mstr._bbone_z = heel_pivot_bone.bone.bbone_z
-        if self.params.limb.double_ik:
-            self.ik_mstr.parent._bbone_x = heel_pivot_bone.bone.bbone_x
-            self.ik_mstr.parent._bbone_z = heel_pivot_bone.bone.bbone_z
-
-        heel_pivot = self.bone_sets['IK Mechanism'].new(
-            name=self.naming.add_prefix(org_foot, "ROLL-BACK"),
-            bbone_width=org_toe.bbone_width,
-            head=heel_pivot_bone.head,
-            tail=heel_pivot_bone.tail,
-            parent=roll_mch,
-        )
+        heel_pivot = self.__get_heel_pivot_bone()
+        heel_pivot.parent = roll_mch
+        heel_pivot.collections = self.bone_sets['IK Mechanism'].collections
         heel_pivot.roll_align_vector(org_knee.head, axis='-Z')
 
         heel_pivot.add_constraint(
@@ -344,17 +331,15 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.custom_props.props_storage == 'GENERATED':
             self.properties_bone.custom_shape_transform = roll_ctrl
 
-    def __get_heel_pivot_meta_bone(self) -> PoseBone:
+    def __get_heel_pivot_bone(self) -> BoneInfo:
         heel_pivot_name = self.params.leg.heel_bone
-        if heel_pivot_name == "":
-            heel_pivot_name = self.bones_org[-2].name.replace("ORG-", "")
-        heel_pivot_pb = self.get_metarig_pbone(heel_pivot_name)
-        if not heel_pivot_pb:
+        heel_pivot = self.find_bone_info(heel_pivot_name)
+        if not heel_pivot:
             self.raise_generation_error(
                 f'Could not find HeelPivot bone in the metarig: "{heel_pivot_name}".'
             )
 
-        return heel_pivot_pb
+        return heel_pivot
 
     @no_overlay
     def __make_ik_toe(self):
