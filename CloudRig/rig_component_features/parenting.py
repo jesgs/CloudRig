@@ -169,7 +169,6 @@ class CloudParentingMixin:
             # For some components, it might make sense to only supply 1 parent,
             # eg. for cloud_ik_chain, since there the parent swithcing setup
             # relates to the IK master and pole target rather than the root bone.
-            # TODO: It would be better to separate the IK master/IK pole parent switching params from the root ones.
             self.rig_ui__add_bone_property(
                 prop_bone=prop_bone,
                 prop_id=prop_name,
@@ -179,10 +178,8 @@ class CloudParentingMixin:
                 slider_name=entry_name,
                 texts=parent_ui_names,
                 custom_prop_settings={
-                    "default": self.get_default_parent_index(
-                        parent_bone_names
-                    ),
-                    "max": len(parent_ui_names) - 1,
+                    "default": self.get_default_parent_index(parent_bone_names),
+                    "max": len(parent_bone_names) - 1,
                     "description": f'Changes the parent bone of "{child_bone.name}"',
                 },
                 operator="pose.cloudrig_switch_parent_bake",
@@ -226,7 +223,7 @@ class CloudParentingMixin:
         )
 
         if len(target_bones) == 1:
-            return
+            return arm_con
 
         # Add weight drivers.
         for i, t in enumerate(arm_con.targets):

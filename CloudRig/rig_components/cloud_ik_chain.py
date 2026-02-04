@@ -74,7 +74,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             panel_name=panel_name,
             row_name=row_name or self.base_name,
             label_name=label_name,
-            entry_name=entry_name or self.limb_ui_name,
+            entry_name=entry_name or self.ik_mstr.name,
         )
 
     @no_overlay
@@ -164,8 +164,14 @@ class Component_Chain_IKFK(Component_Chain_FK):
             if self.params.ik_chain.pole_parent_switch == 'FOLLOW':
                 self.ik_chain__make_pole_follow_switch(self.pole_ctrl, self.ik_mstr)
             else:
-                # TODO
-                pass
+                self.parent_bone_names
+                self._parent_bone_names.append(self.ik_mstr.name)
+                self.base__apply_parent_switching(
+                    child_bone=self.pole_ctrl,
+                    prop_name="ik_pole_parents_" + self.limb_name_props,
+                    row_name=self.pole_ctrl.name,
+                    entry_name=self.pole_ctrl.name,
+                )
 
 
     ##############################
@@ -686,7 +692,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         cls.draw_prop(context, layout, params.ik_chain, "use_pole")
         if params.ik_chain.use_pole and params.parenting.parent_switching:
-            cls.draw_prop(context, layout, params.ik_chain, "pole_parent_switch")
+            cls.draw_prop(context, layout, params.ik_chain, "pole_parent_switch", expand=True)
         cls.draw_prop(context, layout, params.ik_chain, "at_tip")
 
         if cls.is_advanced_mode(context):
