@@ -77,13 +77,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
             entry_name=entry_name or self.limb_ui_name,
         )
 
-        if self.params.ik_chain.use_pole:
-            if self.params.ik_chain.pole_parent_switch:
-                self.ik_chain__make_pole_follow_switch(self.pole_ctrl, self.ik_mstr)
-                self.ik_chain__make_pole_parent_switch(self.pole_ctrl, self.ik_mstr)
-            else:
-                pass # TODO
-
     @no_overlay
     def rig_ui__add_bone_property(self, operator="", op_kwargs={}, **kwargs):
         # TODO: This should be restructured, we shouldn't be overriding this function.
@@ -163,6 +156,17 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.rig_ui__add_bone_property(**self.ui_data)
 
         self.ik_chain__attach_org_to_ik(self.bones_org, self.ik_chain)
+
+    def create_component_interactions(self, context):
+        super().create_component_interactions(context)
+
+        if self.params.ik_chain.use_pole:
+            if self.params.ik_chain.pole_parent_switch == 'FOLLOW':
+                self.ik_chain__make_pole_follow_switch(self.pole_ctrl, self.ik_mstr)
+            else:
+                # TODO
+                pass
+
 
     ##############################
     # IK Chain functions.
@@ -244,7 +248,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             name=bone_name or self.naming.add_prefix(source_bone, "IK"),
             source=source_bone,
             custom_shape_name=shape_name or self.params.ik_chain.shape_ik_master.shape_name,
-            parent=None,
+            parent=self.generator.params.ensure_root,
         )
 
         if not self.generator_params.ensure_root:
@@ -613,71 +617,16 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 }
             )
 
-    @no_overlay
-    def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
-        """Tweak the IK Pole control's constraint to support parent switching."""
-
-        pole_parent = ik_pole.parent
-
-        # The pole parent already has an Armature constraint for the
-        # IK Follow slider, so we need to hack parent switching into that...
-        arm_con_info = pole_parent.constraint_infos[0]
-        if (
-            not ik_mstr.parent
-            or len(ik_mstr.parent.constraint_infos) == 0
-            or len(ik_mstr.parent.constraint_infos[0].drivers) == 0
-        ):
-            return
-        arm_con_info.drivers[0] = ik_mstr.parent.constraint_infos[0].drivers[0].copy()
-        for target, driver in zip(
-            ik_mstr.parent.constraint_infos[0].targets[1:],
-            ik_mstr.parent.constraint_infos[0].drivers[1:],
-        ):
-            arm_con_info.targets.append(target)
-            driver = driver.copy()
-            driver["prop"] = f"targets[{len(arm_con_info.targets)-1}].weight"
-            arm_con_info.drivers.append(driver)
-
-        # arm_con_info.drivers.extend(ik_mstr.parent.constraint_infos[0].drivers)
-
-        ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
-        # Tweak each driver on the IK pole parent.
-        for i, d in enumerate(arm_con_info.drivers):
-            if i != 1:
-                d["expression"] = f"({d['expression']}) - follow"
-
-                # Add "follow" variable.
-                d["variables"]["follow"] = {
-                    "type": "SINGLE_PROP",
-                    "targets": [
-                        {
-                            "data_path": f'pose.bones["{self.properties_bone.name}"]["{ik_pole_follow_name}"]'
-                        }
-                    ],
-                }
 
     @no_overlay
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, default=0.0):
-        if (
-            self.params.parenting.parent_switching
-            and len(self.parent_ui_names) > 0
-        ):
-            _parent_ui_names, parent_bone_names = self.sanitize_parent_list(
-                self.params.parenting.parent_slots
-            )
-            first_parent = parent_bone_names[0]
-        elif self.generator_params.ensure_root:
-            first_parent = self.generator_params.ensure_root
-        else:
-            first_parent = self.bones_org[0].parent
-
         pole_parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
         pole_parent_helper.custom_shape = None
 
         ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
         self.create_driven_armature_constraint(
             pole_parent_helper,
-            target_bones=[first_parent, ik_mstr],
+            target_bones=[ik_mstr.parent, ik_mstr],
             prop_bone=self.properties_bone,
             prop_name=ik_pole_follow_name,
             preserve_volume=True,
