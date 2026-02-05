@@ -743,7 +743,7 @@ class Params(PropertyGroup):
 
     shape_ik_master: Component_Chain_FK.make_custom_shape_params(
         identifier="IK Master",
-        default="Sphere"
+        default="Saddle"
     )
     shape_ik_first: Component_Chain_FK.make_custom_shape_params(
         identifier="First IK",

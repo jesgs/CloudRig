@@ -125,11 +125,10 @@ class Component_Limb(Component_Chain_IKFK):
 
     def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
         if shape_name == "":
-            shape_name = "Saddle"
+            shape_name = self.params.ik_chain.shape_ik_master.shape_name
         ik_master = super().ik_chain__make_master_ctr(
             bone_set, source_bone, bone_name, shape_name
         )
-        ik_master.custom_shape_scale = 0.8
 
         return ik_master
 
