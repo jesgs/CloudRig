@@ -10,6 +10,7 @@ from bpy.types import Object, Operator, PoseBone
 
 from ..rig_component_features.mechanism import find_or_create_constraint
 from ..rig_component_features.properties_ui import add_property_to_ui
+from .pie_bone_selection_ops import reveal_and_select_bone
 
 
 class CLOUDRIG_OT_convert_rigify_metarig(Operator):
@@ -41,7 +42,7 @@ class CLOUDRIG_OT_convert_rigify_metarig(Operator):
 
     def execute(self, context):
         metarig_ob = context.active_object
-        convert_rigify_to_cloudrig(metarig_ob)
+        convert_rigify_to_cloudrig(context, metarig_ob)
         return {'FINISHED'}
 
 
@@ -80,7 +81,7 @@ class CLOUDRIG_OT_replace_rigify_rig(Operator):
 
         return {'FINISHED'}
 
-def convert_rigify_to_cloudrig(metarig_ob: Object):
+def convert_rigify_to_cloudrig(context, metarig_ob: Object):
     for pb in metarig_ob.pose.bones:
         if not pb.custom_shape:
             pb.custom_shape_scale_xyz = [1, 1, 1]
@@ -88,11 +89,11 @@ def convert_rigify_to_cloudrig(metarig_ob: Object):
             pb.custom_shape_rotation_euler = [0, 0, 0]
             pb.use_custom_shape_bone_size = True
     convert_actions(metarig_ob)
-    convert_components(metarig_ob)
+    convert_components(context, metarig_ob)
     convert_bone_collections_ui(metarig_ob)
 
 
-def convert_components(metarig_ob: Object):
+def convert_components(context, metarig_ob: Object):
     """
     Convert Rigify's "Rig Type" assignments to as-close-as-possible CloudRig
     component type assignments.
@@ -102,7 +103,7 @@ def convert_components(metarig_ob: Object):
     """
     skipped = 0
     converted = 0
-    for pbone in metarig_ob.pose.bones:
+    for pbone in metarig_ob.pose.bones[:]:
         comp = pbone.cloudrig_component
         cr_params = comp.params
         rigify_params = pbone.rigify_parameters
@@ -145,12 +146,12 @@ def convert_components(metarig_ob: Object):
             # Assigning this is optional in CloudRig, but doing it will let the user distinguish
             # between bones that used to have Rigify's raw_copy assigned vs those that did not.
             # (both will behave the same)
-            pbone.cloudrig_component.component_type = 'Raw Copy'
-        elif rigify_type == 'basic.super_copy':
+            comp.component_type = 'Raw Copy'
+        elif rigify_type in ('basic.super_copy', 'skin.anchor'):
             # Special case: Shoulder bone
             any_arm_child = any(get_rigify_type(child)=='limbs.arm' for child in pbone.children)
             if any_arm_child:
-                pbone.cloudrig_component.component_type = 'Shoulder Bone'
+                comp.component_type = 'Shoulder Bone'
                 continue
             # General case weird things:
             # - You can turn everything off, and then this just generates a useless locked ORG bone.
@@ -194,6 +195,11 @@ def convert_components(metarig_ob: Object):
                     pbone.custom_shape_rotation_euler.y += pi/2
             else:
                 cr_params.copy.shape_control.shape_name = "Taper Rect"
+
+            if rigify_type == 'skin.anchor':
+                # - Suppress Control: 1. Why would you 2. Just assign it to the collections you want.
+                comp.component_type = 'Chain Intersection'
+                cr_params.copy.create_deform = rigify_params.make_extra_deform
 
         elif rigify_type == 'limbs.simple_tentacle':
             # - Bendy bones segments are copied from metarig bones.
@@ -267,8 +273,8 @@ def convert_components(metarig_ob: Object):
             # since there's no precedent for that in CloudRig currently, and it would raise questions about execution order...
             # I guess it could affect siblings which don't have their own component type?
             # But still, it would be quite some code restructuring to support this.
-            for pbone in pbone.parent.children:
-                pbone.cloudrig_component.component_type = 'Chain: FK'
+            for sibling in sibling.parent.children:
+                sibling.cloudrig_component.component_type = 'Chain: FK'
         elif rigify_type == 'limbs.spline_tentacle':
             # - Extra Start/End Controls: I don't think it's working.
             # - sik_stretch_control: No clue what this is doing.
@@ -291,6 +297,76 @@ def convert_components(metarig_ob: Object):
         elif rigify_type == 'spines.super_head':
             comp.component_type = 'Chain: FK'
             # TODO details
+            pass
+
+        elif rigify_type == 'face.basic_tongue':
+            # Rigify creates a sort of IK tongue rig.
+            # Studio animators aren't a big fan of it, so I won't bother replicating it until
+            # someone asks. In meantime, FK chain w/ curl ctrl seems close enough.
+
+            # Since Rigify's tongue rig is for some reason in reverse, I need to switch direction
+            # on the metarig bones... And since this should only be done once, we want to avoid re-doing it
+            # on subsequent executions...
+            if 'cloudrig_converted' in pbone:
+                continue
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.armature.reveal()
+            bpy.ops.armature.select_all(action='DESELECT')
+            for pb in rigify_pb_chain:
+                eb = metarig_ob.data.edit_bones.get(pb.name)
+                reveal_and_select_bone(context, eb, extend_selection=True)
+            bpy.ops.armature.switch_direction()
+            bpy.ops.object.mode_set(mode='POSE')
+            rigify_pb_chain[0]['cloudrig_converted'] = True
+
+            rigify_pb_chain.reverse()
+            comp = rigify_pb_chain[0].cloudrig_component
+            cr_params = comp.params
+
+            comp.component_type = 'Chain: FK'
+            cr_params.fk_chain.root = True
+            cr_params.fk_chain.create_curl_control = True
+            cr_params.chain.smooth_spline = True
+        elif rigify_type == 'face.skin_eye':
+            # - Eyelid Detach: Doesn't seem that important, and users can easily add the
+            #   Limit Distance constraints if they want this.
+            # - Split Eyelid Follow Slider: Also doesn't seem important, but could be implemented
+            #   as part of CloudRig's Eyelid component if people want it.
+            comp.component_type = 'Aim'
+            cr_params.aim.deform = rigify_params.make_deform
+        elif rigify_type == 'skin.basic_chain':
+            # - Use Scale XYZ/Ease: CloudRig always behaves as if X/Z are enabled, and scaling
+            #   on Y affects easing. I'm very happy with that behaviour, so won't be converting this.
+            # - Connect Mirror: CloudRig's Face Grid components always acts as if this is On, I think.
+            # - Connect Next: CloudRig determines this based on whether "Tip Control" is on or off in the case of
+            #   a toon chain that connects to another toon chain.
+            # - Sharpen: This seems confusing and specific... I'm ignoring it.
+            # - Orientation: This changes the bone roll of only the controls. But WHY???
+            # - Chain Priority: CloudRig's Face Grid doesn't care about this much, and generation order can be tweaked.
+            comp.component_type = 'Chain: Face Grid'
+            # So yeah, I guess that's about it for this one. Rigify also always makes these chains
+            # behave as CloudRig's Smooth Spline does, but I think that's a horrible idea.
+        elif rigify_type == 'skin.stretchy_chain':
+            # Not sure of real world use case for this. It's used in the eyelid
+            # rigs but all that allows is squashing the eyelid horizontally, which is pointless.
+            # In future, I'd like to implement a component type that uses a bendy bone as a
+            # parent helper, which would be similar to this but imo have better real world uses.
+            # For now, I find this very difficult to configure, and I'd be surprised if
+            # anybody's actually using it, hence keeping the conversion logic minimal.
+
+            comp.component_type = 'Chain: Face Grid'
+            # If the parent of this is `face.skin_eye`, then this should be an Eyelid component.
+            if get_rigify_type(pbone.parent) == 'face.skin_eye':
+                comp.component_type = 'Chain: Eyelid'
+        elif rigify_type == 'skin.glue':
+            # Figuring out what generated control this would be attached to is way non-trivial.
+            # But implementing a component type for it doesn't make sense either, since
+            # all these functionalities can be achieved with the Single Control component type,
+            # just with a parent selection or adding a single constraint.
+            if rigify_params.skin_glue_head_mode == 'BRIDGE':
+                comp.component_type = 'Chain: Face Grid'
+            else:
+                skipped += 1
         else:
             skipped += 1
             continue
