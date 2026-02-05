@@ -38,6 +38,7 @@ modules = [
     properties,
     prefs,
     metarigs,
+    translations,
 ]
 
 
