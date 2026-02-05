@@ -314,6 +314,8 @@ def draw_rig_preview():
             )
         except CloudGeneratorError as exc:
             # If generation of the abstraction layer raises an error, then we can't draw the overlay.
+            print("CloudRig: Error while drawing overlay:")
+            print(exc)
             return
         for component in components_to_regenerate:
             comp_pbone = component.component_pbone
@@ -514,7 +516,7 @@ def no_overlay(_func=None, *, return_value=None):
 
 
 ### Hashing functions.
-def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> str:
+def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> list[str]:
     return [str(thing) for thing in [
         prefs.overlay_mode,
         prefs.overlay_use_dashed,
@@ -535,7 +537,7 @@ def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> str:
     ]]
 
 
-def hash_component(prefs, component) -> str:
+def hash_component(prefs, component) -> list[str]:
     rig = component.id_data
     pbone_chain = component.component_pbone_chain
     return [str(thing) for thing in [
@@ -551,7 +553,7 @@ def hash_component(prefs, component) -> str:
     ]]
 
 
-def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> str:
+def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> list[str]:
     pbone = rig.pose.bones.get(bone.name)
     if not pbone:
         return ""

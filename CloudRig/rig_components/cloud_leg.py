@@ -4,7 +4,7 @@ from math import pi
 from math import radians as rad
 
 from bpy.props import BoolProperty, StringProperty
-from bpy.types import PoseBone, PropertyGroup
+from bpy.types import PropertyGroup
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
 
@@ -187,9 +187,10 @@ class Component_Limb_BipedLeg(Component_Limb):
         tail = head + -intersect_to_toe * foot.length
         return head, tail
 
-    def __make_footroll(self, ik_chain, org_chain):
+    def __make_footroll(self, ik_chain: list[BoneInfo], org_chain: list[BoneInfo]):
         ik_foot_chain = ik_chain[-2:]
         org_thigh, org_knee, org_foot, org_toe = org_chain
+        org_toe.roll_align_other(org_foot)
 
         rolly_stretchy = self.bone_sets['IK Mechanism'].new(
             name=self.naming.add_prefix(org_thigh, "IK-STR-ROLL"),
@@ -204,12 +205,12 @@ class Component_Limb_BipedLeg(Component_Limb):
         head, tail = self.__calc_footroll_headtail()
 
         TWIST_RANGE = 90
-        HEEL_LIMIT = 60
+        HEEL_LIMIT = 90
         FOOT_THRESHOLD = 90
         TOE_THRESHOLD = 135
 
         roll_ctrl = self.bone_sets['IK Controls'].new(
-            name=self.naming.add_prefix(org_foot, "ROLL-M"), # TODO: Swap the name of this with roll_master
+            name=self.naming.add_prefix(org_foot, "ROLL-M"), # TODO: Swap the name of this with roll_mch
             bbone_width=1 / 18,
             head=head,
             tail=tail,
@@ -221,13 +222,13 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.custom_props.props_storage == "GENERATED":
             self.properties_bone.parent = roll_ctrl
         # Limit Rotation, lock other transforms.
-        self.lock_transforms(roll_ctrl, rot=[False, True, False])
+        self.lock_transforms(roll_ctrl, rot=False)
         roll_ctrl.add_constraint(
             'LIMIT_ROTATION',
             use_limit_x=True,
             min_x=rad(-HEEL_LIMIT),
             max_x=rad(TOE_THRESHOLD),
-            use_limit_y=True,
+            use_limit_y=False,
             use_limit_z=True,
             min_z=rad(-TWIST_RANGE),
             max_z=rad(TWIST_RANGE),
@@ -239,6 +240,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             source=self.ik_mstr,
             parent=self.ik_mstr,
         )
+        roll_mch.roll_align_vector(org_toe.head)
         if not self.painter:
             roll_mch.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
             self.ik_tgt_bone.clear_constraints()
@@ -246,20 +248,65 @@ class Component_Limb_BipedLeg(Component_Limb):
         # Create bone to use as pivot point when rolling back.
         # This is read from the metarig and should be placed at
         # the heel of the shoe, pointing forward.
-        heel_pivot = self.__get_heel_pivot_bone()
-        heel_pivot.parent = roll_mch
-        heel_pivot.collections = self.bone_sets['IK Mechanism'].collections
-        heel_pivot.roll_align_vector(org_knee.head, axis='-Z')
+        heel_pvt_back = self.__get_heel_pivot_bone()
+        if heel_pvt_back:
+            heel_pvt_back.parent = roll_mch
+            heel_pvt_back.collections = self.bone_sets['IK Mechanism'].collections
+            heel_pvt_back.roll_align_vector(org_toe.tail, axis='+Z')
 
-        heel_pivot.add_constraint(
-            'TRANSFORM',
-            name="Transform (Heel Roll)",
-            subtarget=roll_ctrl.name,
-            map_from='ROTATION',
-            map_to='ROTATION',
-            from_min_x_rot=rad(-HEEL_LIMIT),
-            to_min_x_rot=rad(-HEEL_LIMIT),
-        )
+            heel_pvt_outer = self.bone_sets['IK Mechanism'].new(
+                self.naming.add_prefix(roll_mch, 'OUTER'),
+                bbone_width=org_toe.bbone_width,
+                head=heel_pvt_back.tail,
+                tail=heel_pvt_back.tail + heel_pvt_back.z_axis * heel_pvt_back.length,
+                parent=roll_mch,
+            )
+            outer_con = heel_pvt_outer.add_constraint(
+                'TRANSFORM',
+                name="Transform (Heel Outer Roll)",
+                subtarget=roll_ctrl.name,
+                map_from='ROTATION',
+                map_to='ROTATION',
+            )
+            heel_pvt_back.parent = heel_pvt_outer
+
+            back_con = heel_pvt_back.add_constraint(
+                'TRANSFORM',
+                name="Transform (Heel Roll)",
+                subtarget=roll_ctrl.name,
+                map_from='ROTATION',
+                map_to='ROTATION',
+                map_to_z_from='Y',
+                map_to_y_from='X',
+            )
+            # The right side needs some inversion...
+            # print("Dot: ", heel_pvt_back.y_axis.dot(roll_ctrl.x_axis), heel_pvt_back.name, roll_ctrl.name)
+            if heel_pvt_back.y_axis.dot(roll_ctrl.x_axis) < 0:
+                # RIGHT SIDE
+                back_con.from_min_x_rot=rad(-HEEL_LIMIT)
+                back_con.to_min_y_rot=rad(HEEL_LIMIT)
+                back_con.from_min_y_rot=rad(-HEEL_LIMIT)
+                back_con.to_min_z_rot=rad(-HEEL_LIMIT)
+                outer_con.from_max_y_rot=rad(HEEL_LIMIT)
+                outer_con.to_max_y_rot=rad(HEEL_LIMIT)
+            else:
+                # LEFT SIDE
+                back_con.from_min_x_rot=rad(-HEEL_LIMIT)
+                back_con.to_min_y_rot=rad(-HEEL_LIMIT)
+                back_con.from_max_y_rot=rad(HEEL_LIMIT)
+                back_con.to_max_z_rot=rad(HEEL_LIMIT)
+                outer_con.from_min_y_rot=rad(-HEEL_LIMIT)
+                outer_con.to_min_y_rot=rad(-HEEL_LIMIT)
+        else:
+            back_con = roll_mch.add_constraint(
+                'TRANSFORM',
+                name="Transform (Foot Roll Back)",
+                subtarget=roll_ctrl.name,
+                map_from='ROTATION',
+                map_to='ROTATION',
+                from_min_x_rot=-rad(HEEL_LIMIT),
+                to_min_x_rot=-rad(HEEL_LIMIT),
+            )
 
         # Create reverse IK bones.
         rik_chain = []
@@ -269,7 +316,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 source=org_bone,
                 head=org_bone.tail.copy(),
                 tail=org_bone.head.copy(),
-                parent=heel_pivot,
+                parent=heel_pvt_back or roll_mch,
                 custom_shape_name=self.params.fk_chain.shape_fk.shape_name,
             )
             rik_bone.roll_align_other(org_bone)
@@ -331,14 +378,13 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.custom_props.props_storage == 'GENERATED':
             self.properties_bone.custom_shape_transform = roll_ctrl
 
-    def __get_heel_pivot_bone(self) -> BoneInfo:
+    def __get_heel_pivot_bone(self) -> BoneInfo | None:
         heel_pivot_name = self.params.leg.heel_bone
         heel_pivot = self.find_bone_info(heel_pivot_name)
-        if not heel_pivot:
-            self.raise_generation_error(
-                f'Could not find HeelPivot bone in the metarig: "{heel_pivot_name}".'
+        if self.params.leg.heel_bone and not heel_pivot:
+            self.add_log("Heel Pivot Missing",
+                description=f'Could not find HeelPivot bone in the metarig: "{heel_pivot_name}".'
             )
-
         return heel_pivot
 
     @no_overlay
@@ -390,14 +436,19 @@ class Component_Limb_BipedLeg(Component_Limb):
         if params.leg.use_foot_roll:
             split = layout.split(factor=0.1)
             split.row()
+            row = split.row()
+            metarig = context.object
+            if params.leg.heel_bone and params.leg.heel_bone not in metarig.pose.bones:
+                row.alert = True
             cls.draw_prop_search(
                 context,
-                split.row(),
+                row,
                 params.leg,
                 "heel_bone",
                 context.active_object.data,
                 "bones",
                 text="Heel Pivot",
+                alert=row.alert,
             )
 
     @classmethod
@@ -411,17 +462,19 @@ class Component_Limb_BipedLeg(Component_Limb):
 
 class Params(PropertyGroup):
     use_foot_roll: BoolProperty(
-        name="Foot Roll", description="Create a Foot Roll control. When rotated 90 degrees on the X axis, the foot will be fully vertical (ie. on tippy-toes). Rotate it an additional 45 degrees, and the toe will also be vertical (like a ballerina). The angles are calculated based on the rest pose", default=True
+        name="Foot Roll",
+        description="Create a Foot Roll control. When rotated 90 degrees on the X axis, the foot will be fully vertical (ie. on tippy-toes). Rotate it an additional 45 degrees, and the toe will also be vertical (like a ballerina). The angles are calculated based on the rest pose",
+        default=True,
     )
     heel_bone: StringProperty(
         name="Heel Pivot Bone",
-        description="Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing forward. If unspecified, fall back to the foot bone",
+        description="(Optional.) Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing from the center outward, with its length defining the width of the shoe.",
         default="",
     )
 
     shape_footroll: Component_Limb.make_custom_shape_params(
         identifier="Foot Roll",
-        default="Roll 2"
+        default="Heel",
     )
 
 

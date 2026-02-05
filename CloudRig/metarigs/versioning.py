@@ -10,6 +10,8 @@ from mathutils import Euler, Vector
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.actions_component import ActionConstraintSetup
 from ..generation.cloudrig import is_cloud_metarig, is_generated_cloudrig
+from ..operators.render_thumbnail import selection_state
+from ..rig_component_features.object import EnsureVisible
 from ..rig_components import ALL_COMPONENT_MODULES
 
 RIG_TYPE_MAP = {
@@ -180,6 +182,24 @@ def version_cloud_metarig(metarig):
                 pbone.custom_shape_rotation_euler.rotate(rotated_shapes[pbone.custom_shape.name])
 
 
+    if cloudrig.metarig_version < 10:
+        # New heel roll logic.
+        for pbone in metarig.pose.bones:
+            if pbone.cloudrig_component.component_type == 'Limb: Biped Leg':
+                heel_bone = pbone.cloudrig_component.params.leg.heel_bone
+                if not heel_bone:
+                    continue
+                ebone = metarig.data.edit_bones[heel_bone]
+                if not ebone:
+                    continue
+                center = ebone.head + (ebone.tail-ebone.head) * 0.5
+                length = ebone.length
+                side = 1
+                if ".L" in ebone.name:
+                    side = -1
+                ebone.head = center+Vector((length/2, 0, 0)) * side
+                ebone.tail = center-Vector((length/2, 0, 0)) * side
+                ebone.roll = 0
 
 @persistent
 def update_all_metarigs(dummy=None):
@@ -189,6 +209,7 @@ def update_all_metarigs(dummy=None):
         # add-on registration completes, using a timer.
         bpy.app.timers.register(update_all_metarigs)
         return
+    context = bpy.context
     metarig_version = get_addon_prefs().cloud_metarig_version
 
     cloud_metarigs = [
@@ -217,7 +238,12 @@ def update_all_metarigs(dummy=None):
             )
             print("\tYou should update CloudRig!")
             continue
-        version_cloud_metarig(metarig)
+        visibility = EnsureVisible(context, metarig)
+        with selection_state(context, active_obj=metarig, selected_obs=[metarig]):
+            bpy.ops.object.mode_set(mode='EDIT')
+            version_cloud_metarig(metarig)
+            bpy.ops.object.mode_set(mode='OBJECT')
+        visibility.restore(context)
         metarig.cloudrig.metarig_version = metarig_version
 
 

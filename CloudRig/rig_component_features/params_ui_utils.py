@@ -99,6 +99,7 @@ class CloudUIMixin:
         prop_name,
         collection,
         coll_prop_name,
+        alert=False,
         **kwargs,
     ):
         is_forced = cls.is_forced_param(prop_name)
@@ -106,7 +107,7 @@ class CloudUIMixin:
             return
 
         row = draw_prop_search(
-            layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs
+            layout, prop_owner, prop_name, collection, coll_prop_name, alert, **kwargs
         )
 
         if is_forced:
@@ -182,8 +183,11 @@ def draw_prop(layout, prop_owner, prop_name, enabled=True, **kwargs):
 
 
 def draw_prop_search(
-    layout, prop_owner, prop_name, collection, coll_prop_name, **kwargs
+    layout, prop_owner, prop_name, collection, coll_prop_name, alert, **kwargs
 ):
     row = layout.row()
+    row.alert = alert
+    if alert:
+        kwargs['icon'] = 'ERROR'
     row.prop_search(prop_owner, prop_name, collection, coll_prop_name, **kwargs)
     return row
