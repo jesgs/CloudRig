@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProperty
 from bpy.types import BezierSplinePoint, Curve, Object, PropertyGroup, Spline
 from mathutils import Matrix, Vector
@@ -64,10 +65,10 @@ class Component_Curve_Hooked(Component_Base):
     def curve__initialize(self):
         curve_ob = self.params.curve.target
         if not curve_ob:
-            self.raise_generation_error("Curve object not found!")
+            self.raise_generation_error(i18_r("Curve object not found!"))
             return
         if curve_ob.type != 'CURVE':
-            self.raise_generation_error("Curve target must be a curve!")
+            self.raise_generation_error(i18_r("Curve target must be a curve!"))
             return
 
         if not self.params.curve.controls_for_handles:
@@ -126,7 +127,7 @@ class Component_Curve_Hooked(Component_Base):
             hook_controls = []
             points = get_spline_points(spline)
             if len(points) < 2:
-                self.raise_generation_error("All curve splines must consist of at least 2 points")
+                self.raise_generation_error(i18_r("All curve splines must consist of at least 2 points"))
 
             for point_idx, point in enumerate(points):
                 hook_controls.append(
@@ -220,14 +221,21 @@ class Component_Curve_Hooked(Component_Base):
             point_name = ".".join(point_path.split(".")[0:])
             opp_point_name = ".".join(opp_point_path.split(".")[0:])
             self.raise_generation_error(
-                description=(
-                    f'The nearest point to the X-axis flipped coordinate of point '
-                    f'"{point_name} ({curve.path_resolve(point_path).co.xyz})" is point '
-                    f'"{opp_point_name} (({curve.path_resolve(opp_point_path).co.xyz}))".'
-                    f'\nDistance: {offset}\nThreshold: {threshold}\n'
+                description=i18_r(
+                    'The nearest point to the X-axis flipped coordinate of point '
+                    '"{point_name} ({vector_a})" is point '
+                    '"{opp_point_name} ({vector_b})".'
+                    '\nDistance: {offset}\nThreshold: {threshold}\n'
                     'Distance must be lower than the threshold. Make sure the curve is symmetrical '
                     'along its X axis. If this message keeps popping up, you might be modifying '
                     'a shape key instead of the base shape.'
+                ).format(
+                    point_name=point_name,
+                    vector_a=curve.path_resolve(point_path).co.xyz,
+                    opp_point_name=opp_point_name,
+                    vector_b=curve.path_resolve(opp_point_path).co.xyz,
+                    offset=offset,
+                    threshold=threshold,
                 ),
                 description_short="Curve is not symmetrical",
                 note="Curve must be symmetrical.",
@@ -454,7 +462,7 @@ class Component_Curve_Hooked(Component_Base):
 
         curve_ob = self.params.curve.target
         if not curve_ob:
-            self.raise_generation_error("Curve object not found!")
+            self.raise_generation_error(i18_r("Curve object not found!"))
 
         for mod in curve_ob.modifiers[:]:
             if mod.type == 'HOOK' and (not mod.object or mod.object.name == self.target_rig.name.replace('NEW-', '')):

@@ -2,6 +2,7 @@
 
 from math import pi
 
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -33,11 +34,11 @@ class Component_Spine_IKFK(Component_Chain_FK):
 
         if self.params.spine.use_ik and self.bone_count < 3:
             self.raise_generation_error(
-                "Spine component with IK must consist of a chain of at least 3 connected bones!"
+                i18_r("Spine component with IK must consist of a chain of at least 3 connected bones!")
             )
         if not self.bone_count > 1:
             self.raise_generation_error(
-                "Spine component must consist of a chain of at least 2 connected bones!"
+                i18_r("Spine component must consist of a chain of at least 2 connected bones!")
             )
 
         self.ik_prop_name = "ik_" + self.base_name.lower()

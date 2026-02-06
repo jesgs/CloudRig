@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import PointerProperty, StringProperty
 from bpy.types import Object, PropertyGroup
 
@@ -30,7 +31,10 @@ class Component_SphereChain(Component_ToonChain):
         sphere_bone_name = self.params.chain_sphere.sphere_bone
         sphere_ctrl = self.get_metarig_pbone(sphere_bone_name)
         if not sphere_ctrl:
-            self.raise_generation_error("Sphere Bone not found", trouble_bone=sphere_bone_name)
+            self.raise_generation_error(
+                i18_r("Sphere Bone not found"),
+                trouble_bone=sphere_bone_name,
+            )
             return str_bone
 
         sph_ctrl = self.bone_sets['Sphere Controls'].new(

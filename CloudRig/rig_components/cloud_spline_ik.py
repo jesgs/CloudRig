@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
 from bpy.types import Object, PropertyGroup
 
@@ -41,9 +42,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         subdiv = self.params.spline_ik.subdivide
         total = length * subdiv
         if length > 255:
-            self.raise_generation_error(
-                f"Spline IK component consists of {length} bones but the Spline IK constraint only supports a chain of 255 bones max."
-            )
+            self.raise_generation_error(i18_r(
+                "Spline IK component consists of {length} bones, " \
+                "but the Spline IK constraint only supports a chain of 255 bones max."
+            ).format(length=length))
         if total > 255:
             old_total = total
             old_subdiv = subdiv
@@ -51,8 +53,11 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                 subdiv -= 1
                 total = length * subdiv
             self.add_log(
-                "Spline IK clamped to 255 bones",
-                description=f"Trying to subdivide {length} bones {old_subdiv} times, would result in {old_total} bones. \nThe Spline IK constraint only supports a chain of 255 bones, so subdivisions has been capped at {subdiv} for a new total of {total} bones.",
+                i18_r("Spline IK clamped to 255 bones"),
+                description=i18_r("Trying to subdivide {length} bones {old_subdiv} times, would result in {old_total} bones. \n" \
+                    "The Spline IK constraint only supports a chain of 255 bones, so subdivisions has been capped at {subdiv} "
+                    "for a new total of {total} bones."
+                ).format(length=length, old_subdiv=old_subdiv, old_total=old_total, subdiv=subdiv, total=total),
             )
 
         self.num_controls = (

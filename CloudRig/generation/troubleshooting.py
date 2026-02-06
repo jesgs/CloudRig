@@ -12,7 +12,6 @@ import webbrowser
 
 import addon_utils
 import bpy
-from bpy.app.translations import pgettext_iface as _
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -79,7 +78,7 @@ class LoggerMixin:
         if not base_bone_name and hasattr(self, 'metarig_base_pbone'):
             base_bone_name = self.metarig_base_pbone.name
         self.generator.logger.log(
-            _(description_short),
+            description_short,
             base_bone_name=base_bone_name,
             trouble_bone=trouble_bone,
             description=description,
@@ -647,7 +646,11 @@ class CloudRigLogEntry(PropertyGroup):
         default="",
     )
     display_stack_trace: EnumProperty(
-        items=[(s, s, s) for s in {'ADVANCED', 'NEVER', 'ALWAYS'}],
+        items=[
+            ('ADVANCED', "Advanced", "Display stack trace only if Advanced Mode is enabled"),
+            ('NEVER', "Never", "Never display stack trace"),
+            ('ALWAYS', "Always", "Always display stack trace")
+        ],
         description="Whether the stack trace for this log entry should be displayed never, always, or only when Advanced Mode is enabled",
     )
     note: StringProperty(

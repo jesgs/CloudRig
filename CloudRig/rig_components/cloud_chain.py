@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import BoolProperty, FloatProperty, IntProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -87,8 +88,10 @@ class Component_ToonChain(Component_Base):
             org_bone = self.bones_org[org_i]
             if len(self.main_str_bones) <= org_i + 1:
                 # Since the TAIL- instruction is very explicit, if it fails, let's throw a hard error.
-                self.raise_generation_error(
-                    f'Cannot move constraint "{con_info.name}" from "{org_bone.name}" to final STR bone since it does not exist! Make sure "Tip Control" param is enabled!'
+                self.raise_generation_error(i18_r(
+                        'Cannot move constraint "{constraint}" from "{bone}" to final STR bone since ' \
+                        'it does not exist! Make sure "Tip Control" param is enabled!'
+                    ).format(constraint=con_info.name, bone=org_bone.name)
                 )
             return self.main_str_bones[org_i + 1]
         elif (type(self).relink_default_prefix=="STR" and "-" not in con_info.name) or con_info.name.startswith("STR-"):

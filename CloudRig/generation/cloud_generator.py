@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 from math import pi
 
 import bpy
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import (
     BoolProperty,
     CollectionProperty,
@@ -274,7 +275,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 raise ValueError("Widget failed to load: " + widget_name)
         except ValueError as exc:
             self.raise_generation_error(
-                "Failed to load custom shape",
+                i18_r("Failed to load custom shape"),
                 description=str(exc),
             )
         coll = self.params.widget_collection or context.scene.collection
@@ -604,7 +605,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 if bone_info.name in bones_created:
                     # If a BoneInfo with this name was already created in this loop, we have a name collision.
                     self.raise_generation_error(
-                        description=f"Bone `{bone_info.name}` was already created. It can't be created again by `{bone_info.bone_set.rig_component.base_bone_name}`. This could be a bug, but it could also be caused by bones not being named uniquely enough."
+                        description=i18_r("Bone `{bone}` was already created. " \
+                            "It can't be created again by `{component}`. " \
+                            "This could be a bug, but it could also be caused by bones not being named uniquely enough."
+                        ).format(bone=bone_info.name, component=bone_info.bone_set.rig_component.base_bone_name)
                     )
                 bones_created.append(bone_info.name)
                 continue

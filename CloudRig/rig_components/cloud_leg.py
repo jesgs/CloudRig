@@ -3,6 +3,7 @@
 from math import pi
 from math import radians as rad
 
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -382,8 +383,9 @@ class Component_Limb_BipedLeg(Component_Limb):
         heel_pivot_name = self.params.leg.heel_bone
         heel_pivot = self.find_bone_info(heel_pivot_name)
         if self.params.leg.heel_bone and not heel_pivot:
-            self.add_log("Heel Pivot Missing",
-                description=f'Could not find HeelPivot bone in the metarig: "{heel_pivot_name}".'
+            self.add_log(
+                i18_r("Heel Pivot Missing"),
+                description=i18_r('Could not find HeelPivot bone in the metarig: "{heel}".').format(heel=heel_pivot_name)
             )
         return heel_pivot
 

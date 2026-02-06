@@ -2,6 +2,10 @@
 
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
+
+# TODO: Creating a helper bone to hold the Armature constraint should also be
+# optional when using parent switching, not just for bendy bone parenting.
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import BoolProperty, CollectionProperty, IntProperty, StringProperty
 from bpy.types import PropertyGroup, UIList
 
@@ -9,9 +13,6 @@ from ..utils.rig import get_pbone_of_active
 from .bone_info import BoneInfo, ConstraintInfo
 from .overlay_painter import no_overlay
 from .params_ui_utils import draw_label_with_linebreak
-
-# TODO: Creating a helper bone to hold the Armature constraint should also be
-# optional when using parent switching, not just for bendy bone parenting.
 
 
 class CLOUDRIG_UL_parent_slots(UIList):
@@ -262,8 +263,8 @@ class CloudParentingMixin:
         for i, ps in enumerate(parent_slots):
             if ps.bone == "" or ps.bone not in all_bone_names:
                 self.add_log(
-                    description_short="Missing Parent",
-                    description=f'Parent switch target not found: "{ps.bone}". Specify a parent bone in the Parenting parameters.',
+                    description_short=i18_r("Missing Parent"),
+                    description=i18_r('Parent switch target not found: "{bone}". Specify a parent bone in the Parenting parameters.').format(bone=ps.bone),
                 )
                 return [], []
                 continue
@@ -272,8 +273,8 @@ class CloudParentingMixin:
 
         if len(parent_ui_names) == 0:
             self.add_log(
-                "No parents found",
-                description="No parents specified for parent switching setup. The setting should just be disabled.",
+                i18_r("No parents found"),
+                description=i18_r("No parents specified for parent switching setup. The setting should just be disabled."),
             )
             return [], []
 
@@ -317,12 +318,12 @@ class CloudParentingMixin:
             # Still try string-based parenting. If this fails, an error will be
             # logged in write_edit_data().
             self.add_log(
-                "Name-based parenting",
-                description=(
-                    f'Parent bone "{parent_name}" did not yet exist at time of parenting. '
+                i18_r("Name-based parenting"),
+                description=i18_r(
+                    'Parent bone "{parent_name}" did not yet exist at time of parenting. '
                     "This could be caused by incorrect metarig bone hierarchy, where a child rig "
                     "is not parented to its intended parent rig, so it executes before the parent."
-                ),
+                ).format(parent_name=parent_name),
             )
             component_root.parent = parent_name
             return

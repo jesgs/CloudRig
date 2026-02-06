@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 from math import pi
 
-from bpy.app.translations import pgettext_iface as _
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.types import (
     Bone,
     Constraint,
@@ -298,7 +298,7 @@ class BoneInfo:
         # TODO: If one day Blender's color presets are fixed, drop support for custom colors.
         if keep_colors:
             if data_bone.color.palette == 'CUSTOM' and False:
-                self.owner_component.add_log(_("Custom Colors must not be used."))
+                self.owner_component.add_log(i18_r("Custom Colors must not be used."))
             else:
                 self.color_palette_base = data_bone.color.palette
 
@@ -553,9 +553,9 @@ class BoneInfo:
         except ValueError:
             # This can happen when the vector we're trying to align with is perfectly aligned with the bone's length.
             self.owner_component.add_log(
-                _("Failed to Orient Bone"),
+                i18_r("Failed to Orient Bone"),
                 trouble_bone=self.name,
-                description=_("The roll value of this bone could not be set to align with the desired vector."),
+                description=i18_r("The roll value of this bone could not be set to align with the desired vector."),
                 display_stack_trace='ADVANCED',
             )
 
@@ -682,11 +682,11 @@ class BoneInfo:
         # Check for 0-length bones.
         if (self.head - self.tail).length == 0:
             self.bone_set.rig_component.add_log(
-                _("Zero-length bone"),
+                i18_r("Zero-length bone"),
                 trouble_bone=self.name,
                 note=self.name,
                 note_icon='BONE_DATA',
-                description=_('Bone "{bone}" had zero length. Its length was set to 1 to avoid a fatal error.').format(bone=self.name),
+                description=i18_r('Bone "{bone}" had zero length. Its length was set to 1 to avoid a fatal error.').format(bone=self.name),
             )
             self.tail.y += 1
         assert (self.head - self.tail).length > 0, f'Bone "{edit_bone.name}" cannot be created with a length of 0.'
@@ -708,9 +708,9 @@ class BoneInfo:
             edit_bone.parent = armature.data.edit_bones.get(str(self.parent))
             if not edit_bone.parent:
                 self.bone_set.rig_component.add_log(
-                    _("Parent not found"),
+                    i18_r("Parent not found"),
                     trouble_bone=self.name,
-                    description=_('Parent bone "{bone}" does not exist or is a child of this bone.').format(bone=self.parent),
+                    description=i18_r('Parent bone "{bone}" does not exist or is a child of this bone.').format(bone=self.parent),
                 )
 
         # Custom Properties.
@@ -804,9 +804,9 @@ class BoneInfo:
 
         if bone.name.startswith("DEF") and not bone.use_deform:
             self.bone_set.rig_component.add_log(
-                _("Non-deforming DEF bone"),
+                i18_r("Non-deforming DEF bone"),
                 trouble_bone=self.name,
-                description=_('Bone name "{bone}" begins with "DEF" but Deform checkbox is not enabled. ' \
+                description=i18_r('Bone name "{bone}" begins with "DEF" but Deform checkbox is not enabled. ' \
                             'This bone will not be keyframed by the "Whole Character" keying set!').format(bone=self.name),
                 operator='object.cloudrig_rename_bone',
                 op_kwargs={'old_name': bone.name},
@@ -827,7 +827,7 @@ class BoneInfo:
                     make_driver(ob, target_id=target_id, **kwargs)
                 except Exception as e:
                     self.bone_set.rig_component.add_log(
-                        _("Failed to create Driver"),
+                        i18_r("Failed to create Driver"),
                         trouble_bone=self.name,
                         description=str(e),
                     )
@@ -975,8 +975,8 @@ class ConstraintInfo(dict):
             if self.type == 'ARMATURE':
                 if len(subtargets) != len(targets):
                     self.bone_info.owner_component.raise_generation_error(
-                        f"Armature constraint using @ syntax specifies {len(subtargets)} names, " \
-                        f"but has {len(targets)} targets. They must be equal.",
+                        i18_r("Armature constraint using @ syntax specifies {count} names, " \
+                        "but has {tar_count} targets. They must be equal.").format(count=len(subtargets), tar_count=len(targets)),
                         trouble_bone = self.bone_info.name
                     )
                 self.targets = [
