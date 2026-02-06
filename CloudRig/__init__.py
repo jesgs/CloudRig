@@ -3,6 +3,7 @@
 import importlib
 from types import ModuleType
 
+import bpy
 from bpy.utils import register_class, unregister_class
 
 from . import (
@@ -16,6 +17,7 @@ from . import (
     properties,
     rig_component_features,
     rig_components,
+    translations,
     ui,
     utils,
 )
@@ -36,6 +38,7 @@ modules = [
     properties,
     prefs,
     metarigs,
+    translations,
 ]
 
 
@@ -74,6 +77,7 @@ def register():
     if __name__.startswith("rigify"):
         raise Exception("CloudRig is not a Rigify feature set!")
     recurive_register(modules, True)
+    bpy.app.translations.register(__name__, translations.translations_dict)
 
 
 def unregister():
@@ -84,3 +88,4 @@ def unregister():
     prefs.update_prefs_on_file()
 
     recurive_register(modules, False)
+    bpy.app.translations.unregister(__name__)
