@@ -81,8 +81,8 @@ class CloudMechanismMixin:
 def copy_relink_real_driver(
     src_id: ID, tgt_id: ID, fcurve: FCurve, data_path: str = None, index: int = None
 ) -> FCurve:
-    """Copy a real driver to the target rig.
-    Replace references to the metarig with the generated rig.
+    """Copy a real driver to the Target Rig.
+    Replace references to the Metarig with the Target Rig.
     May copy to a different data path than the source.
     """
     new_fcurve = copy_driver(fcurve, tgt_id, data_path, index)

@@ -23,8 +23,7 @@ class POSE_OT_delete_bones(GenericBoneOperator, Operator):
 
     def execute(self, context):
         affected = self.affect_bones(context)
-        plural = "s" if len(affected) != 1 else ""
-        self.report({'INFO'}, f"Deleted {len(affected)} bone{plural}.")
+        self.report({'INFO'}, "Bones Deleted: {num_bones}.".format(num_bones=len(affected)))
         return {'FINISHED'}
 
 

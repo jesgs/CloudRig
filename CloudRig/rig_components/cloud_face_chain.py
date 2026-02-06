@@ -147,7 +147,7 @@ class Component_FaceChain(Component_ToonChain):
                     'ARMATURE', targets=[{'subtarget': intersection.parent}]
                 )
         # HACK: We can't ensure that the last chain component to be executed is a cloud_eyelid,
-        # so we have to make sure the eyelid set-up function runs even when that's not the case...
+        # so we have to make sure the eyelid setup function runs even when that's not the case...
         for chain_comp in self.chain_components:
             if hasattr(chain_comp, 'eyelid__make_sticky_setup'):
                 chain_comp.eyelid__make_sticky_setup()

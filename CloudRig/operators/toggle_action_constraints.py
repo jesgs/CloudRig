@@ -6,7 +6,7 @@ from bpy.types import Action, ActionSlot, Constraint, Operator
 
 
 class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
-    """Toggle Action constraints of the active action on all bones of the armature"""
+    """Toggle Action Constraints of the active Action on all bones of this Armature object"""
 
     bl_idname = "armature.toggle_action_constraints"
     bl_label = "Toggle Action Constraints"
@@ -54,10 +54,7 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
                     c.mute = not self.enable
                     con_count += 1
 
-        word = "Enabled" if self.enable else "Disabled"
-        self.report(
-            {'INFO'}, f'{word} {con_count} constraints referencing "{action.name}".'
-        )
+        self.report({'INFO'}, 'Affected constraints: {count}'.format(count=con_count))
 
         return {'FINISHED'}
 

@@ -160,13 +160,13 @@ class GeneratorProperties(PropertyGroup):
                 pb.cloudrig_component.overlay_is_dirty = True
     preserve_shapes_properties: BoolProperty(
         name="Preserve Shape Properties",
-        description="Preserve custom shape properties on the generated rig, if available",
+        description="Preserve custom shape properties on the Target Rig, if available",
         default=False,
         update=mark_all_dirty,
     )
     preserve_custom_shapes: BoolProperty(
         name="Preserve Custom Shapes",
-        description="Preserve custom shapes on the generated rig, if available. If this is disabled, only other properties will be preserved, but not the shape object",
+        description="Preserve custom shapes on the Target Rig, if available. If this is disabled, only other properties will be preserved, but not the shape object",
         default=True,
         update=mark_all_dirty,
     )
@@ -413,7 +413,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         # overwritten. They can't be sure if their rig is in a clean state or not.
         # So, keep these final pieces of generation code simple!
 
-        # Set the param as the target rig.
+        # Set the param as the Target Rig.
         # Important for first generation.
         self.params.target_rig = self.target_rig
 
@@ -651,7 +651,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         for bone_info in self.bone_infos:
             if not bone_info.preserve:
                 continue
-            # Ensure bone collections in both the metarig and the target rig.
+            # Ensure bone collections in both the Metarig and the Target Rig.
             # TODO: Is this still needed?
             for collection_name in bone_info.collections:
                 meta_coll = self.metarig.data.collections_all.get(collection_name)
@@ -1018,17 +1018,17 @@ class CLOUDRIG_OT_generate(Operator):
     bl_idname = "pose.cloudrig_generate"
     bl_label = "Generate CloudRig"
     bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Generates a rig from the active metarig armature"
+    bl_description = "Generates the Target Rig based on the active Metarig"
 
     focus_generated: BoolProperty(
         name="Focus Generated",
         default=True,
-        description="After a successful generation, hide the metarig, unhide the generated rig and make it active, and enter the same mode as the current mode",
+        description="After a successful generation, hide the Metarig, and unhide and select the Target Rig",
     )
     preserve_state: BoolProperty(
         name="Preserve State",
         default=True,
-        description="When re-generating a rig and Focus Generated is enabled, preserve the state of its bone and collection visibility, and bone selection",
+        description="Preserve bone selection, bone visibility, and bone collection visibility",
     )
 
     @staticmethod
@@ -1081,7 +1081,7 @@ class CLOUDRIG_OT_generate(Operator):
 
         # If the old rig isn't part of the scene, it needs to be.
         # The generation process works fine without this,
-        # but it could confuse users if the generated rig isn't focused.
+        # but it could confuse users if the Target Rig isn't focused.
         if prev_generated_rig and prev_generated_rig not in set(context.view_layer.objects):
             self.report(
                 {'ERROR'},
@@ -1172,7 +1172,7 @@ class CLOUDRIG_OT_generate(Operator):
         """Generates a rig from a metarig.
 
         Encountering a rig generation error will not halt the execution of the operator.
-        This is important because the user can make mistakes in the MetaRig set-up,
+        This is important because the user can make mistakes in the MetaRig setup,
         which cannot be detected until the rig is attempted to be fully generated.
         Such errors must be accounted for and handled gracefully.
         """
@@ -1195,7 +1195,7 @@ class CLOUDRIG_OT_generate(Operator):
                 generator.target_rig['metarig'] = metarig
 
             if type(exception) is CloudGeneratorError:
-                # A MetaRig error means the user created an invalid metarig set-up.
+                # A MetaRig error means the user created an invalid metarig setup.
                 # Importantly, this is not a bug.
                 self.report({'ERROR'}, exception.message)
             else:
@@ -1244,9 +1244,9 @@ class CLOUDRIG_OT_generate(Operator):
         return generator_properties.target_rig
 
     def focus_generated_rig(self, context, metarig: Object, mode='OBJECT'):
-        """Focus the generated rig for convenient generation and re-generation workflow:
+        """Focus the Target Rig for convenient generation and re-generation workflow:
         - Hide the metarig.
-        - Reveal the target rig and set it as selected and active.
+        - Reveal the Target Rig and set it as selected and active.
         - Enter the same mode as before.
         """
 
@@ -1255,7 +1255,7 @@ class CLOUDRIG_OT_generate(Operator):
         target_rig = metarig.cloudrig.generator.target_rig
         target_rig.hide_set(False)
 
-        # Make target rig visible, selected, active.
+        # Make Target Rig visible, selected, active.
         if target_rig in context.view_layer.objects[:]:
             context.view_layer.objects.active = target_rig
             target_rig.select_set(True)

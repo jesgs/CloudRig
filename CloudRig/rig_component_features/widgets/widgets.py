@@ -282,7 +282,7 @@ def apply_custom_shape_rig_data(rig: Object, custom_shape_data: dict) -> None:
 
 
 class CLOUDRIG_OT_refresh_widget_list(Operator):
-    """The widget list can't be fully dynamic, so if you're not seeing a widget that should show up, click this."""
+    """Click this if you're not seeing a widget that you should be seeing."""
 
     bl_idname = "pose.cloudrig_refresh_widget_list"
     bl_label = "Refresh Widget List"

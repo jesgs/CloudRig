@@ -12,7 +12,7 @@ class Component_Jaw(Component_CopyBone):
 
     """Functionality TODO:
         - (TODO) Chin Resists Jaw (Optional, only if a chin bone is specified...)
-        - (Done) MSTR Mouth control (which should be controlled by Action set-ups rather than manually)
+        - (Done) MSTR Mouth control (which should be controlled by Action setups rather than manually)
         - (Done) Teeth Follow Mouth: (should be "Teeth Follow MSTR-Lips)
         - (Done) A bone that the lower teeth and tongue can be parented to, which has an Armature constraint with the drivers found on Ellie.
             Let's call this MCH-LowerJaw-{JawName} this would be the current MSTR-Mouth_Lower, which copies local transforms of Jaw, and is parented to MSTR-Mouth.
@@ -57,7 +57,7 @@ class Component_Jaw(Component_CopyBone):
             Purpose: Move the entire mouth around the face. On Ellie's rig, this is a directly exposed control, but I would mask it behind an Action control.
             Parent: MSTR-H-Head_Bottom
             Constraints: None (Future: Action)
-            Placement: Somewhere along the jaw bone, but probably not as deep; Want decent behaviour on all rotation axes. (But with an Action set-up it won't matter that much, just results in easier Action authoring)
+            Placement: Somewhere along the jaw bone, but probably not as deep; Want decent behaviour on all rotation axes. (But with an Action setup it won't matter that much, just results in easier Action authoring)
         MSTR-Mouth_Lower (should be MCH)
             Placement: Match Jaw
             Purpose: The control that owns the entire lower lip by default should be parented to this. (MSTR-Lip_Lower)

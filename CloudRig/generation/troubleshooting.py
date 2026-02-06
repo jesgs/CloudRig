@@ -12,6 +12,7 @@ import webbrowser
 
 import addon_utils
 import bpy
+from bpy.app.translations import pgettext_iface as _
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -78,7 +79,7 @@ class LoggerMixin:
         if not base_bone_name and hasattr(self, 'metarig_base_pbone'):
             base_bone_name = self.metarig_base_pbone.name
         self.generator.logger.log(
-            description_short,
+            _(description_short),
             base_bone_name=base_bone_name,
             trouble_bone=trouble_bone,
             description=description,
@@ -457,14 +458,14 @@ class CloudLogManager:
             action = action_setup.action
             if not action:
                 # This is not worth a log entry imo, because it does no harm,
-                # and is treated by all code as if the action set-up was simply disabled.
+                # and is treated by all code as if the Action Setup was simply disabled.
                 continue
             if action_setup.trans_min == action_setup.trans_max:
                 self.log(
                     "Action has no transform range",
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action set-up "{action_setup.name}" has no transformation range. ' \
+                    description=f'Action Setup "{action_setup.name}" has no transformation range. ' \
                                 'This will cause the action to always be in the same state!',
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
@@ -474,7 +475,7 @@ class CloudLogManager:
                     "Action has no frame range",
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=f'Action set-up "{action_setup.name}" has no frame range. ' \
+                    description=f'Action Setup "{action_setup.name}" has no frame range. ' \
                                 'This will cause the action to always be in the same state!',
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
@@ -487,7 +488,7 @@ class CloudLogManager:
                     note=action_setup.name,
                     icon='ACTION',
                     description=f'Action "{action_setup.name}" has a default frame of {default_frame}. ' \
-                                'The input parameters of the Action Set-up should be tweaked such that the ' \
+                                'The input parameters of the Action Setup should be tweaked such that the ' \
                                 '"Default Frame" value is a whole number. On that frame, there should be a keyframe ' \
                                 'of all affected bones in the default position. Otherwise, the rig will be deformed in '\
                                 'its default pose.',
@@ -527,7 +528,7 @@ class CloudLogManager:
                     note=action_setup.action.name,
                     icon='ACTION',
                     description=f'Action slot "{action_setup.action.name}" has {len(single_point_curves)} '\
-                                'curves with only a single keyframe. These curves will be ignored by the action set-up!',
+                                'curves with only a single keyframe. These curves will be ignored by the action setup!',
                     operator=CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -619,7 +620,7 @@ class CloudLogManager:
                 "Metarig Hates Children",
                 description=(
                     f"Metarig has {count} dependent objects.\n"
-                    "Click the button below to parent any children or deformed mesh objects to the generated rig instead.\n"
+                    "Click the button below to parent any children or deformed mesh objects to the Target Rig instead.\n"
                     "If this warning persists, you may have objects which reference the metarig via drivers,\n"
                     "or you are parenting objects to the metarig in the post-generation script."
                 ),
@@ -627,7 +628,8 @@ class CloudLogManager:
             )
 
 class CloudRigLogEntry(PropertyGroup):
-    """Container for storing information about a single metarig warning/error.
+    "Log Entry"
+    __doc__ = """Container for storing information about a single metarig warning/error.
 
     A CollectionProperty of CloudRigLogEntries are added to the armature datablock
     in cloud_generator.register().
@@ -658,7 +660,7 @@ class CloudRigLogEntry(PropertyGroup):
     )
     trouble_bone: StringProperty(
         name="Problem Bone",
-        description="Name of the bone on the generated rig which the entry relates to",
+        description="Name of the bone on the Target Rig which the entry relates to",
         default="",
     )
     description_short: StringProperty(
@@ -839,7 +841,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
 
         bone = rig.data.bones.get(self.target_bone)
         if not bone:
-            self.report({'ERROR'}, f'Bone "{self.target_bone}" not in armature "{rig.name}".')
+            self.report({'ERROR'}, 'Bone "{bone}" not in Armature "{rig}".'.format(bone=self.target_bone, rig=rig.name))
             return {'CANCELLED'}
 
         reveal_and_select_bone(context, bone)
@@ -946,7 +948,7 @@ class RenameThingOp:
             return {'CANCELLED'}
 
         if not thing:
-            self.report({'ERROR'}, f'Error: Old name "{self.old_name}" not found or not provided.')
+            self.report({'ERROR'}, 'Old name "{old_name}" not found or not provided.'.format(old_name=self.old_name))
             return {'CANCELLED'}
 
         self.set_name(thing, self.new_name)
@@ -968,7 +970,7 @@ class CLOUDRIG_OT_Rename_Bone(RenameThingOp, Operator):
 
 
 class CLOUDRIG_OT_Rename_Object(RenameThingOp, Operator):
-    """Rename an object"""
+    """Rename an Object"""
 
     bl_idname = "object.cloudrig_rename_object"
     bl_label = "Rename Object"
@@ -981,7 +983,7 @@ class CLOUDRIG_OT_Rename_Object(RenameThingOp, Operator):
         return self.get_container(context).get((self.old_name, None))
 
 class CLOUDRIG_OT_rename_bone_collection(RenameThingOp, Operator):
-    """Rename a bone collection"""
+    """Rename a Bone Collection"""
 
     bl_idname = "object.cloudrig_rename_bone_coll"
     bl_label = "Rename Bone Collection"
@@ -1012,10 +1014,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         new_obj = bpy.data.objects.get((self.new_name, None))
 
         if not old_obj and new_obj:
-            self.report(
-                {'ERROR'},
-                f'Error: One of "{self.old_name}" or "{self.new_name}" was not found.',
-            )
+            self.report({'ERROR'}, 'One of "{old}" or "{new}" were not found.'.format(a=self.old_name, b=self.new_name))
             return {'CANCELLED'}
 
         rigs = [metarig]
@@ -1037,13 +1036,13 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         metarig.cloudrig.generator.remove_active_log()
         self.report(
             {'INFO'},
-            f'Replaced all references of "{self.old_name}" to "{self.new_name}".',
+            'Replaced all references of "{old_name}" to "{new_name}".'.format(old_name=self.old_name, new_name=self.new_name),
         )
         return {'FINISHED'}
 
 
 class CLOUDRIG_OT_Delete_Object(Operator):
-    """Delete an object"""
+    """Delete an Object"""
 
     bl_idname = "object.cloudrig_delete_object"
     bl_label = "Delete Object"
@@ -1059,9 +1058,7 @@ class CLOUDRIG_OT_Delete_Object(Operator):
         metarig.cloudrig.generator.remove_active_log()
 
         if not ob:
-            self.report(
-                {'WARNING'},
-                f'"{self.ob_name}" not found. It must have already been deleted.',
+            self.report({'WARNING'}, '"{obj}" not found. It must have already been deleted.'.format(obj=self.ob_name),
             )
             return {'FINISHED'}
 
@@ -1124,22 +1121,20 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
         old_ref = getattr(pbone.cloudrig_component.params, param_split[1])
         setattr(param_category, param_split[1], None)
 
-        self.report(
-            {'INFO'}, f'Cleared reference to "{old_ref.name}" on "{pbone.name}".'
-        )
+        self.report({'INFO'}, 'Cleared reference to "{old_ref}" on "{bone}".'.format(old_ref=old_ref.name, bone=pbone.name))
         metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
 
 class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
-    """Remove curves with only one keyframe"""
+    """Remove FCurves with only one keyframe"""
 
     bl_idname = "object.cloudrig_clear_single_keyframes"
     bl_label = "Remove Single Keyframes"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     # Should be provided by the UI.
-    action_setup_idx: IntProperty(name="Action Set-up Index")
+    action_setup_idx: IntProperty(name="Action Setup Index")
 
     def execute(self, context):
         metarig = context.object
@@ -1158,14 +1153,14 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
 
 
 class CLOUDRIG_OT_Edit_Action_Setup(Operator):
-    """Directly edit an action set-up in a pop-up panel"""
+    """Edit an Action Setup in a pop-up panel"""
 
     bl_idname = "object.cloudrig_edit_action_setup_popup"
-    bl_label = "Edit Action Set-up"
+    bl_label = "Edit Action Setup"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     # Should be provided by the UI.
-    action_setup_idx: IntProperty(name="Action Set-up Index")
+    action_setup_idx: IntProperty(name="Action Setup Index")
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -1187,7 +1182,7 @@ class CLOUDRIG_OT_Edit_Action_Setup(Operator):
 
 
 class CLOUDRIG_OT_delete_bone_collection(Operator):
-    """Remove a bone collection"""
+    """Delete a Bone Collection"""
 
     bl_idname = "object.cloudrig_delete_bone_collection"
     bl_label = "Delete Bone Collection"
@@ -1201,9 +1196,9 @@ class CLOUDRIG_OT_delete_bone_collection(Operator):
         if self.coll_name in metarig.data.collections_all:
             coll = metarig.data.collections_all.get(self.coll_name)
             metarig.data.collections.remove(coll)
-            self.report({'INFO'}, f"Deleted '{self.coll_name}' collection.")
+            self.report({'INFO'}, "Deleted '{coll_name}' collection.".format(coll_name=self.coll_name))
         else:
-            self.report({'INFO'}, f"Collection {self.coll_name} not found.")
+            self.report({'INFO'}, "Collection '{coll_name}' not found.".format(coll_name=self.coll_name))
 
         metarig.cloudrig.generator.remove_active_log()
 
@@ -1211,7 +1206,7 @@ class CLOUDRIG_OT_delete_bone_collection(Operator):
 
 
 class CLOUDRIG_OT_edit_bone_transform(Operator):
-    """Tweak a bone's rest position to fix an issue."""
+    """Tweak a bone's rest position by an offset."""
 
     bl_idname = "object.cloudrig_tweak_bone_rest_pose"
     bl_label = "Tweak Rest Pose"
@@ -1291,7 +1286,7 @@ class CLOUDRIG_OT_dismiss_version_warning(Operator):
 
 
 class CLOUDRIG_OT_reparent_metarig_children(Operator):
-    """Re-Parent all children of the metarig to the generated rig, including any Armature modifiers."""
+    """Re-Parent all children of the Metarig to the Target Rig, including any Armature modifiers."""
 
     bl_idname = "object.cloudrig_reparent_metarig_children"
     bl_label = "Re-Parent All Children"
@@ -1301,7 +1296,7 @@ class CLOUDRIG_OT_reparent_metarig_children(Operator):
         metarig = context.object
         target_rig = metarig.cloudrig.generator.target_rig
         if not target_rig:
-            self.report({'ERROR'}, "Target rig has been removed. Generate the rig again.")
+            self.report({'ERROR'}, "Target Rig has been removed. Generate the rig again.")
             return {'CANCELLED'}
         count = 0
         for dependent in bpy.data.user_map()[metarig]:

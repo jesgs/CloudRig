@@ -15,7 +15,7 @@ from .cloud_base import Component_Base
 
 
 class Component_CopyBone(Component_Base):
-    """Copy this bone to the generated rig."""
+    """Copy this bone to the Target Rig."""
 
     ui_name = "Single Control"
     always_use_custom_props = True

@@ -9,7 +9,7 @@ from .cloud_base import Component_Base
 
 
 class Component_TweakBone(Component_Base):
-    """Tweak a single bone with the same name as this bone in the generated rig."""
+    """Tweak a single bone with the same name as this bone in the Target Rig."""
 
     ui_name = "Bone Tweak"
     parent_switch_behaviour = "The active parent will own the tweaked bone."
@@ -46,7 +46,7 @@ class Component_TweakBone(Component_Base):
         if not self.bone_to_tweak:
             self.add_log(
                 "No bone to tweak",
-                description=f'Could not find a bone called "{self.original_name}" on the generated rig. If it exists, ensure this Tweak component is generated AFTER the component you want to tweak.',
+                description=f'Could not find a bone called "{self.original_name}" on the Target Rig. If it exists, ensure this Tweak component is generated AFTER the component you want to tweak.',
                 operator='object.cloudrig_rename_bone',
                 op_kwargs={'old_name': self.original_name},
             )
@@ -174,7 +174,7 @@ class Params(PropertyGroup):
     )
     transforms: BoolProperty(
         name="Transforms",
-        description="Replace the matching generated bone's transforms with this bone's transforms",  # An idea: when this is False, let the generation script affect the metarig - and move this bone, to where it is in the generated rig.
+        description="Replace the matching generated bone's transforms with this bone's transforms",  # An idea: when this is False, let the generation script affect the Metarig - and move this bone, to where it is in the Target Rig.
         default=False,
     )
     locks: BoolProperty(

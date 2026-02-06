@@ -45,7 +45,8 @@ def init_component_module_list(context=None):
 
 
 class CloudRigComponentTypeInfo(PropertyGroup):
-    """Purely for UI purposes, so we can store a list of strings in the RNA that
+    "Component Type Info"
+    __doc__ = """Purely for UI purposes, so we can store a list of strings in the RNA that
     represent the list of available rig types. We need that in the RNA so we can use
     prop_search() to draw a nice list that the user can type into to filter and search.
     """
@@ -92,10 +93,10 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     )
 
     widget_library: StringProperty(
-        name="Custom Shape Library .blend",
+        name="Custom Shape Library",
         default="",
         subtype='FILE_PATH',
-        description="Path to your custom shapes library .blend file. This should contain objects prefixed 'WGT-' to show up in CloudRig's various widget selection UI elements, in addition to the built-in set of widgets",
+        description="Path to your custom shapes library .blend file. Objects within this .blend file whose names start with 'WGT-' will appear in CloudRig's various widget selection interfaces",
         update=on_library_set,
     )
     widget_popup_size: FloatProperty(
@@ -105,7 +106,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         max=6.0,
         precision=1,
         step=50,
-        description="Size of the custom shape icon selector pop-ups",
+        description="Icon size of the bone shape selector pop-up",
     )
     widget_import_method: EnumProperty(
         name="Custom Shape Import Method",
@@ -117,24 +118,24 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
     overlay_mode: EnumProperty(
         name="Overlay Mode",
-        description="Which components should have rig preview rendered. May affect performance when transforming metarig bones",
+        description="Choose which components should have rig preview rendered. More components has a greater impact on performance when transforming metarig bones",
         items=[
             ('NONE', "None", "No rig preview. No performance cost"),
             ('ACTIVE', "Active", "Preview active bone's component. Minimal performance impact"),
             ('SELECTED', "Selected", "Preview components of selected bones. Performance impact depends on selection"),
-            ('CHILDREN', "Selected + Children", "Preview components of selected bones & their children. Performance impact may be noticable"),
-            ('VISIBLE', "Visible", "Preview all visible bones' components. Maximum performance impact"),
+            ('CHILDREN', "Selected & Children", "Preview components of selected bones & their children. Performance impact may be noticable"),
+            ('VISIBLE', "Visible", "Preview all visible bones' components. Noticable performance impact while transforming metarig bones"),
         ],
         default='SELECTED',
     )
     overlay_use_dashed: BoolProperty(
         name="Dashed",
         default=True,
-        description="Dashed lines for the rig preview. Bit more expensive to draw"
+        description="Use dashed lines for the rig preview. Slight performance impact"
     )
     overlay_opacity: FloatProperty(
         name="Opacity",
-        description="Opacity of the overlay.",
+        description="Opacity of the rig preview overlay.",
         default=0.9,
         min=0.0,
         max=1.0,
@@ -142,7 +143,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     )
     overlay_dash_length: FloatProperty(
         name="Dash Length",
-        description="Length of the dashes.",
+        description="Length of the dashed lines in the rig preview overlay.",
         default=1.0,
         min=0.1,
         max=2.0,

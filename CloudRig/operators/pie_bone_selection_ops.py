@@ -261,9 +261,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
                 active_target_bone = target_bone
 
             if target_bone.hide:
-                self.report(
-                    {'WARNING'}, f'Bone "{bone_name}" could not be made visible.'
-                )
+                self.report({'WARNING'}, 'Bone "{bone_name}" could not be made visible.'.format(bone_name=bone_name))
                 continue
 
             reveal_and_select_bone(context, target_bone, set_active=False)

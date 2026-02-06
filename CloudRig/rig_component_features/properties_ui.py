@@ -312,7 +312,7 @@ class CloudRigUIEditOpMixin:
         return True
 
     def invoke(self, context, _event):
-        # We create a keymap item to help us draw the operator set-up UI.
+        # We create a keymap item to help us draw the operator setup UI.
         # KeymapItems in the default keymap will not be stored by Blender,
         # so we don't need to worry about making a mess there.
         rig, ui_data = get_rig_and_ui(context)
@@ -402,7 +402,7 @@ class CloudRigUIEditOpMixin:
             owner_row.alert = True
             alert_row = owner_box.row()
             alert_row.alert=True
-            alert_row.label(text=f'Type "{type(prop_owner).__name__}" cannot have properties.')
+            alert_row.label(text='Type "{type}" cannot have properties.'.format(type=type(prop_owner).__name__))
             return False
 
         text = f'{type(prop_owner).__name__}'
@@ -806,7 +806,7 @@ class CLOUDRIG_OT_edit_property_in_ui(CloudRigUIEditOpMixin, Operator):
 
 
 class CLOUDRIG_OT_remove_property_from_ui(Operator):
-    """Remove this property from the interface. Hold Shift to also remove the property itself"""
+    """Remove this property from the UI. \nShift: Also delete the property itself"""
 
     bl_idname = "pose.cloudrig_remove_property_from_ui"
     bl_label = "Remove Property from UI"

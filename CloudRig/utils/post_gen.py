@@ -243,7 +243,7 @@ def update_bone_collection(
     Args:
         rig: The armature object
         bone_name: Name of the bone to update
-        collection_name: Name of the bone collection
+        collection_name: Name of the Bone Collection
         operation: Either 'add' or 'remove'
     """
     bone = rig.pose.bones.get(bone_name)
@@ -281,7 +281,7 @@ def update_widget_properties(
     """
     bone = rig.pose.bones.get(bone_name)
     if not bone:
-        raise ValueError(f"Bone '{bone_name}' not found'")
+        raise ValueError("Bone '{bone_name}' not found'".format(bone_name=bone_name))
 
     # Map shortened names to full property names
     property_map = {

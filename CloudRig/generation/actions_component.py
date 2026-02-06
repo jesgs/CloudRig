@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from bpy.app.translations import pgettext_iface as _
 from bpy.types import Action, Mesh, Object
 from bpy.utils import flip_name as mirror_name
 
@@ -41,8 +42,8 @@ class ActionConstraintSide(LoggerMixin):
         if action_setup.is_corrective:
             if not (action_setup.trigger_a and action_setup.trigger_b):
                 self.add_log(
-                    "Missing trigger Action Setup",
-                    description=f'Action Setup "{action_setup.action.name}" references missing trigger setup' # TODO SLOTS: Add slot name to every use of action.name probably
+                    _("Missing trigger Action Setup"),
+                    description=_('Action Setup "{action}" references missing trigger setup').format(action=action_setup.action.name)
                 )
                 return
             trigger_a = self.owner.action_setup_side_map[action_setup.trigger_a]
@@ -120,18 +121,18 @@ class ActionConstraintSide(LoggerMixin):
     def rig_bones_and_shape_keys(self):
         if self.action_setup.is_corrective and self.used_as_trigger:
             self.add_log(
-                "Corrective cannot be trigger",
-                description=f'Corrective action "{self.action_setup.action.name}" used as trigger. This is not currently supported.'
+                _("Corrective cannot be trigger"),
+                description=_('Corrective action "{action}" used as trigger. This is not currently supported.').format(action=self.action_setup.action.name)
             )
             # TODO: Why isn't this supported? Should be fine imo.
             return
 
         if not self.action_setup.is_corrective and self.control_name not in self.generator.target_rig.pose.bones:
             self.add_log(
-                "Missing Action Control",
+                _("Missing Action Control"),
                 note=self.control_name,
                 note_icon='BONE_DATA',
-                description=f"Control bone '{self.control_name}' for action '{self.action_setup.action.name}' not found"
+                description=_("Control bone '{bone}' for action '{action}' not found").format(bone=self.control_name, action=self.action_setup.action.name),
             )
             return
 
@@ -275,7 +276,9 @@ class ActionConstraintComponent(LoggerMixin):
         if self.action_setups:
             self.action_setup_side_map = {}
             valid_setups = [
-                act_setup for act_setup in self.action_setups if act_setup.enabled and act_setup.action and act_setup.action_slot # TODO SLOTS: Probably make this an is_valid @property.
+                act_setup for act_setup in self.action_setups
+                if act_setup.enabled and act_setup.action and act_setup.action_slot
+                # TODO SLOTS: Probably make this an is_valid @property.
             ]
 
             # Constraints will be added in reverse order because each one is added to the top
@@ -320,14 +323,12 @@ class ActionConstraintComponent(LoggerMixin):
             if action_setup.action == action:
                 yield action_setup
 
-    def instantiate_action_setup_sides(self, action_setup):
-        name = action_setup.action.name
-
+    def instantiate_action_setup_sides(self, action_setup: ActionConstraintSetup):
         if action_setup.is_corrective:
             if not action_setup.trigger_a or not action_setup.trigger_b:
                 self.add_log(
-                    "Missing trigger action",
-                    description=f'Action slot "{name}" is marked as corrective but missing at least one trigger selection.'
+                    _("Missing trigger action"),
+                    description=_('Action Setup "{action}" is marked as corrective but missing at least one trigger selection.').format(action=action_setup.name)
                 )
                 return
 

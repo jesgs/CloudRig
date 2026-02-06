@@ -52,13 +52,13 @@ class POSE_OT_symmetrize_rigging(Operator):
             if opp_pb in selected_pose_bones:
                 self.report(
                     {'ERROR'},
-                    f'Bone selected on both sides: "{pb.name}". Select only one side to clarify symmetrizing direction.',
+                    'Bone selected on both sides: "{bone}". Select only one side to clarify symmetrizing direction.'.format(bone=pb.name),
                 )
                 return {'CANCELLED'}
             if opp_pb == pb:
                 self.report(
                     {'WARNING'},
-                    f'Bone name cannot be flipped: "{pb.name}". Symmetrize will have no effect.',
+                    'Bone name cannot be flipped: "{bone}". Symmetrize will have no effect.'.format(bone=pb.name),
                 )
                 pb.select = False
                 continue

@@ -9,8 +9,8 @@ from ..generation.cloudrig import find_cloudrig, find_metarig_of_rig
 from ..generation.naming import slice_name
 from ..utils.rig import bone_is_visible
 
-# An operator to toggle between the metarig and the generated rig.
-# The generated rig does not store a reference to the metarig, so just bruteforce search it.
+# An operator to toggle between the Metarig and the Target Rig.
+# The Target Rig does not store a reference to the metarig, so just bruteforce search it.
 
 # This operator should only hide/unhide the objects with the eye icon.
 # If the objects are not visible when the eye icon is disabled, the operator should fail gracefully.
@@ -21,7 +21,7 @@ PREFIX_PRIORITY = ['FK', 'IK', 'DEF', 'STR', 'ORG']
 
 
 class CLOUDRIG_OT_MetarigToggle(Operator):
-    """Switch the active object between the generated rig and the metarig"""
+    """Toggle visibility and selection between the Metarig and the Target Rig."""
 
     bl_idname = "object.cloudrig_metarig_toggle"
     bl_label = "Toggle Meta/Generated Rig"
@@ -56,8 +56,8 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
             return {'FINISHED'}
 
         if rig and rig != active:
-            # If the active object is a mesh deformed by the generated rig,
-            # focus the generated rig.
+            # If the active object is a mesh deformed by the Target Rig,
+            # focus the Target Rig.
             self.focus_rig(context, rig)
             return {'FINISHED'}
         elif active:
@@ -78,7 +78,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
         metarig = None
         if rig and rig.cloudrig.generator.target_rig:
-            # If the active object is a metarig, switch to the generated rig.
+            # If the active object is a Metarig, switch to the Target Rig.
             metarig = rig
             rig = metarig.cloudrig.generator.target_rig
             self.switch_rig_focus(
@@ -120,10 +120,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
         to_rig.hide_set(False)
         if not to_rig.visible_get():
-            self.report(
-                {'ERROR'},
-                f'Could not make "{to_rig.name}" visible. It must be enabled, and in an enabled collection.',
-            )
+            self.report({'ERROR'}, 'Could not make "{rig}" visible. It must be enabled, and in an enabled collection.'.format(rig=to_rig.name))
             return {'CANCELLED'}
 
         if context.mode == 'EDIT':
@@ -154,7 +151,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
                 if to_active:
                     to_rig.data.collections.active = to_active
 
-        # When switching between the metarig and the generated rig,
+        # When switching between the Metarig and the Target Rig,
         # match the bone selection as much as possible, unless a lot of bones are selected.
         if match_selection and org_mode in ['EDIT', 'POSE'] and len(selected_bone_names) < 10:
             self.match_bone_selection(from_rig, to_rig, selected_bone_names)

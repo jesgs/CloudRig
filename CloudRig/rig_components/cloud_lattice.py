@@ -11,7 +11,7 @@ from .cloud_base import Component_Base
 
 
 class Component_Lattice(Component_Base):
-    """Create a simple lattice set-up. Lattice modifiers have to be added manually to the objects that should be deformed."""
+    """Create a simple lattice setup. Lattice modifiers have to be added manually to the objects that should be deformed."""
 
     ui_name = "Lattice"
 
@@ -128,7 +128,7 @@ class Component_Lattice(Component_Base):
         # Create a falloff vertex group
         vg = ensure_falloff_vgroup(lattice_ob, vg_name="Hook", multiplier=1.5)
 
-        # Parent lattice to the generated rig
+        # Parent lattice to the Target Rig
         lattice_ob.parent = self.target_rig
         # Bone-parent lattice to root bone
         lattice_ob.parent_type = 'BONE'

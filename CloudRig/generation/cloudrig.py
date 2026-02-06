@@ -144,8 +144,9 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
 def find_cloudrig(
     context, *, allow_metarigs=True, filter_func: callable = None
 ) -> Object | None:
-    """Find the CloudRig metarig or generated rig most relevant to the current context.
-    For example, if the active object is a mesh which is deformed by a generated rig, return that generated rig.
+    """Find the CloudRig Metarig or Target Rig most relevant to the current context.
+    For example, if the active object is a mesh which is deformed by a generated rig,
+    return that generated rig.
     """
 
     def is_good_rig(rig):
@@ -203,7 +204,7 @@ def poll_cloudrig_operator(operator, context, modes={}, **kwargs):
 class SnappingOpMixin:
     bone_names: StringProperty(
         name="Bone Names",
-        description="A python list converted to a string with json.dumps(). The order of the bone names matters, as dependents should come after their dependencies (ie. children after parents)",
+        description="A Python string list of bone names in hierarchical order.",
     )
     prop_bone: StringProperty(
         name="Property Bone Name",
@@ -476,8 +477,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
             self.key_bones_single_frame(context, pbone_matrix_map, options=set())
 
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
-    "Invert a custom property's value while preserving the world-matrix " \
-    "of bones which are affected by it. Can also bake the bones over a frame range"
+    "Invert property value while preserving the transforms of affected bones."
     bl_idname = 'pose.cloudrig_snap_bake'
     bl_label = "Snap & Bake Bones"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -524,8 +524,7 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
         return {'FINISHED'}
 
 class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
-    "Change the parent while preserving the world-matrix of the children. " \
-    "Can also bake the bones over a frame range"
+    "Change the parent while preserving the world-matrix of the children."
     # This operator's implementation is so simple because it does nothing more
     # than base Snap&Bake other than using an Enum selector for the property value.
 
@@ -566,8 +565,7 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
         return super().execute(context)
 
 class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
-    "Switch between IK <-> FK modes. Snap the affected bones to preserve" \
-    " the pose in the new mode. Can also bake the bones over a frame range"
+    "Switch between IK <-> FK modes."
 
     bl_idname = 'pose.cloudrig_toggle_ikfk_bake'
     bl_label = "Snap & Bake"
@@ -791,7 +789,7 @@ def closest_point_on_line(
 
 
 class POSE_OT_cloudrig_keyframe_all_settings(Operator):
-    """Keyframe all rig settings that are being drawn in the below UI"""
+    """Keyframe all properties shown in the UI below"""
 
     bl_idname = 'pose.cloudrig_keyframe_all_settings'
     bl_label = "Keyframe CloudRig Settings"
@@ -986,7 +984,7 @@ def reset_armature(rig, *, viewport_display=False, bone_visibility=False, action
 @bpy.app.handlers.persistent
 def auto_override_rig_data(_=None):
     # On file load, if a CloudRig rig object is overridden, make sure its data is also overridden.
-    # Otherwise, bone collection visibility changes will not be saved with the file.
+    # Otherwise, Bone Collection visibility changes will not be saved with the file.
     for rig in [ob for ob in bpy.context.scene.objects if is_generated_cloudrig(ob)]:
         if rig.override_library and not rig.data.override_library:
             rig.data.override_create(remap_local_usages=True)
@@ -1799,7 +1797,7 @@ class CloudRigBoneCollection(PropertyGroup):
 
     name: StringProperty(
         name="Name",
-        description="Name of this bone collection",
+        description="Name of this Bone Collection",
         update=update_name,
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
@@ -2123,7 +2121,7 @@ def draw_cloudrig_collections(self, context, rig: Object):
     layout.use_property_split = True
     layout.use_property_decorate = False
 
-    # Figure out property path to the bone collection list in this context,
+    # Figure out property path to the Bone Collection list in this context,
     # considering that this function should work in a number of cases
     # where the rig is not the active object.
     rig_of_mesh, modifier_name = get_cloudrig_of_mesh(context.active_object)
@@ -2361,7 +2359,7 @@ def object_mode(rig, mode='OBJECT'):
 
 
 class POSE_OT_cloudrig_collection_select(Operator):
-    "Select all bones in this collection.\n\n" "Shift: Extend selection.\n" "Ctrl: Mirror selection.\n" "Alt: Deselect"
+    "Select all bones in this Bone Collection.\n\n" "Shift: Extend selection.\n" "Ctrl: Mirror selection.\n" "Alt: Deselect"
 
     bl_idname = "pose.cloudrig_collection_select"
     bl_label = "Select Bones of Collection"
@@ -2469,7 +2467,7 @@ def poll_cloudrig_operator_collection(operator, context):
 
 
 class POSE_OT_cloudrig_collection_delete(Operator):
-    "Remove the active bone collection.\n" "Shift: Delete whole hierarchy" ""
+    "Remove the active Bone Collection.\n" "Shift: Delete whole hierarchy" ""
 
     bl_idname = "pose.cloudrig_collection_delete"
     bl_label = "Remove Bone Collection"
@@ -2543,7 +2541,7 @@ class POSE_OT_cloudrig_collection_delete(Operator):
         rig.cloudrig_prefs.active_collection_index = coll.index
 
     def delete_active(self, rig) -> bool:
-        """Try to delete the active bone collection, and return success state."""
+        """Try to delete the active Bone Collection, and return success state."""
         coll = rig.data.collections.active
         if not coll:
             self.report({'ERROR'}, "There is no active collection.")
@@ -2554,7 +2552,7 @@ class POSE_OT_cloudrig_collection_delete(Operator):
 
         coll_name = coll.name
         rig.data.collections.remove(coll)
-        self.report({'INFO'}, f"Deleted active collection: '{coll_name}'")
+        self.report({'INFO'}, "Deleted active collection: '{coll_name}'".format(coll_name=coll_name))
         return True
 
     def delete_hierarchy(self, rig):
@@ -2575,7 +2573,7 @@ class POSE_OT_cloudrig_collection_delete(Operator):
 
 
 class POSE_OT_cloudrig_collection_add(Operator):
-    """Add a new bone collection"""
+    """Add a new Bone Collection"""
 
     bl_idname = "pose.cloudrig_collection_add"
     bl_label = "Add Bone Collection"
@@ -2606,7 +2604,7 @@ class POSE_OT_cloudrig_collection_add(Operator):
 
 
 class POSE_OT_cloudrig_reorder_collections(Operator):
-    "Rearrange and re-parent this collection with the arrow keys, WASD, or by " "moving the mouse.\n\n" "Left-click/Enter: Confirm.\n" "Right-click/Esc: Cancel.\n" "Up/Down: Move Collection up/down.\n" "Left/Right: Parent/Unparent collection to the one above"
+    "Rearrange and re-parent this collection with the arrow keys, WASD, or by " "moving the mouse.\n\n" "Left-click/Enter: Confirm.\n" "Right-click/Esc: Cancel.\n" "Up/Down: Move Collection up/down.\n" "Left/Right: Unparent/Parent collection to the one above"
 
     bl_idname = "pose.cloudrig_reorder_collections"
     bl_label = "Reorder Collections"

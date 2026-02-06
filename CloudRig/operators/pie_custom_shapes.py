@@ -134,7 +134,7 @@ class POSE_OT_reload_selected_custom_shape(Operator):
         for i, pb in enumerate(self.get_bones_to_reload(context)):
             pb.custom_shape = ensure_widget(pb.custom_shape.name, overwrite=True)
 
-        self.report({'INFO'}, f"Bone shapes reloaded: {i+1}.")
+        self.report({'INFO'}, "Bone shapes reloaded: {count}.".format(count=i+1))
 
         return {'FINISHED'}
 
@@ -273,7 +273,7 @@ class POSE_OT_edit_widget_of_selected_bones(Operator):
 
 
 class MESH_OT_return_to_pose_mode(Operator):
-    """Return from custom shape editing back to the rig"""
+    """Return from custom shape editing back to pose mode on the previously active Armature object"""
 
     bl_idname = "mesh.return_to_pose_mode"
     bl_label = "Edit Custom Shape"

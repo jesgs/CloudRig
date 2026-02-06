@@ -183,10 +183,9 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
             target.target = target_rig
             target.subtarget = target_pb.name
 
-        plural = "s" if len(arm_con.targets) != 1 else ""
         self.report(
             {'INFO'},
-            f'Parented "{pbone.name}" to {len(arm_con.targets)} bone{plural} using Armature constraint.',
+            'Parented "{bone}" to {count} bones using Armature constraint.'.format(bone=pbone.name, count=len(arm_con.targets)),
         )
 
     def execute(self, context):

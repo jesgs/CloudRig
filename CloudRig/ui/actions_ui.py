@@ -106,7 +106,7 @@ class ActionConstraintSetup(PropertyGroup):
 
     enabled: BoolProperty(
         name="Enabled",
-        description="Create constraints for this action on the generated rig",
+        description="Create constraints for this action on the Target Rig",
         default=True,
     )
 
@@ -122,7 +122,7 @@ class ActionConstraintSetup(PropertyGroup):
 
     subtarget: StringProperty(
         name="Control Bone",
-        description="Select a bone on the generated rig which will drive this action",
+        description="Select a bone on the Target Rig which will drive this action",
     )
 
     transform_channel: EnumProperty(
@@ -214,13 +214,13 @@ class ActionConstraintSetup(PropertyGroup):
 
     trigger_select_a: StringProperty(
         name="Trigger A",
-        description="Action Set-up whose activation will trigger this set-up as a corrective",
+        description="Action Setup whose activation will trigger this setup as a corrective",
         get_transform=setup_id_to_str,
         set_transform=setup_name_to_id,
     )
     trigger_select_b: StringProperty(
         name="Trigger B",
-        description="Action Set-up whose activation will trigger this set-up as a corrective",
+        description="Action Setup whose activation will trigger this setup as a corrective",
         get_transform=setup_id_to_str,
         set_transform=setup_name_to_id,
     )
@@ -378,7 +378,7 @@ class CLOUDRIG_OT_action_new(Operator):
 
 
 class CLOUDRIG_OT_jump_to_action_setup(Operator):
-    """Set Active Action Setup Index"""
+    """Set the active Action Setup"""
 
     bl_idname = "object.cloudrig_jump_to_action_setup"
     bl_label = "Jump to Action Setup"
@@ -391,7 +391,7 @@ class CLOUDRIG_OT_jump_to_action_setup(Operator):
             if action_setup.unique_id == self.setup_id:
                 context.object.cloudrig.generator.active_action_index = i
                 break
-        self.report({'INFO'}, f'Set active action set-up index to {i}.')
+        self.report({'INFO'}, f'Set active action setup index to {i}.')
         return {'FINISHED'}
 
 
@@ -459,7 +459,7 @@ class CLOUDRIG_UL_action_setups(UIList):
                 icon = 'ERROR'
 
             elif generator.target_rig:
-                # Check for bones not actually present in the generated rig
+                # Check for bones not actually present in the Target Rig.
                 bones = generator.target_rig.pose.bones
                 flipped_name = flip_name(action_setup.subtarget)
 
@@ -578,7 +578,7 @@ def draw_action_setup_ui(layout, action_setup, target_rig):
         row = layout.row()
         row.alert = True
         row.label(
-            text="Cannot verify bone name without a generated rig", icon='ERROR'
+            text="Cannot verify bone name without a Target Rig", icon='ERROR'
         )
 
     row = layout.row()

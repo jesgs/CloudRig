@@ -4,7 +4,7 @@ from .cloud_copy import Component_CopyBone
 
 
 class Component_FaceChainAnchor(Component_CopyBone):
-    """Create a control on the generated rig that serves as an intersection for Face Grid components."""
+    """Create a control on the Target Rig that serves as an intersection for Face Grid components."""
 
     ui_name = "Chain Intersection"
 

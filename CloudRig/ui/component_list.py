@@ -176,7 +176,7 @@ class CLOUDRIG_OT_add_rig_component(Operator):
         rig.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
         self.report(
             {'INFO'},
-            f'Added "{selected_pb.cloudrig_component.component_type}" component to "{selected_pb.name}".',
+            'Added "{comp_type}" component to "{bone}".'.format(comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name),
         )
 
         if self.remove_active_log:
@@ -211,7 +211,7 @@ class CLOUDRIG_OT_remove_rig_component(Operator):
 
         self.report(
             {'INFO'},
-            f'Removed "{selected_pb.cloudrig_component.component_type}" component from "{selected_pb.name}".',
+            'Removed "{comp_type}" component from "{bone}".'.format(comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name),
         )
         selected_pb.cloudrig_component.component_type = ""
 
@@ -229,7 +229,7 @@ class CLOUDRIG_OT_remove_rig_component(Operator):
 
 
 class CLOUDRIG_OT_reorder_rig_component(Operator):
-    """Reorder active rig component"""
+    """Reorder Component"""
 
     bl_idname = "pose.cloudrig_reorder_component"
     bl_label = "Reorder Component"

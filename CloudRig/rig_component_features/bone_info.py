@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 from math import pi
 
+from bpy.app.translations import pgettext_iface as _
 from bpy.types import (
     Bone,
     Constraint,
@@ -297,7 +298,7 @@ class BoneInfo:
         # TODO: If one day Blender's color presets are fixed, drop support for custom colors.
         if keep_colors:
             if data_bone.color.palette == 'CUSTOM' and False:
-                self.owner_component.add_log("Custom Colors must not be used.")
+                self.owner_component.add_log(_("Custom Colors must not be used."))
             else:
                 self.color_palette_base = data_bone.color.palette
 
@@ -349,7 +350,7 @@ class BoneInfo:
                     prop_data = pose_bone.id_properties_ui(prop_name).as_dict()
                 except TypeError:
                     # This should only happen with python dictionaries.
-                    # Just store the value to be able to copy the property over to the generated rig.
+                    # Just store the value to be able to copy the property over to the Target Rig.
                     prop_data = {'default': pose_bone[prop_name]}
 
                 value = pose_bone[prop_name]
@@ -552,9 +553,9 @@ class BoneInfo:
         except ValueError:
             # This can happen when the vector we're trying to align with is perfectly aligned with the bone's length.
             self.owner_component.add_log(
-                "Failed to Orient Bone",
+                _("Failed to Orient Bone"),
                 trouble_bone=self.name,
-                description="The roll value of this bone could not be set to align with the desired vector.",
+                description=_("The roll value of this bone could not be set to align with the desired vector."),
                 display_stack_trace='ADVANCED',
             )
 
@@ -681,11 +682,11 @@ class BoneInfo:
         # Check for 0-length bones.
         if (self.head - self.tail).length == 0:
             self.bone_set.rig_component.add_log(
-                "Zero-length bone",
+                _("Zero-length bone"),
                 trouble_bone=self.name,
                 note=self.name,
                 note_icon='BONE_DATA',
-                description=f'Bone "{self.name}" had zero length. Its length was set to 1 to avoid a fatal error.',
+                description=_('Bone "{bone}" had zero length. Its length was set to 1 to avoid a fatal error.').format(bone=self.name),
             )
             self.tail.y += 1
         assert (self.head - self.tail).length > 0, f'Bone "{edit_bone.name}" cannot be created with a length of 0.'
@@ -707,9 +708,9 @@ class BoneInfo:
             edit_bone.parent = armature.data.edit_bones.get(str(self.parent))
             if not edit_bone.parent:
                 self.bone_set.rig_component.add_log(
-                    "Parent not found",
+                    _("Parent not found"),
                     trouble_bone=self.name,
-                    description=f'Parent bone "{self.parent}" does not exist or is a child of this bone.',
+                    description=_('Parent bone "{bone}" does not exist or is a child of this bone.').format(bone=self.parent),
                 )
 
         # Custom Properties.
@@ -803,10 +804,10 @@ class BoneInfo:
 
         if bone.name.startswith("DEF") and not bone.use_deform:
             self.bone_set.rig_component.add_log(
-                "Non-deforming DEF bone",
+                _("Non-deforming DEF bone"),
                 trouble_bone=self.name,
-                description=f'Bone name "{self.name}" begins with "DEF" but Deform checkbox is not enabled. ' \
-                            'This bone will not be keyframed by the "Whole Character" keying set!',
+                description=_('Bone name "{bone}" begins with "DEF" but Deform checkbox is not enabled. ' \
+                            'This bone will not be keyframed by the "Whole Character" keying set!').format(bone=self.name),
                 operator='object.cloudrig_rename_bone',
                 op_kwargs={'old_name': bone.name},
             )
@@ -826,7 +827,7 @@ class BoneInfo:
                     make_driver(ob, target_id=target_id, **kwargs)
                 except Exception as e:
                     self.bone_set.rig_component.add_log(
-                        "Failed to create Driver",
+                        _("Failed to create Driver"),
                         trouble_bone=self.name,
                         description=str(e),
                     )
@@ -929,7 +930,7 @@ class BoneInfo:
 
 class ConstraintInfo(dict):
     """Abstracts away Blender's constraints, allowing less verbose ways to set properties,
-    automatically remapping pointers to the metarig or None to the target rig,
+    automatically remapping pointers to the metarig or None to the Target Rig,
     and with more commonly useful default values."""
 
     def __init__(

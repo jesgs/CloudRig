@@ -380,7 +380,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         ik_chain: list[BoneInfo],
         ik_mstr: BoneInfo
     ) -> BoneInfo:
-        """Primary function that starts the entire Stretchy IK set-up.
+        """Primary function that starts the entire Stretchy IK setup.
         Some extra stuff is in ik_chain__attach_org_to_ik.
         # TODO: Put these things under a parameter, so IK Stretch can be disabled when not needed.
         """

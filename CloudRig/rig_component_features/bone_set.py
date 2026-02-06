@@ -286,7 +286,7 @@ class BoneSetMixin:
             Name to display in the Bone Organization panel.
             This cannot be customized by users. It acts as an identifier for the bone set.
         collections:
-            List of the DEFAULT bone collection names to assign the bones of this bone set to.
+            List of the DEFAULT Bone Collection names to assign the bones of this bone set to.
             Users can add or change collections, or reset the list.
             Final entry cannot be removed.
         color_palette:
@@ -419,7 +419,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
 
 
 class CLOUDRIG_OT_bone_set_collection_add(Operator):
-    """Add bone set collection"""
+    """Add a Bone Collection to this Bone Set"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_add"
     bl_label = "Add Collection"
@@ -435,7 +435,7 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
 
 
 class CLOUDRIG_OT_bone_set_collection_remove(Operator):
-    """Remove bone set collection"""
+    """Remove a Bone Collection from this Bone Set"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_remove"
     bl_label = "Remove Collection"
@@ -469,7 +469,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
 
 
 class CLOUDRIG_OT_bone_set_collection_reset(Operator):
-    """Reset collection assignments of this Bone Set to the default list"""
+    """Reset Bone Collections of this Bone Set to the default list"""
 
     bl_idname = "pose.cloudrig_bone_set_collection_reset"
     bl_label = "Reset Collections"

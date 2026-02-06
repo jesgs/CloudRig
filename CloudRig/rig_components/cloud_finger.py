@@ -89,7 +89,7 @@ class Component_Finger(Component_Chain_IKFK):
 
     @no_overlay
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, _default=0.0):
-        """Avoid creating complex inherited set-up. Just parent the pole to the master."""
+        """Avoid creating complex inherited setup. Just parent the pole to the master."""
         ik_pole.parent = ik_mstr
 
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):

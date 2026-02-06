@@ -56,7 +56,7 @@ class Component_Base(
 
     # Whether original bones from the metarig should be created during rig generation.
     keep_original_bones = True
-    # Whether bone collection assignments of the original bones should be preserved.
+    # Whether Bone Collection assignments of the original bones should be preserved.
     keep_original_bones_collections = False
     # Whether bone colors of the original bones should be preserved.
     keep_original_bones_colors = False
@@ -189,7 +189,7 @@ class Component_Base(
         # helpers like curves, empties, lattices.
         pass
 
-    ### Relinking - Allow users to easily add constraints to the generated rig to specific bones,
+    ### Relinking - Allow users to easily add constraints to the Target Rig to specific bones,
     # in cases where user intent can be made clear.
     @no_overlay
     def base__relink(self):

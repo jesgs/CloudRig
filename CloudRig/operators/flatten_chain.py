@@ -51,7 +51,7 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
         if self.start_bone:
             start_pb = rig.pose.bones.get(self.start_bone)
         if not start_pb:
-            self.report({'ERROR'}, f"Bone not found: {self.start_bone}")
+            self.report({'ERROR'}, "Bone not found: {bone}".format(bone=self.start_bone))
             return {'CANCELLED'}
 
         # Enter edit mode

@@ -77,7 +77,7 @@ class Component_Aim(Component_Base):
                 self.group_master.parent
                 and self.group_master.parent.name == self.naming.add_prefix(self.group_master.name, "P")
             ):
-                # If the parent switching set-up already exists, don't create it again.
+                # If the parent switching setup already exists, don't create it again.
                 return
 
         super().base__apply_parent_switching(

@@ -65,7 +65,7 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
 
 
 class POSE_OT_cloudrig_copy_component(Operator):
-    """Copy rig component type parameters from active to selected bones"""
+    """Copy rig component type and parameters from active to selected bones"""
 
     bl_idname = "pose.cloudrig_copy_component"
     bl_label = "Copy Component to Selected"
