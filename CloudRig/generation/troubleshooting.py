@@ -628,7 +628,7 @@ class CloudLogManager:
 
 class CloudRigLogEntry(PropertyGroup):
     "Log Entry"
-    __doc__ = """Container for storing information about a single metarig warning/error.
+    __longdoc__ = """Container for storing information about a single metarig warning/error.
 
     A CollectionProperty of CloudRigLogEntries are added to the armature datablock
     in cloud_generator.register().

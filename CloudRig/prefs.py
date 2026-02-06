@@ -46,7 +46,7 @@ def init_component_module_list(context=None):
 
 class CloudRigComponentTypeInfo(PropertyGroup):
     "Component Type Info"
-    __doc__ = """Purely for UI purposes, so we can store a list of strings in the RNA that
+    __longdoc__ = """Purely for UI purposes, so we can store a list of strings in the RNA that
     represent the list of available rig types. We need that in the RNA so we can use
     prop_search() to draw a nice list that the user can type into to filter and search.
     """

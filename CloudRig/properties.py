@@ -94,7 +94,8 @@ class NameProperty(PropertyGroup):
 
 
 class BoneSet_ForUI(PropertyGroup):
-    """I want to draw Bone Sets in a UIList, but for that, they need to be a CollectionProperty,
+    """Bone Set UI Data"""
+    __longdoc__ = """I want to draw Bone Sets in a UIList, but for that, they need to be a CollectionProperty,
     which I want to avoid for the reasons explained in the docstring of `class BoneSets`.
 
     So, we have this layer on top of that, just so we can display Bone Sets in a UIList.
@@ -106,8 +107,8 @@ class BoneSet_ForUI(PropertyGroup):
 
 class BoneSets(PropertyGroup):
     "Bone Set"
-    __doc__ = """
-    We could've simply created a `class BoneSet(PropertyGroup)` and then make a CollectionProperty of that, yes.
+    __longdoc__ = """We could've simply created a `class BoneSet(PropertyGroup)`
+    and then make a CollectionProperty of that, yes.
     But that would have a lot of downsides:
         1. Every entry in a CollectionProperty has the same default values.
         This would mean that users can't reset Bone Set properties to useful defaults.
