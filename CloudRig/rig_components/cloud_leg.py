@@ -85,7 +85,6 @@ class Component_Limb_BipedLeg(Component_Limb):
 
     def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo]):
         super().ik_chain__make_ik_setup(org_chain)
-
         if self.params.limb.double_ik:
             self.__create_foot_dsp(self.ik_mstr.parent)
         self.__create_foot_dsp(self.ik_mstr)
@@ -161,7 +160,6 @@ class Component_Limb_BipedLeg(Component_Limb):
             head=intersect_point_line(toe.tail, knee.head, knee.tail)[0],
             tail=toe.tail.copy(),
         )
-        dsp_bone.parent = self.ik_chain[-2]
         dsp_bone.roll_align_vector(foot.head, axis='-Z')
 
         bone.custom_shape_along_length = 0.5
@@ -193,15 +191,6 @@ class Component_Limb_BipedLeg(Component_Limb):
         ik_foot_chain = ik_chain[-2:]
         org_thigh, org_knee, org_foot, org_toe = org_chain
         org_toe.roll_align_other(org_foot)
-
-        rolly_stretchy = self.bone_sets['IK Mechanism'].new(
-            name=self.naming.add_prefix(org_thigh, "IK-STR-ROLL"),
-            source=org_thigh,
-            tail=self.ik_mstr.head.copy(),
-            parent=ik_chain[0],
-        )
-        rolly_stretchy.scale_width(0.4)
-        rolly_stretchy.add_constraint('STRETCH_TO', subtarget=ik_chain[-2].name)
 
         # Create ROLL control behind the foot.
         head, tail = self.__calc_footroll_headtail()
