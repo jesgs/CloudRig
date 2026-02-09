@@ -133,20 +133,27 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         self.ik_chain__prevent_straight_chain()
 
+
         super().create_bone_infos(context)
 
         self.last_org = self.bones_org[-1]
 
         if self.params.ik_chain.at_tip:
             # TODO: We insert an extra (temp) ORG- bone here, which feels quite hacky.
-            self.bones_org.new(
-                name=self.naming.add_prefix(self.last_org, "TIP"),
+            self.extra_org = self.bones_org.new(
+                name=self.naming.increment_name(self.last_org),
                 source=self.last_org,
                 head=self.last_org.tail.copy(),
                 vector=self.last_org.vector,
-                preserve=False
+                preserve=True,
             )
-        self.ik_chain__make_ik_setup()
+            parent_helper = self.main_str_bones[-1].parent_helper
+            if parent_helper:
+                arm_con = next((con for con in parent_helper.constraint_infos if con.type=='ARMATURE' and con.targets))
+                if arm_con:
+                    arm_con.targets[0]['subtarget'] = self.extra_org.name
+
+        self.ik_chain__make_ik_setup(self.bones_org)
 
         if self.params.ik_chain.world_aligned:
             self.ik_chain__world_align_fk()
@@ -174,7 +181,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
                     row_name=self.pole_ctrl.name,
                     entry_name=self.pole_ctrl.name,
                 )
-
 
     ##############################
     # IK Chain functions.
@@ -225,7 +231,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             },
         )
 
-    def ik_chain__make_ik_setup(self):
+    def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo]):
         # Create IK Master control
         self.ik_mstr = self.ik_chain__make_master_ctr(
             self.bone_sets["IK Controls"],
@@ -239,7 +245,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             self.pole_ctrl = self.__make_pole_control()
 
         # Create IK Chain
-        self.ik_chain = self.ik_chain__make_ik_chain(self.bones_org, self.ik_mstr, self.pole_ctrl)
+        self.ik_chain = self.ik_chain__make_ik_chain(org_chain, self.ik_mstr, self.pole_ctrl)
 
         if self.pole_ctrl:
             # Create a display helper that aims the pole target at the IK chain
@@ -251,7 +257,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             )
 
         # Set up IK Stretch
-        self.stretch_bone = self.ik_chain__make_ik_stretch(self.bones_org, self.ik_chain, self.ik_mstr)
+        self.ik_chain__make_ik_stretch(self.bones_org, self.ik_chain)
 
     def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
         ik_master = bone_set.new(
@@ -259,6 +265,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             source=source_bone,
             custom_shape_name=shape_name or self.params.ik_chain.shape_ik_master.shape_name,
             parent=self.generator.params.ensure_root,
+            use_transform_at_custom_shape=True,
         )
 
         if not self.generator_params.ensure_root:
@@ -307,13 +314,11 @@ class Component_Chain_IKFK(Component_Chain_FK):
             tail=self.bones_org[0].tail.copy(),
             parent=pole_ctrl,
             hide_select=True,
-            custom_shape_name="Line",
+            custom_shape_name='Line',
             display_type='STICK',
             use_custom_shape_bone_size=True,
         )
-        pole_line.add_constraint(
-            "STRETCH_TO", subtarget=self.bones_org[0].name, head_tail=1
-        )
+        pole_line.add_constraint("STRETCH_TO", subtarget=self.bones_org[1].name)
         # Add a driver to the Line's hide property so it's hidden exactly when the pole target is hidden.
         pole_line.drivers.append(
             {
@@ -374,6 +379,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 ik_bone.parent = ik_mstr
                 if self.params.ik_chain.world_aligned:
                     ik_mstr.flatten()
+                    ik_mstr.custom_shape_transform = ik_bone
 
         return ik_chain
 
@@ -382,61 +388,15 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self,
         org_chain: list[BoneInfo],
         ik_chain: list[BoneInfo],
-        ik_mstr: BoneInfo
-    ) -> BoneInfo:
-        """Primary function that starts the entire Stretchy IK setup.
+    ):
+        """Implements IK stretching mechanism.
         Some extra stuff is in ik_chain__attach_org_to_ik.
         # TODO: Put these things under a parameter, so IK Stretch can be disabled when not needed.
         """
-        ik_org_bone = org_chain[self.ik_chain_count]
-        stretch_bone = self.bone_sets["IK Mechanism"].new(
-            name=self.naming.add_prefix(org_chain[0], "IK-STR"),
-            source=org_chain[0],
-            tail=ik_mstr.head.copy(),
-            parent=self.root_bone,
-            display_type='BBONE'
-        )
-        stretch_bone.scale_width(0.4)
 
-        # Bone responsible for giving stretch_bone the target position to stretch to.
-        self.stretch_target_bone = self.bone_sets["IK Mechanism"].new(
-            name=self.naming.add_prefix(ik_org_bone, "IK-STR-TGT"),
-            source=ik_org_bone,
-            parent=ik_mstr,
-        )
+        self.ik_tgt_bone = ik_chain[self.ik_chain_count]
 
-        chain_length = 0
-        for ik_bone in ik_chain[:self.ik_chain_count]:
-            chain_length += ik_bone.length
-
-        length_factor = chain_length / stretch_bone.length
-        stretch_bone.add_constraint(
-            "STRETCH_TO", subtarget=self.stretch_target_bone.name
-        )
-        limit_scale = stretch_bone.add_constraint(
-            "LIMIT_SCALE", use_max_y=True, max_y=length_factor, influence=0
-        )
-
-        limit_scale.drivers.append(
-            {
-                "prop": "influence",
-                "expression": "1-stretch",
-                "variables": {
-                    "stretch": {
-                        "type": "SINGLE_PROP",
-                        "targets": [
-                            {
-                                "id": self.target_rig,
-                                "id_type": "OBJECT",
-                                "data_path": f'pose.bones["{self.properties_bone.name}"]["{self.ik_stretch_name}"]',
-                            }
-                        ],
-                    }
-                },
-            }
-        )
-
-        # Store info for UI
+        # Add stretch toggle property with UI.
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.ik_stretch_name,
@@ -447,107 +407,39 @@ class Component_Chain_IKFK(Component_Chain_FK):
             custom_prop_settings={
                 "default": 1.0,
                 "description": "Allow the limb to stretch beyond its normal maximum reach for a cartoony effect",
+                "precision": 1,
+                "step": 10,
             },
         )
 
-        # Last IK bone should copy location of the tail of the stretchy bone.
-        self.ik_tgt_bone = ik_chain[self.ik_chain_count]
-        self.ik_tgt_bone.add_constraint(
-            "COPY_LOCATION",
-            space="WORLD",
-            subtarget=stretch_bone.name,
-            head_tail=1,
+        # That property drives a Limit Distance constraint.
+        distance = sum([b.length for b in ik_chain[:self.ik_chain_count]])
+        limit_con = self.ik_tgt_bone.add_constraint(
+            'LIMIT_DISTANCE',
+            subtarget=ik_chain[0],
+            distance=distance,
+        )
+        limit_con.drivers.append(
+            {
+                "prop": "influence",
+                "expression": "1-var",
+                "variables": [(self.properties_bone.name, self.ik_stretch_name)],
+            }
         )
 
-        # Create Helpers for main STR bones so they will stick to the stretchy bone during IK stretching.
-        self.__make_ik_stretch_helpers(stretch_bone, chain_length)
-
-        return stretch_bone
-
-    @no_overlay
-    def __make_ik_stretch_helpers(self, stretch_bone, chain_length):
-        """Set up transformation constraint to mid-limb STR bone that ensures
-        that it stays in between the root of the limb and the IK master
-        control during IK stretching.
-        """
-
-        # This driver will cause the Copy Location constraint to activate exactly
-        # when the stretch bone's current length exceeds its original length.
-        ik_stretch_engaged_driver = {
-            "prop": "influence",
-            "expression": f"ik * stretch * (distance > {chain_length} * scale)",
-            "variables": {
-                "stretch": {
-                    "type": "SINGLE_PROP",
-                    "targets": [
-                        {
-                            "data_path": f'pose.bones["{self.properties_bone.name}"]["{self.ik_stretch_name}"]'
-                        }
-                    ],
-                },
-                "ik": {
-                    "type": "SINGLE_PROP",
-                    "targets": [
-                        {
-                            "data_path": f'pose.bones["{self.properties_bone.name}"]["{self.ikfk_name}"]'
-                        }
-                    ],
-                },
-                "distance": {
-                    "type": "LOC_DIFF",
-                    "targets": [
-                        {
-                            "bone_target": self.ik_tgt_bone.name,
-                            "transform_space": "WORLD_SPACE",
-                        },
-                        {
-                            "bone_target": self.ik_chain[0].name,
-                            "transform_space": "WORLD_SPACE",
-                        },
-                    ],
-                },
-                "scale": {
-                    "type": "TRANSFORMS",
-                    "targets": [
-                        {
-                            "bone_target": self.ik_chain[0].name,
-                            "transform_type": "SCALE_Y",
-                            "transform_space": "WORLD_SPACE",
-                        }
-                    ],
-                },
-            },
-        }
-
-        cum_length = self.bones_org[0].length
-        for i, main_str_bone in enumerate(self.main_str_bones):
-            # How far this bone is along the total chain length
-            head_tail = cum_length / chain_length
-            if head_tail > 1.0:
-                break
-            if i == 0:
-                continue
-            if i == len(self.main_str_bones) - 1 and not self.params.ik_chain.at_tip:
-                continue
-            # Create STR-S helper
-
-            con_name = "CopyLoc_IK_Stretch"
-            copyloc = main_str_bone.parent.add_constraint(
-                "COPY_LOCATION",
-                space="WORLD",
-                subtarget=stretch_bone.name,
-                name=con_name,
-                head_tail=head_tail,
+        for ik_bone in ik_chain[:self.ik_chain_count]:
+            ik_bone.drivers.append(
+                {
+                    "prop": "ik_stretch",
+                    "expression": "var*0.001 if var > 0 else 0",
+                    "variables": [(self.properties_bone.name, self.ik_stretch_name)],
+                }
             )
-            org_bone = self.bones_org[i]
-            cum_length += org_bone.length
-
-            copyloc.drivers.append(dict(ik_stretch_engaged_driver))
 
     @no_overlay
     def ik_chain__world_align_fk(self):
         # Make last FK bone world-aligned.
-        self.ik_chain__world_aligned_helper(self.last_org.fk_bone)
+        self.ik_chain__world_aligned_helper(self.fk_chain[-1])
 
     def ik_chain__world_aligned_helper(self, fk_bone: BoneInfo) -> BoneInfo:
         """Make a control align to the closest world axis (flatten the bone),
@@ -606,27 +498,37 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     @no_overlay
     def ik_chain__attach_org_to_ik(self, org_chain: list[BoneInfo], ik_chain: list[BoneInfo]):
-        # Note: Runs after fk_chain__attach_org_to_fk().
+        # NOTE: Runs after fk_chain__attach_org_to_fk().
 
         # Add Copy Transforms constraints to the ORG bones to copy the IK bones.
         # Put driver on the influence to be able to disable IK.
-
         for org_bone, ik_bone in zip(org_chain, ik_chain):
             # Copy Transforms of IK bone
-            ct_ik = org_bone.add_constraint(
-                "COPY_TRANSFORMS",
-                space="WORLD",
+            con_copytrans_ik = org_bone.add_constraint(
+                'COPY_TRANSFORMS',
+                space='WORLD',
                 subtarget=ik_bone.name,
                 name="Copy Transforms IK",
             )
+            ik_constraints = [con_copytrans_ik]
+            if ik_bone != ik_chain[-1]:
+                con_limitscale_ik = org_bone.add_constraint(
+                    'LIMIT_SCALE',
+                    use_min_xyz=[True, True, True],
+                    use_max_xyz=[True, True, True],
+                    max_x=1.0,
+                    max_y=1.0,
+                    max_z=1.0,
+                )
+                ik_constraints.append(con_limitscale_ik)
 
-            ct_ik.drivers.append(
-                {
-                    "prop": "influence",
-                    "variables": [(self.properties_bone.name, self.ikfk_name)],
-                }
-            )
-
+            for constraint in ik_constraints:
+                constraint.drivers.append(
+                    {
+                        "prop": "influence",
+                        "variables": [(self.properties_bone.name, self.ikfk_name)],
+                    }
+                )
 
     @no_overlay
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, default=0.0):

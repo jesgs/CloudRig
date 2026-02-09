@@ -94,8 +94,8 @@ class Component_Limb(Component_Chain_IKFK):
             fk_elbow.lock_rotation = [False, True, True]
         return fk_chain
 
-    def ik_chain__make_ik_setup(self):
-        super().ik_chain__make_ik_setup()
+    def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo]):
+        super().ik_chain__make_ik_setup(org_chain)
 
         # Parent control
         if self.params.limb.double_ik:

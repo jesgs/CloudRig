@@ -79,13 +79,10 @@ class Component_Finger(Component_Chain_IKFK):
         self,
         org_chain: list[BoneInfo],
         ik_chain: list[BoneInfo],
-        ik_mstr: BoneInfo
-    ) -> BoneInfo:
-        stretch_bone = super().ik_chain__make_ik_stretch(org_chain, ik_chain, ik_mstr)
-        stretch_bone.add_constraint('COPY_ROTATION', subtarget=ik_mstr, index=0, use_xyz=[False, True, False])
+    ):
+        super().ik_chain__make_ik_stretch(org_chain, ik_chain)
         if self.pole_ctrl:
-            self.pole_ctrl.parent = stretch_bone
-        return stretch_bone
+            self.pole_ctrl.parent = org_chain[-2]
 
     @no_overlay
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, _default=0.0):
@@ -119,40 +116,38 @@ class Component_Finger(Component_Chain_IKFK):
 
     @no_overlay
     def ik_chain__attach_org_to_ik(self, org_chain: list[BoneInfo], ik_chain: list[BoneInfo]):
-        # Note: Runs after fk_chain__attach_org_to_fk().
+        super().ik_chain__attach_org_to_ik(org_chain, ik_chain)
 
-        # Add Copy Transforms constraints to the ORG bones to copy the IK bones.
-        # Put driver on the influence to be able to disable IK.
-        for org_bone, ik_bone in zip(org_chain, ik_chain):
+        # The finger has two IK modes, so we need to add a driver to the IK set-up
+        # that was inherited from the IK chain implementation.
+        for org_bone, ik_bone, ik2_bone in zip(org_chain, ik_chain, self.ik2_chain):
             # Copy Transforms of IK bone
-            ct_ik = org_bone.add_constraint(
-                "COPY_TRANSFORMS",
-                space="WORLD",
-                subtarget=ik_bone.name,
-                name="Copy Transforms IK Full",
-            )
+            if not org_bone.constraint_infos:
+                continue
+            for con_idx, ct_ik in enumerate(org_bone.constraint_infos):
+                if ct_ik.type == 'IK':
+                    ct_ik.name = "Copy Transforms IK Finger Full"
+                    ct_ik.drivers.append(
+                        {
+                            "prop": "influence",
+                            "variables": {
+                                "ik": (self.properties_bone.name, self.ikfk_name),
+                                "ik_full": (self.properties_bone.name, self.full_length_ik_name)
+                            },
+                            "expression": "ik * ik_full"
+                        }
+                    )
+                    break
 
-            ct_ik.drivers.append(
-                {
-                    "prop": "influence",
-                    "variables": {
-                        "ik": (self.properties_bone.name, self.ikfk_name),
-                        "ik_full": (self.properties_bone.name, self.full_length_ik_name)
-                    },
-                    "expression": "ik * ik_full"
-                }
-            )
-
-        for org_bone, ik2_bone in zip(org_chain, self.ik2_chain):
-            # Copy Transforms of IK bone
-            ct_ik = org_bone.add_constraint(
+            # The 2nd IK set-up's constraints need to be inserted after the IK constraint of the first.
+            ct_ik2 = org_bone.add_constraint(
                 "COPY_TRANSFORMS",
+                index=con_idx,
                 space="WORLD",
                 subtarget=ik2_bone.name,
-                name="Copy Transforms IK",
+                name="Copy Transforms IK Finger Partial",
             )
-
-            ct_ik.drivers.append(
+            ct_ik2.drivers.append(
                 {
                     "prop": "influence",
                     "variables": {
@@ -212,6 +207,15 @@ class Component_Finger(Component_Chain_IKFK):
                 'description': 'When enabled, the last bone in the chain is also considered part of the IK chain',
             },
         )
+
+        for ik_bone in ik2_chain[:self.ik_chain_count]:
+            ik_bone.drivers.append(
+                {
+                    "prop": "ik_stretch",
+                    "expression": "var*0.001 if var > 0 else 0",
+                    "variables": [(self.properties_bone.name, self.ik_stretch_name)],
+                }
+            )
 
         return ik2_chain
 
