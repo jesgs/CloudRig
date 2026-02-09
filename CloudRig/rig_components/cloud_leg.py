@@ -238,16 +238,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             max_z=rad(TWIST_RANGE),
         )
 
-        roll_mch = None
-        roll_mch = self.bone_sets['IK Mechanism'].new(
-            name=self.naming.add_prefix(org_foot, "ROLL"),
-            source=self.ik_mstr,
-            parent=self.ik_mstr,
-        )
-        roll_mch.roll_align_vector(org_toe.head)
-        if not self.painter:
-            roll_mch.constraint_infos.append(self.ik_tgt_bone.constraint_infos[0])
-            self.ik_tgt_bone.clear_constraints()
+        roll_mch = self.ik_mstr
 
         # Create bone to use as pivot point when rolling back.
         # This is read from the metarig and should be placed at
@@ -321,6 +312,12 @@ class Component_Limb_BipedLeg(Component_Limb):
                 outer_con.from_min_y_rot=rad(-HEEL_LIMIT)
                 outer_con.to_min_y_rot=rad(-HEEL_LIMIT)
         else:
+            roll_mch = self.bone_sets['IK Mechanism'].new(
+                name=self.naming.add_prefix(org_foot, "ROLL"),
+                source=self.ik_mstr,
+                parent=self.ik_mstr,
+            )
+            roll_mch.roll_align_vector(org_toe.head)
             back_con = roll_mch.add_constraint(
                 'TRANSFORM',
                 name="Transform (Foot Roll Back)",
@@ -381,11 +378,14 @@ class Component_Limb_BipedLeg(Component_Limb):
                     to_max_x_rot=angle_to_vertical,
                 )
 
-        # Change the subtarget of the constraints on main_str_bones from the old stretchy bone to the new one, that accounts for footroll.
-        for main_str_bone in self.main_str_bones:
-            ci = main_str_bone.parent.get_constraint('CopyLoc_IK_Stretch')
-            if ci:
-                ci.subtarget = rolly_stretchy.name
+        # IK Toe needs to stick to the end of IK Foot.
+        ik_foot, ik_toe = ik_foot_chain
+        ik_toe.add_constraint(
+            'COPY_LOCATION',
+            subtarget=ik_foot,
+            head_tail=1,
+            space='WORLD',
+        )
 
         # Set properties bone display
         if self.params.custom_props.props_storage == 'GENERATED':
