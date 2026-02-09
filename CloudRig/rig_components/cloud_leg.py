@@ -229,7 +229,9 @@ class Component_Limb_BipedLeg(Component_Limb):
             use_limit_x=True,
             min_x=rad(-HEEL_LIMIT),
             max_x=rad(TOE_THRESHOLD),
-            use_limit_y=False,
+            use_limit_y=True,
+            min_y=rad(-HEEL_LIMIT),
+            max_y = rad(HEEL_LIMIT),
             use_limit_z=True,
             min_z=rad(-TWIST_RANGE),
             max_z=rad(TWIST_RANGE),
@@ -255,12 +257,31 @@ class Component_Limb_BipedLeg(Component_Limb):
             heel_pvt_back.collections = self.bone_sets['IK Mechanism'].collections
             heel_pvt_back.roll_align_vector(org_toe.tail, axis='+Z')
 
+            heel_pvt_toe = self.bone_sets['IK Mechanism'].new(
+                self.naming.add_prefix(roll_mch, "FRONT"),
+                source=org_toe,
+                parent=roll_mch,
+                head=org_toe.tail,
+                tail=heel_pvt_back.center,
+            )
+            heel_pvt_toe.roll_align_other(org_toe)
+            heel_pvt_toe.add_constraint(
+                'TRANSFORM',
+                name="Transform (Toe Roll)",
+                subtarget=roll_ctrl.name,
+                map_from='ROTATION',
+                map_to='ROTATION',
+                from_min_z_rot=rad(-TWIST_RANGE),
+                from_max_z_rot=rad(TWIST_RANGE),
+                to_min_z_rot=rad(-TWIST_RANGE*(2/3)),
+                to_max_z_rot=rad(TWIST_RANGE*(2/3)),
+            )
+
             heel_pvt_outer = self.bone_sets['IK Mechanism'].new(
                 self.naming.add_prefix(roll_mch, 'OUTER'),
-                bbone_width=org_toe.bbone_width,
                 head=heel_pvt_back.tail,
                 tail=heel_pvt_back.tail + heel_pvt_back.z_axis * heel_pvt_back.length,
-                parent=roll_mch,
+                parent=heel_pvt_toe,
             )
             outer_con = heel_pvt_outer.add_constraint(
                 'TRANSFORM',
@@ -344,14 +365,8 @@ class Component_Limb_BipedLeg(Component_Limb):
                     subtarget=roll_ctrl.name,
                     map_from='ROTATION',
                     map_to='ROTATION',
-
                     from_max_x_rot=rad(FOOT_THRESHOLD),
-                    from_min_z_rot=rad(-TWIST_RANGE),
-                    from_max_z_rot=rad(TWIST_RANGE),
-
                     to_max_x_rot=angle_to_vertical,
-                    to_max_z_rot=rad(-TWIST_RANGE/2),
-                    to_min_z_rot=rad(TWIST_RANGE/2),
                 )
             elif i == 1:
                 rik_bone.add_constraint(
@@ -363,10 +378,6 @@ class Component_Limb_BipedLeg(Component_Limb):
                     from_min_x_rot=rad(FOOT_THRESHOLD),
                     from_max_x_rot=rad(TOE_THRESHOLD),
                     to_max_x_rot=angle_to_vertical,
-                    from_min_z_rot=rad(-TWIST_RANGE),
-                    from_max_z_rot=rad(TWIST_RANGE),
-                    to_min_z_rot=rad(TWIST_RANGE*(2/3)),
-                    to_max_z_rot=rad(-TWIST_RANGE*(2/3)),
                 )
 
         # Change the subtarget of the constraints on main_str_bones from the old stretchy bone to the new one, that accounts for footroll.
