@@ -34,7 +34,7 @@ And bam, you have a rig!
 - [Snow](https://studio.blender.org/characters/snow/) (Blender 4.1-4.5)
 - [Storm](https://studio.blender.org/characters/storm/) (Blender 5.0. CloudRig only used for body rig.)
 
-#### [Project Gold](https://www.youtube.com/watch?v=nV_awXI9XJY)
+#### [Project Gold](https://www.youtube.com/watch?v=nV_awXI9XJY) (Blender 4.2)
 - [Mikassa](https://studio.blender.org/characters/mikassa/v1/)
 - [Whale](https://studio.blender.org/characters/whale/v1/)
 - [Fish](https://studio.blender.org/characters/ballan-wrasse/v1/)
