@@ -667,9 +667,13 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
         self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix], options={'INSERTKEY_AVAILABLE'}
     ):
         super().key_bones_single_frame(context, pbone_matrix_map, options=options)
-        if self._target_prop_value == 1 and self.ik_pole:
-            self.snap_pole_target()
-            key_transforms(self.pole_pbone)
+        if self._target_prop_value == 1:
+            ik_first = context.active_object.pose.bones.get(self.ik_first)
+            if ik_first and (3.0 - sum(ik_first.scale)) < 0.3:
+                ik_first.scale = (1.0, 1.0, 1.0)
+            if self.ik_pole:
+                self.snap_pole_target()
+                key_transforms(self.pole_pbone)
 
     def snap_pole_target(self):
         """Snap the pole target based on the first IK bone.

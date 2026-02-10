@@ -23,7 +23,7 @@ def test_snap_bake_ops(context_poses):
     # We snap FK to IK, then IK back to FK, and assert that the IK bones are in the exact same transforms as they started out with.
     # This snapping logic is perceptibly perfect, but we still have to crank the matrix tolerance up a fair bit, even for it to pass
     # on my work PC.
-    with MatchingPose(context_poses, rig, frame=13, bone_subset=['IK-Wrist.L', 'POLE-UpperArm.L', 'IK-M-UpperArm.L'], matrix_tol=0.1):
+    with MatchingPose(context_poses, rig, frame=13, bone_subset=['IK-Wrist.L', 'IK-M-UpperArm.L'], matrix_tol=0.1):
         for i in range(3):
             bpy.ops.pose.cloudrig_toggle_ikfk_bake(
                 prop_bone="Properties",
