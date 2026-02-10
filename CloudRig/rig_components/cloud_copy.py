@@ -100,11 +100,11 @@ class Component_CopyBone(Component_Base):
                 self.params.copy.property_ui_label,
             )
 
-        if self.params.copy.custom_pivot:
-            self.root_bone = self.__make_custom_pivot(bone_info, bone_set=self.bone_sets['Pivot Control'])
-
         if self.params.copy.ensure_free and len(bone_info.constraint_infos) > 0:
-            self.root_bone = self.create_parent_constraint_holder(bone_info, bone_set=self.bone_sets['Mechanism Bones'])
+            self.root_bone = self.ensure_free_transforms(bone_info, bone_set=self.bone_sets['Mechanism Bones'])
+
+        if self.params.copy.custom_pivot:
+            self.root_bone = self.__make_custom_pivot(self.root_bone, bone_set=self.bone_sets['Pivot Control'])
 
     ##############################
     # Single Control functions.
@@ -239,8 +239,8 @@ class Params(PropertyGroup):
         default=False,
     )
     ensure_free: BoolProperty(
-        name="Move Constraints To Parent",
-        description='If this bone has any constraints, move them to a parent bone prefixed with "CON", unless the constraint name starts with "KEEP"',
+        name="Ensure Free Transforms",
+        description='If this bone has any drivers on its transform properties or constraints, move them to a parent bone prefixed with "CON", except for constraints whose name starts with "KEEP"',
         default=False,
     )
     property_ui_subpanel: StringProperty(

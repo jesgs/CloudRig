@@ -30,11 +30,25 @@ class CloudMechanismMixin:
         pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
         return pose_bone.cloudrig_component.component_pbone_chain
 
-    def create_parent_bone(self, child, bone_set=None):
+    def create_parent_bone(self, child: BoneInfo, bone_set: BoneSet|None=None) -> BoneInfo:
         return create_parent_bone(child, bone_set)
 
-    def create_parent_constraint_holder(self, child, bone_set=None):
+    def create_parent_constraint_holder(self, child: BoneInfo, bone_set: BoneSet|None=None) -> BoneInfo:
         return create_parent_constraint_holder(child, bone_set)
+
+    def ensure_free_transforms(self, child: BoneInfo, bone_set=None) -> BoneInfo:
+        helper = create_parent_constraint_holder(child, bone_set)
+        for driver_ref in child.drivers_to_copy:
+            data_path, array_index = driver_ref
+            if any(
+                (
+                    data_path.endswith(prop_name)
+                    for prop_name in ("location", "rotation_euler", "rotation_quaternion", "rotation_axis_angle", "rotation_mode", "scale")
+                )
+            ):
+                helper.drivers_to_copy.append(driver_ref)
+                child.drivers_to_copy.remove(driver_ref)
+        return helper
 
     def create_dsp_bone(self, parent, **kwargs):
         return create_dsp_bone(parent, self.bones_mch, **kwargs)

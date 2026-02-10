@@ -123,12 +123,12 @@ class Component_TweakBone(Component_Base):
             for prop_name in meta_pbone.custom_props:
                 bone_to_tweak.custom_props[prop_name] = meta_pbone.custom_props[prop_name]
 
-        bone_to_tweak.drivers_to_copy = org_boneinfo.drivers_to_copy
-
         super().create_component_interactions(context)
 
+        bone_to_tweak.drivers_to_copy = org_boneinfo.drivers_to_copy
+
         if self.params.tweak.ensure_free and len(bone_to_tweak.constraint_infos) > 0:
-            self.root_bone = self.create_parent_constraint_holder(bone_to_tweak, bone_set=self.bone_sets['Mechanism Bones'])
+            self.root_bone = self.ensure_free_transforms(bone_to_tweak, bone_set=self.bone_sets['Mechanism Bones'])
 
     ################################
     # Bone Tweak functions.
@@ -222,8 +222,8 @@ class Params(PropertyGroup):
         default=False,
     )
     ensure_free: BoolProperty(
-        name="Move Constraints To Parent",
-        description='If this bone has any constraints, move them to a parent bone prefixed with "CON", unless the constraint name starts with "KEEP"',
+        name="Ensure Free Transforms",
+        description='If this bone has any drivers on its transform properties or constraints, move them to a parent bone prefixed with "CON", except for constraints whose name starts with "KEEP"',
         default=False,
     )
 
