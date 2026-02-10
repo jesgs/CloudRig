@@ -87,8 +87,8 @@ class BoneDuplicateOpMixin:
 
         # Refresh PoseBones &  copied drivers
         try:
-            bpy.ops.object.mode_set(False, mode='POSE')
-            bpy.ops.object.mode_set(False, mode='EDIT')
+            bpy.ops.object.mode_set(mode='POSE')
+            bpy.ops.object.mode_set(mode='EDIT')
             for rig in rigs:
                 rig.cloudrig.refresh_generation_order()
             for fc in new_drivers:

@@ -175,6 +175,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             else:
                 self.parent_bone_names
                 self._parent_bone_names.append(self.ik_mstr.name)
+                self._parent_ui_names.append("IK Master")
                 self.base__apply_parent_switching(
                     child_bone=self.pole_ctrl,
                     prop_name="ik_pole_parents_" + self.limb_name_props,
