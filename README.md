@@ -9,30 +9,35 @@ You can install directly from within Blender, by searching for CloudRig inside t
 <details>
 <summary><b>Bleeding Edge / Git Clone</b></summary>
 
-To clone the repo, you must pass --recurse-submodules:  
+To clone the repo, you must pass --recurse-submodules:
 
 `git clone --recurse-submodules git@git.blender.org:Mets/CloudRig.git`
 
-Also, downloading the repo as a .zip will not work, as that will not include submodules.  
+Also, downloading the repo as a .zip will not work, as that will not include submodules.
 Then, you can symlink it to a folder which you've browsed in Blender as a local extension repository folder, or into your `user_default` extensions folder.
 </details>
 
 ## Getting Started
 Add the pre-built human metarig via **Add->Armature->CloudRig MetaRigs->Cloud Human**.
 Generate the rig via **Properties->Object Data->CloudRig->Generate CloudRig**.
-And bam, you have a rig!  
+And bam, you have a rig!
 
 <video controls src="docs/metarig_generate.mp4" title="Spawning the basic human metarig and generating it"></video>
 
 ## Learning Resources
 <ul>
 <li>Check out the <a href="https://studio.blender.org/pipeline/addons/cloudrig/introduction">wiki</a>!</li>
-<li>For Blender 3.6 and below, check out my old <a href="https://studio.blender.org/training/blender-studio-rigging-tools/">video documentation series</a>. (for Studio supporters)</li>
+<li>For Blender 3.6 and below, check out my old <a href="https://studio.blender.org/training/blender-studio-rigging-tools/">video documentation series</a>.</li>
 <li>I have some <a href="https://www.youtube.com/watch?v=SB3qIbwvq8Y&list=PLav47HAVZMjnA3P7yQvneyQPiVxZ6erFS">live streams</a> of creating the rig for the free <a href="https://studio.blender.org/characters/snow/">Snow</a> character.
-<li> <details><summary>Example Production Rigs</summary>Since CloudRig is used to rig Blender Open Movie characters, and the resources of those movies are released to the public (sometimes for supporters, sometimes for everyone), there is a whole host of CloudRig character rigs available for you to download: 
+<li> <details><summary>Example Production Rigs</summary>Since CloudRig is used to rig Blender Open Movie characters, and the resources of those movies are released to the public (some for supporters, some for free), there is a whole host of CloudRig character rigs available for you to download:
 
 - [Snow](https://studio.blender.org/characters/snow/) (Blender 4.1-4.5)
 - [Storm](https://studio.blender.org/characters/storm/) (Blender 5.0. CloudRig only used for body rig.)
+
+#### [Project Gold](https://www.youtube.com/watch?v=nV_awXI9XJY)
+- [Mikassa](https://studio.blender.org/characters/mikassa/v1/)
+- [Whale](https://studio.blender.org/characters/whale/v1/)
+- [Fish](https://studio.blender.org/characters/ballan-wrasse/v1/)
 
 #### [Wing It!](https://www.youtube.com/watch?v=u9lj-c29dxI) (Blender 3.6)
 - [Dog](https://studio.blender.org/characters/dog/)
