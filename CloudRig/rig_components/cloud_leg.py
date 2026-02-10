@@ -161,6 +161,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             tail=toe.tail.copy(),
         )
         dsp_bone.roll_align_vector(foot.head, axis='-Z')
+        dsp_bone.parent = self.ik_chain[self.ik_chain_count]
 
         bone.custom_shape_along_length = 0.5
         bone.use_custom_shape_bone_size = False
