@@ -406,7 +406,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             row_name=self.base_name,
             slider_name=self.limb_ui_name,
             custom_prop_settings={
-                "default": 1.0,
+                "default": 0.0,
                 "description": "Allow the limb to stretch beyond its normal maximum reach for a cartoony effect",
                 "precision": 1,
                 "step": 10,
@@ -419,6 +419,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             'LIMIT_DISTANCE',
             subtarget=ik_chain[0],
             distance=distance,
+            space='POSE',
         )
         limit_con.drivers.append(
             {
@@ -428,6 +429,38 @@ class Component_Chain_IKFK(Component_Chain_FK):
             }
         )
 
+        # The distance on the limit constraint needs to be dynamic to support
+        # scaling the character from the root. To calculate that distance,
+        # we create helpers to inherit scale from the limb's root.
+        scale_bones = []
+        next_parent = self.root_bone
+        for org_bone in org_chain[:self.ik_chain_count]:
+            scale_bone = self.bone_sets["IK Mechanism"].new(
+                source=org_bone,
+                name=self.naming.add_prefix(org_bone, "SCALE"),
+                parent=next_parent,
+            )
+            next_parent=scale_bone
+            scale_bones.append(scale_bone)
+        limit_con.drivers.append(
+            {
+                "prop": 'distance',
+                "variables": {
+                    self.naming.sanitize_python(bone.name)
+                    :
+                    {
+                        'type':'SINGLE_PROP',
+                        'targets': [
+                            {
+                                'data_path': f'pose.bones["{bone.name}"].length',
+                            }
+                        ]
+                    } for bone in scale_bones
+                },
+            }
+        )
+
+        # Add IK stretch toggle driver to the IK Stretch properties of the IK chain.
         for ik_bone in ik_chain[:self.ik_chain_count]:
             ik_bone.drivers.append(
                 {

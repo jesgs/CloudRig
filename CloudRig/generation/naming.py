@@ -300,6 +300,9 @@ def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
     return name
 
 
+def sanitize_python(thing: Any) -> str:
+    return re.sub(r'\W|^(?=\d)', '_', get_name(thing))
+
 #################################
 ### Misc ########################
 #################################
