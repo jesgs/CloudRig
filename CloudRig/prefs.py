@@ -67,7 +67,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
     # This should get a version bump whenever there is a change that affects metarigs.
     # For example, changing names of component types, splitting an old component type into multiple,
     # changing names of parameters, etc.
-    cloud_metarig_version = 10
+    cloud_metarig_version = 11
 
     # List of property names to not write to disk.
     omit_from_disk: list[str] = ["component_types", "widget_names"]

@@ -3,7 +3,7 @@
 from math import radians
 
 from bpy.app.translations import pgettext_rpt as i18_r
-from bpy.props import BoolProperty, EnumProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Action, ActionSlot, PropertyGroup
 from mathutils import Vector
 
@@ -406,7 +406,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             row_name=self.base_name,
             slider_name=self.limb_ui_name,
             custom_prop_settings={
-                "default": 0.0,
+                "default": self.params.ik_chain.default_stretch,
                 "description": "Allow the limb to stretch beyond its normal maximum reach for a cartoony effect",
                 "precision": 1,
                 "step": 10,
@@ -516,7 +516,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "row_name": self.base_name,
             "slider_name": self.limb_ui_name,
             "custom_prop_settings": {
-                "default": 1.0,
+                "default": self.params.ik_chain.default_fkik,
                 "description": f"Switch {self.base_name} to Inverse Kinematics posing mode",
             },
             "operator": "pose.cloudrig_toggle_ikfk_bake",
@@ -652,6 +652,12 @@ class Component_Chain_IKFK(Component_Chain_FK):
             cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_pole')
         return layout
 
+    @classmethod
+    def draw_custom_prop_params(cls, layout, context, component):
+        super().draw_custom_prop_params(layout, context, component)
+        layout.separator()
+        cls.draw_prop(context, layout, component.params.ik_chain, 'default_fkik', slider=True)
+        cls.draw_prop(context, layout, component.params.ik_chain, 'default_stretch', slider=True)
 
 class Params(PropertyGroup):
     at_tip: BoolProperty(
@@ -679,6 +685,15 @@ class Params(PropertyGroup):
             ('FOLLOW', "Follow", "The IK Pole is parented always to the same bone as the IK master, or to the IK master itself, determined by a single slider."),
             ('INDIVIDUAL', "Individual", "The IK Pole gets the same parenting options as the IK Master, plus the IK Master itself as a parent option.")
         ],
+    )
+
+    default_fkik: FloatProperty(
+        name="Default FK/IK",
+        min=0, max=1, default=1,
+    )
+    default_stretch: FloatProperty(
+        name="Default IK Stretch",
+        min=0, max=1, default=0,
     )
 
     shape_ik_master: Component_Chain_FK.make_custom_shape_params(

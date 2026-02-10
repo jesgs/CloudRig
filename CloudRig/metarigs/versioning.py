@@ -201,6 +201,12 @@ def version_cloud_metarig(metarig):
                 ebone.tail = center-Vector((length/2, 0, 0)) * side
                 ebone.roll = 0
 
+    if cloudrig.metarig_version < 11:
+        # IK Stretch is now disabled by default.
+        for pbone in metarig.pose.bones:
+            if pbone.cloudrig_component.component_type in ('Chain: IK', 'Limb: Generic', 'Limb: Biped Leg'):
+                pbone.cloudrig_component.params.ik_chain.default_stretch = 1.0
+
 @persistent
 def update_all_metarigs(dummy=None):
     if not hasattr(bpy.data, 'objects'):
