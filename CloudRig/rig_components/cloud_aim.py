@@ -68,17 +68,9 @@ class Component_Aim(Component_Base):
         entry_name=""
     ):
         """Apply the parent switching to the aim target or group master if it exists."""
-        target_bone = self.group_master
-        if not target_bone:
-            target_bone = self.target_bone
-        else:
-            # Ensure parent switching for the group master
-            if (
-                self.group_master.parent
-                and self.group_master.parent.name == self.naming.add_prefix(self.group_master.name, "P")
-            ):
-                # If the parent switching setup already exists, don't create it again.
-                return
+        if not self.__is_last_of_group():
+            return
+        target_bone = self.group_master or self.target_bone
 
         super().base__apply_parent_switching(
             child_bone=child_bone or target_bone,
