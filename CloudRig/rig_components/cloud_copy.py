@@ -51,6 +51,7 @@ class Component_CopyBone(Component_Base):
 
         pbone = self.metarig_base_pbone
         bone_info = self.root_bone = self.bones_org[0]
+        bone_info.use_connect = pbone.bone.use_connect
 
         # NOTE: Custom colors are deliberately not supported here.
         for color, prop_name in zip([pbone.bone.color, pbone.color], ["color_palette_base", "color_palette_pose"]):
@@ -63,7 +64,7 @@ class Component_CopyBone(Component_Base):
                     trouble_bone=bone_info.name,
                     description=i18_r("Custom Colors are not supported in Metarigs. " \
                         "Please choose one of the preset colors. " \
-                        "If you hate them, try applying the CloudRig presets in the Preferences."
+                        "Try the color presets available in CloudRig's Preferences."
                     )
                 ),
                 continue
