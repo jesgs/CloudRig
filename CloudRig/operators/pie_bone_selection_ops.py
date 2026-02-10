@@ -110,6 +110,7 @@ class BoneSelectOperatorMixin:
     )
 
     def invoke(self, context, event):
+        print("Invoke!")
         if event.shift:
             self.extend_selection = True
         else:
@@ -170,7 +171,7 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
 
         super().execute(context)
 
-        reveal_and_select_bone(context, bone, set_active=True)
+        reveal_and_select_bone(context, bone, set_active=True, extend_selection=self.extend_selection)
 
         return {'FINISHED'}
 
@@ -264,7 +265,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
                 self.report({'WARNING'}, 'Bone "{bone_name}" could not be made visible.'.format(bone_name=bone_name))
                 continue
 
-            reveal_and_select_bone(context, target_bone, set_active=False)
+            reveal_and_select_bone(context, target_bone, set_active=False, extend_selection=self.extend_selection)
 
         set_active_bone(context, active_target_bone)
 
@@ -282,7 +283,7 @@ class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
         super().execute(context)
 
         active_bone = context.active_pose_bone or context.active_bone
-        reveal_and_select_bone(context, active_bone.parent)
+        reveal_and_select_bone(context, active_bone.parent, extend_selection=self.extend_selection)
 
         return {'FINISHED'}
 
@@ -321,7 +322,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         if not self.extend_selection:
             deselect_all_bones(context)
 
-        reveal_and_select_bone(context, bone)
+        reveal_and_select_bone(context, bone, extend_selection=self.extend_selection)
 
         return {'FINISHED'}
 
