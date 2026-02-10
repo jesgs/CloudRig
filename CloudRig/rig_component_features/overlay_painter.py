@@ -245,12 +245,15 @@ def draw_rig_preview():
         return
     global SELECTION_CACHE
     global MODE_CACHE
+    global BATCH_CACHE
     metarig = context.active_object
     animdata = metarig.animation_data
     metarig_is_animated = animdata and (animdata.action or animdata.drivers)
     is_animating = context.screen.is_animation_playing and metarig_is_animated
     selection = set([pb.name for pb in get_pbones_of_selected(context, whole_ebone=False)])
     selection_changed = SELECTION_CACHE != selection
+    if selection_changed:
+        BATCH_CACHE = {}
     mode_changed = context.mode != MODE_CACHE
     SELECTION_CACHE = selection
     MODE_CACHE = context.mode
@@ -275,7 +278,6 @@ def draw_rig_preview():
     components_to_draw = set(get_components_to_draw(context))
 
     global COMPONENT_HASHES
-    global BATCH_CACHE
 
     # Start a new cache.
     COMPONENT_GEOS_NEW = {}
@@ -312,11 +314,14 @@ def draw_rig_preview():
                 context,
                 comp_pbone_subset=[comp.component_pbone for comp in components_to_regenerate]
             )
-        except CloudGeneratorError as exc:
-            # If generation of the abstraction layer raises an error, then we can't draw the overlay.
+        except CloudGeneratorError:
+            # If generation of the abstraction layer raises an error,
+            # then we can't draw the overlay.
+            # User will be notified of the issue when they try to generate the rig for real.
+            return
+        except Exception as exc:
             print("CloudRig: Error while drawing overlay:")
             print(exc)
-            return
         for component in components_to_regenerate:
             comp_pbone = component.component_pbone
             try:
