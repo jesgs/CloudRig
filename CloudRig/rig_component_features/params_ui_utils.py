@@ -160,7 +160,8 @@ def draw_label_with_linebreak(context, layout, text, alert=False, align_split=Fa
 
     # Try to determine maximum allowed characters per line, based on pixel width of the area.
     # Not a great metric, but I couldn't find anything better.
-    max_line_length = context.area.width / 8
+    ui_scale = context.preferences.view.ui_scale
+    max_line_length = context.area.width / 8 / ui_scale
     if align_split:
         max_line_length *= 0.95
     for p in paragraphs:

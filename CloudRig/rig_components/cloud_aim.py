@@ -19,7 +19,7 @@ class Component_Aim(Component_Base):
 
     relink_default_prefix = "CTR"
 
-    parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye components with a matching string as their Eye Group paramter."
+    parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye components with a matching string as their Eye Group parameter."
     parent_switch_overwrites_root_parent = False
 
     ##############################
