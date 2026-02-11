@@ -64,9 +64,10 @@ class CloudPhysicsChainRig(Component_Chain_FK):
             context.scene.collection.objects.link(phys_obj)
             phys_obj.parent = self.target_rig
             lock_transforms(phys_obj)
-
         else:
             phys_obj.data = cloth_mesh
+
+        phys_obj.hide_render = True
 
         # Wipe modifiers & vertex groups
         phys_obj.modifiers.clear()
@@ -143,6 +144,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         cloth_mod.settings.vertex_group_mass = pin_name
 
         bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
         if phys_obj not in set(context.scene.objects):
             context.scene.collection.objects.link(phys_obj)
         visibility = self.ensure_visible(context, phys_obj)
@@ -176,7 +178,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
             )
             next_parent = phys_ctrl
 
-        self.bone_sets['Physics Bones'].new(
+        self.bone_sets['Deform Bones'].new(
             name=self.naming.add_prefix(self.phys_name, "PIN"),
             source=self.bone_sets['Physics Bones'][0],
             parent=self.bone_sets['Physics Bones'][0],
