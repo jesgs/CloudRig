@@ -20,17 +20,18 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         'curve.x_axis_symmetry': False,
     }
 
-    # TODO: Original bones are needed currently because of bone roll calculations (which are relative to the original bones)
-    # but ideally that should not be the case.
     keep_original_bones = True
 
     ################################
     # Inherited functions.
 
     def base__relink_get_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+        if self.params.spline_ik.create_fk_chain:
+            return self.fk_chain[org_i]
+
         if not self.params.spline_ik.match_hooks:
-            # Don't allow base__relinking if the number of hooks doesn't match the number of org bones.
-            return self.bones_org[org_i]
+            # Don't allow relinking if the number of hooks doesn't match the number of org bones.
+            return super().base__relink_get_target(org_i, con_info)
 
         if con_info.name.startswith("TAIL-"):
             return self.bone_sets['Curve Hooks'][org_i+1]
@@ -87,6 +88,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         ik_chain = self.bones_org
         if self.params.spline_ik.deform_setup == 'CREATE':
+            for org_bone in self.bones_org:
+                org_bone.preserve = False
             ik_chain = self.__make_def_chain()
         self.__add_spline_ik(ik_chain)
 
@@ -170,23 +173,23 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                     custom_shape_name=self.params.spline_ik.shape_fk.shape_name,
                     custom_shape_scale=self.params.curve.shape_size,
                     parent=next_parent,
-                    rotation_mode='YZX',
+                    rotation_mode=hook_ctrl.rotation_mode,
                     inherit_scale=self.params.curve.inherit_scale,
                 )
                 fk_ctrl.roll_align_other(hook_ctrl)
                 hook_ctrl.parent = fk_ctrl
                 next_parent = fk_ctrl
-                hook_ctrl.add_constraint(
-                    'COPY_ROTATION',
-                    name="Copy Rotation (Counter-Rotate)",
-                    use_xyz = [True, False, True],
-                    invert_xyz = [True, False, True],
-                    euler_order = 'XZY',
-                    mix_mode = 'BEFORE',
-                    space = 'LOCAL',
-                    influence = 0.5,
-                    subtarget=fk_ctrl,
-                )
+                if hook_idx not in (0, len(hooks_of_spline)-1):
+                    hook_ctrl.add_constraint(
+                        'COPY_ROTATION',
+                        name="Copy Rotation (Counter-Rotate)",
+                        use_xyz = [True, False, True],
+                        invert_xyz = [True, False, True],
+                        mix_mode = 'BEFORE',
+                        space = 'LOCAL',
+                        influence = 0.5,
+                        subtarget=fk_ctrl,
+                    )
 
     @no_overlay
     def __make_def_chain(self):
