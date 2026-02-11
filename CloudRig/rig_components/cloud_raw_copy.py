@@ -10,6 +10,10 @@ class Component_RawCopy(Component_Base):
 
     ui_name = "Raw Copy"
 
+    def create_bone_infos(self, context):
+        super().create_bone_infos(context)
+        self.bones_org[0].use_deform = self.get_metarig_pbone(self.bones_org[0].name).bone.use_deform
+
     @classmethod
     def poll_draw_parenting_params(cls, context, params):
         return False
