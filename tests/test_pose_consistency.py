@@ -22,6 +22,12 @@ def test_curves(context_curves):
     }
     metarigs_test(context_curves, obj_frame_map)
 
+def test_ik_chains(context_ik_chains):
+    obj_frame_map = {
+        'META-IK_Chains': 10,
+    }
+    metarigs_test(context_ik_chains, obj_frame_map)
+
 #########################################
 
 class MatchingPose:
