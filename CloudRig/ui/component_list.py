@@ -54,7 +54,6 @@ class CLOUDRIG_UL_rig_components(UIList):
         row = main_row.row()
         icon = 'CHECKBOX_HLT' if rig_component.enabled_toggle else 'CHECKBOX_DEHLT'
         row.prop(rig_component, 'enabled_toggle', text="", emboss=False, icon=icon)
-        row.enabled = rig_component.enabled_with_parents
 
     def draw_filter(self, context, layout):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS

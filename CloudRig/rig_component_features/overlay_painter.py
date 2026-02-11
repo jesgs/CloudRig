@@ -407,6 +407,8 @@ def get_components_to_draw(context) -> set[RigComponent]:
     for comp in potential_components:
         if not any((bone_is_visible(pb) for pb in comp.component_pbone_chain)):
             continue
+        if not comp.is_enabled_component:
+            continue
         comp_class = comp.component_class
         if not comp_class:
             continue
