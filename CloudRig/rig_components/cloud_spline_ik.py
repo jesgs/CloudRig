@@ -196,6 +196,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         segments = self.params.spline_ik.subdivide
 
         count_def_bone = 0
+        next_parent = self.bones_org[0] if self.bones_org[0].preserve else self.bones_org[0].parent
         for org_bone in self.bones_org:
             for i in range(0, segments):
                 ## Create Deform bones
@@ -210,21 +211,19 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                 count_def_bone += 1
 
                 unit = org_bone.vector / segments
-                def_bone = self.bone_sets['Deform Bones'].new(
+                def_bone = self.bones_def.new(
                     name=def_name,
                     source=org_bone,
                     head=org_bone.head + (unit * i),
                     tail=org_bone.head + (unit * (i + 1)),
                     roll=org_bone.roll,
                     use_deform=True,
-                    bbone_segments=self.params.spline_ik.bbone_segments
+                    parent=next_parent,
+                    bbone_segments=self.params.spline_ik.bbone_segments,
                 )
-
-                if len(self.bone_sets['Deform Bones']) > 1:
-                    def_bone.parent = self.bone_sets['Deform Bones'][-2]
-                    def_bone.use_connect = True # Note: This must be set after the parent.
-                else:
-                    def_bone.parent = self.bones_org[0]
+                next_parent = def_bone
+                if len(self.bones_def) > 1:
+                    def_bone.use_connect = True
 
         return self.bone_sets['Deform Bones']
 
