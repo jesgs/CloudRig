@@ -33,10 +33,10 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             # Don't allow relinking if the number of hooks doesn't match the number of org bones.
             return super().base__relink_get_target(org_i, con_info)
 
+        # Relink to the Hook controls.
         if con_info.name.startswith("TAIL-"):
             return self.bone_sets['Curve Hooks'][org_i+1]
-
-        return super().base__relink_get_target(org_i, con_info)
+        return self.bone_sets['Curve Hooks'][org_i]
 
     def curve__initialize(self):
         length = self.bone_count
