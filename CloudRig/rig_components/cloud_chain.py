@@ -148,12 +148,12 @@ class Component_ToonChain(Component_Base):
         One for each ORG bone, plus optionally one more at the end of the chain."""
         main_str_bones = []
 
-        for i, org_bone in enumerate(org_chain):
-            main_str_bone = self.toon__make_main_str_bone(org_chain[i])
+        for org_bone in org_chain:
+            main_str_bone = self.toon__make_main_str_bone(org_bone)
             main_str_bones.append(main_str_bone)
 
         if self.params.chain.tip_control:
-            main_str_bones.append(self.toon__make_main_str_bone(org_chain[i], at_tip=True))
+            main_str_bones.append(self.toon__make_main_str_bone(org_bone, at_tip=True))
 
         return main_str_bones
 
@@ -419,7 +419,7 @@ class Component_ToonChain(Component_Base):
         """Create a deform chain stretching from one STR bone to the next."""
 
         # For each STR control, create a deform bone between it and the next one.
-        parent = str_chain[0].parent
+        next_parent = str_chain[0].parent
         for i, str_bone in enumerate(str_chain):
             is_tip_str = self.params.chain.tip_control and i == len(str_chain) - 1
             if is_tip_str:
@@ -442,7 +442,7 @@ class Component_ToonChain(Component_Base):
             def_bone = self.bones_def.new(
                 name=str_bone.name.replace("STR", "DEF"),
                 source=org_bone,
-                parent=parent,
+                parent=next_parent,
                 head=head,
                 tail=tail,
                 use_deform=True,
@@ -450,7 +450,7 @@ class Component_ToonChain(Component_Base):
                 bbone_x=bbone_x,
                 bbone_z=bbone_z,
             )
-            parent = def_bone
+            next_parent = def_bone
             if i == 0:
                 # The deform chain is parented to each other, but that means the
                 # first DEF bone needs to follow the first stretch bone.
@@ -737,6 +737,8 @@ class Component_ToonChain(Component_Base):
         """
         parent_component = self.parent_component
         meta_org_bone = self.get_metarig_pbone(self.bones_org[0].name)
+        if not parent_component:
+            return
 
         can_connect = (
             isinstance(parent_component, Component_ToonChain) and

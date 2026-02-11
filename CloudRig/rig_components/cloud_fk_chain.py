@@ -86,12 +86,6 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if last_def == def_chain[0]:
             return def_chain
 
-        # If there's no tip control, parent DEF to ORG.
-        # Useful for example for an arm rig.
-        # TODO: Maybe this should be in cloud_limb or cloud_chain?
-        if not self.params.chain.tip_control and not self.params.chain.unlock_deform:
-            last_def.parent = self.bones_org[-1]
-
         return def_chain
 
     def create_bone_infos(self, context):
