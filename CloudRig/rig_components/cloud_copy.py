@@ -84,7 +84,7 @@ class Component_CopyBone(Component_Base):
                 icon='GIZMO',
                 operator='pose.cloudrig_troubleshoot_rotationmode',
                 op_kwargs={'bone_name': self.base_bone_name},
-                op_text=f"Set {bone_info.name} to Euler",
+                op_text=rpt_("Set {bone} to Euler".format(bone=bone_info.name)),
             )
             bone_info.rotation_mode = 'XYZ'
 

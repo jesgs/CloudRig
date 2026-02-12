@@ -393,7 +393,8 @@ class CloudRigUIEditOpMixin:
             alert_row = owner_box.row()
             alert_row.alert = True
             alert_row.label(
-                text=f"No property owner at '{self.owner_path}' found.", icon='ERROR'
+                text="No property owner at '{data_path}' found.".format(data_path=self.owner_path),
+                icon='ERROR',
             )
             return False
         if self.owner_path and not hasattr(prop_owner, 'bl_rna'):
@@ -427,7 +428,7 @@ class CloudRigUIEditOpMixin:
 
         prop_box = layout.box().column()
         if not prop_owner:
-            prop_box.label(text=f'Data path failed to resolve on {rig.name}.')
+            prop_box.label(text='Data path failed to resolve on {rig}.'.format(rig=rig.name))
             return True
 
         any_selectable_props = len(context.scene.cloudrig_property_name_selector) > 0
@@ -436,9 +437,7 @@ class CloudRigUIEditOpMixin:
         prop_row = prop_box.row(align=True)
 
         if self.use_batch_add:
-            prop_row.label(
-                text=f"Add all {len(drawable_props)} custom properties to the UI"
-            )
+            prop_row.label(text="Add all {num_props} custom properties to the UI".format(num_props=len(drawable_props)))
             prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
             return True
 

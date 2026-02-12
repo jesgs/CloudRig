@@ -512,7 +512,7 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
 
         if bone_size:
             length = pbone.bone.length
-            layout.prop(pbone, "use_custom_shape_bone_size", text=f"Scale to Bone Length (x{length:.2f})")
+            layout.prop(pbone, "use_custom_shape_bone_size", text="Scale to Bone Length (x{multiplier})".format(multiplier=f"{length:.2f}"))
 
         layout.separator()
 
@@ -530,43 +530,57 @@ class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
         layout = self.layout
         pie = layout.menu_pie()
 
-        plural = "s" if len(context.selected_pose_bones) > 1 else ""
-
         # 1) < Unassign Widget.
-        pie.operator(POSE_OT_unassign_custom_shape.bl_idname, icon='X', text=f"Unassign Custom Shape{plural}")
+        pie.operator(
+            POSE_OT_unassign_custom_shape.bl_idname,
+            icon='X',
+            text="Unassign Custom Shapes",
+        )
 
         # 2) > Assign Widget from list.
         pie.operator(
-            POSE_OT_assign_selected_custom_shape.bl_idname, icon='MESH_UVSPHERE'
+            POSE_OT_assign_selected_custom_shape.bl_idname,
+            icon='MESH_UVSPHERE',
         )
 
         # 3) v Reload Widget? (If it's in Widgets.blend).
         pie.operator(
-            POSE_OT_reload_selected_custom_shape.bl_idname, icon='FILE_REFRESH', text=f"Reload Shape{plural}"
+            POSE_OT_reload_selected_custom_shape.bl_idname,
+            icon='FILE_REFRESH',
+            text="Reload Shapes",
         )
 
         # 4) ^ Copy Widget to Selected.
         pie.operator(
-            POSE_OT_copy_custom_shape_to_selected_bones.bl_idname, icon='COPYDOWN'
+            POSE_OT_copy_custom_shape_to_selected_bones.bl_idname,
+            icon='COPYDOWN',
         )
 
         # 5) <^ Edit Custom Shape Transforms.
-        pie.operator(POSE_OT_edit_bone_display_props.bl_idname, icon='PROPERTIES', text="Edit Properties")
+        pie.operator(
+            POSE_OT_edit_bone_display_props.bl_idname,
+            icon='PROPERTIES',
+            text="Edit Properties",
+        )
 
         # 6) ^> Duplicate & Edit Widget.
         pie.operator(
-            POSE_OT_duplicate_and_edit_widget_of_selected_bones.bl_idname, text=f"Duplicate & Edit Shape{plural}",
+            POSE_OT_duplicate_and_edit_widget_of_selected_bones.bl_idname,
+            text="Duplicate & Edit Shapes",
             icon='DUPLICATE',
         )
 
         # 7) <v Assign selected object as widget (if there's only 1 mesh selected)
         pie.operator(
-            POSE_OT_assign_selected_object_as_custom_shape.bl_idname, icon='OBJECT_DATA'
+            POSE_OT_assign_selected_object_as_custom_shape.bl_idname,
+            icon='OBJECT_DATA',
         )
 
         # 8) v> Edit Widget (if ob isn't linked).
         pie.operator(
-            POSE_OT_edit_widget_of_selected_bones.bl_idname, icon='GREASEPENCIL', text=f"Edit Shape{plural}"
+            POSE_OT_edit_widget_of_selected_bones.bl_idname,
+            icon='GREASEPENCIL',
+            text="Edit Shapes",
         )
 
 

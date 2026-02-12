@@ -12,6 +12,7 @@ import webbrowser
 
 import addon_utils
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
@@ -756,9 +757,10 @@ def draw_log_panel(context, layout):
 
     generator = metarig.cloudrig.generator
     logs = generator.logs
-    icon = 'CHECKMARK' if len(logs) == 0 else 'ERROR'
-    plural = "s" if len(logs) != 1 else ""
-    header.label(text=f"Log: {len(logs)} Issue{plural}", icon=icon)
+    count = len(logs)
+    icon = 'CHECKMARK' if count == 0 else 'ERROR'
+    text = iface_("Log: 1 Issue") if count == 1 else iface_("Log: {count} Issues".format(count=count))
+    header.label(text=text, icon=icon)
 
     if not panel:
         return

@@ -237,7 +237,7 @@ class BoneSetMixin:
             return
 
         box = layout.box()
-        box.label(text=f"Collections of {active_bone_set.ui_name}:")
+        box.label(text="Collections of {bone_set}:".format(bone_set=active_bone_set.ui_name))
         row = box.row()
         col = row.column()
         col.template_list(

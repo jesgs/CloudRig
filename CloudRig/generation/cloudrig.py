@@ -394,10 +394,9 @@ class SnapBakeOpMixin(SnappingOpMixin):
 
     def draw_bones(self, layout, bone_map: dict[PoseBone, PoseBone | None]):
         col = layout.column(align=True)
-        plural = "s" if len(bone_map) != 1 else ""
         row = col.row()
-        row.label(text=f"Snapped bone{plural}:")
-        if not plural:
+        row.label(text="Snapped bones:")
+        if bone_map:
             row.enabled = False
             pb = list(bone_map.keys())[0]
             row.prop(pb, 'name', text="", icon='BONE_DATA')
@@ -1299,7 +1298,7 @@ def draw_slider(
     if not owner:
         sub_row.alert = True
         sub_row.label(
-            text=f"Missing property owner: '{owner_path}' for property '{prop_name}'.",
+            text="Missing property owner: '{owner_path}' for property '{prop_name}'.".format(owner_path=owner_path, prop_name=prop_name),
             icon='ERROR',
         )
     elif bracketless_prop_name in owner:
@@ -1310,7 +1309,7 @@ def draw_slider(
         except ValueError:
             sub_row.alert = True
             sub_row.label(
-                text=f"Missing property '{prop_name}' of owner '{owner_path}'.",
+                text="Missing property '{prop_name}' of owner '{owner_path}'.".format(owner_path=owner_path, prop_name=prop_name),
                 icon='ERROR',
             )
 
@@ -2282,7 +2281,7 @@ class CLOUDRIG_MT_collections_specials(Menu):
         local = "Local " if rig.override_library else ""
         layout.operator(
             POSE_OT_cloudrig_collection_delete.bl_idname,
-            text=f"Delete All {local}Collections",
+            text="Delete All {local}Collections".format(local=local),
             icon='TRASH',
         ).mode = 'ALL'
         layout.separator()

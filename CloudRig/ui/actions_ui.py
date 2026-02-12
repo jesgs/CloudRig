@@ -7,6 +7,7 @@ import random
 import bpy
 from bl_math import clamp
 from bl_ui.generic_ui_list import draw_ui_list
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -592,7 +593,12 @@ def draw_action_setup_ui(layout, action_setup, target_rig):
 
         if not subtarget_exists:
             if action_setup.subtarget:
-                aligned_label(layout, text=f"Bone not found: {action_setup.subtarget}", icon='ERROR', alert=True)
+                aligned_label(
+                    layout,
+                    text=rpt_("Bone not found: {bone}").format(bone=action_setup.subtarget),
+                    icon='ERROR',
+                    alert=True,
+                )
             return
     else:
         row.prop(action_setup, 'subtarget', icon=bone_icon)
@@ -606,11 +612,16 @@ def draw_action_setup_ui(layout, action_setup, target_rig):
 
         row = layout.row()
         row.use_property_split = True
-        row.prop(action_setup, 'symmetrical', text=f"Symmetrical ({flipped_subtarget})")
+        row.prop(action_setup, 'symmetrical', text=rpt_("Symmetrical ({bone})").format(bone=flipped_subtarget))
 
         if action_setup.symmetrical and not flipped_subtarget_exists:
             row.alert = True
-            aligned_label(layout, text=f"Bone not found: {flipped_subtarget}", icon='ERROR', alert=True)
+            aligned_label(
+                layout,
+                text=rpt_("Bone not found: {bone}").format(bone=flipped_subtarget),
+                icon='ERROR',
+                alert=True,
+            )
 
     layout.prop(action_setup, 'frame_start', text="Frame Start")
     layout.prop(action_setup, 'frame_end', text="End")
@@ -632,7 +643,7 @@ def draw_status(layout, action_setup):
         col = split.column(align=True)
         col.alert = True
         col.label(text="Min and max value are the same!")
-        col.label(text=f"Will be stuck reading frame {action_setup.frame_start}!")
+        col.label(text=rpt_("Will be stuck reading frame {frame}!").format(frame=action_setup.frame_start))
         return
 
     if action_setup.frame_start == action_setup.frame_end:
@@ -643,12 +654,12 @@ def draw_status(layout, action_setup):
     default_frame = action_setup.get_default_frame()
 
     if action_setup.is_default_frame_integer():
-        split.label(text=f"Default Frame: {round(default_frame)}")
+        split.label(text=rpt_("Default Frame: {frame}").format(frame=round(default_frame)))
     else:
         split.alert = True
         split.label(
-            text=f"Default Frame: {round(default_frame, 2)} "
-            "(Should be a whole number!)"
+            text=rpt_("Default Frame: {frame} "
+            "(Should be a whole number!)").format(frame=round(default_frame, 2))
         )
 
 

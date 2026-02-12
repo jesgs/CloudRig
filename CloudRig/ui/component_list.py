@@ -343,7 +343,7 @@ def draw_rig_component_list(context, layout, default_closed=True):
         panel = None
         header = layout.row()
     row = header.row()
-    row.label(text=f"{active_component.component_pbone.name}", icon='BONE_DATA')
+    row.label(text=active_component.component_pbone.name, icon='BONE_DATA')
     icon = 'ARMATURE_DATA'
     if not active_component.component_class:
         icon = 'ERROR'

@@ -94,8 +94,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
         if warn:
             row = box.row()
             row.alert = True
-            s = "s" if warn > 1 else ""
-            row.label(text=f"Name{s} will be incremented.", icon='ERROR')
+            row.label(text="Names will be incremented.", icon='ERROR')
 
     def draw_rename_preview(self, layout, item, op_prop_name: str, icon_value: int):
         split = layout.row().split(align=True, factor=0.45)
