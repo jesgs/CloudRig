@@ -56,8 +56,11 @@ BONEINFO_HASHES: dict[str, str] = {}
 # Any BoneInfo that hasn't changed can re-use its Geo from here.
 BONEINFO_GEOS: dict[str, Geo] = {}
 
-
 ### Overlay drawing.
+
+def force_full_update():
+    global BATCH_CACHE
+    BATCH_CACHE = {}
 
 class OverlayPainter:
     def __init__(self):

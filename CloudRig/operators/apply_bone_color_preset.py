@@ -4,6 +4,7 @@ from bpy.props import EnumProperty
 from bpy.types import Operator
 
 from ..bs_utils.ui import label_split
+from ..rig_component_features.overlay_painter import force_full_update as update_overlay
 
 PRESETS_CLOUDRIG = [
     {
@@ -319,7 +320,7 @@ PRESETS_LANARO = [
 class CLOUDRIG_OT_set_bone_color_prefs(Operator):
     bl_idname = "preferences.set_bone_color_presets"
     bl_description = "Set Bone Color Presets"
-    bl_options = {"UNDO", "INTERNAL", "REGISTER"}
+    bl_options = {"INTERNAL", "REGISTER"}
     bl_label = "Set Bone Color Presets"
 
     preset: EnumProperty(
@@ -358,6 +359,13 @@ class CLOUDRIG_OT_set_bone_color_prefs(Operator):
             color_set.normal = preset_colors["normal"]
             color_set.select = preset_colors["select"]
             color_set.active = preset_colors["active"]
+
+        if context.object and context.object.type == 'ARMATURE':
+            generator = context.object.cloudrig.generator
+            if generator.active_log:
+                if generator.active_log.operator == 'preferences.set_bone_color_presets':
+                    generator.remove_active_log()
+            update_overlay()
 
         return {"FINISHED"}
 

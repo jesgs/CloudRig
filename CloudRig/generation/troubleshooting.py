@@ -12,6 +12,7 @@ import webbrowser
 
 import addon_utils
 import bpy
+from bpy.app.translations import pgettext_rpt as i18_r
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -20,7 +21,7 @@ from bpy.props import (
     StringProperty,
 )
 from bpy.types import Object, Operator, PropertyGroup, UIList
-from mathutils import Vector
+from mathutils import Color, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation import naming
@@ -626,6 +627,20 @@ class CloudLogManager:
                 operator='object.cloudrig_reparent_metarig_children',
             )
 
+    def report_bad_bone_colors(self, context):
+        def user_has_bad_colors(context) -> bool:
+            return any((
+                colorset.normal == Color((0.0, 0.0, 0.0))
+                for colorset in reversed(context.preferences.themes[0].bone_color_sets)
+            ))
+        if user_has_bad_colors(context):
+            self.log(
+                i18_r("Bad Bone Colors"),
+                description=i18_r("You should apply one of CloudRig's bone color presets."),
+                operator='preferences.set_bone_color_presets',
+                op_kwargs={'preset':'LANARO'},
+            )
+
 class CloudRigLogEntry(PropertyGroup):
     "Log Entry"
     __longdoc__ = """Container for storing information about a single metarig warning/error.
@@ -984,6 +999,7 @@ class CLOUDRIG_OT_Rename_Object(RenameThingOp, Operator):
 
     def get_thing(self, context):
         return self.get_container(context).get((self.old_name, None))
+
 
 class CLOUDRIG_OT_rename_bone_collection(RenameThingOp, Operator):
     """Rename a Bone Collection"""

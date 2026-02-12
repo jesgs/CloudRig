@@ -138,7 +138,7 @@ class GeneratorProperties(PropertyGroup):
         self.active_log_index = to_index
 
     @property
-    def active_log(self):
+    def active_log(self) -> CloudRigLogEntry | None:
         return self.logs[self.active_log_index] if len(self.logs) > 0 else None
 
     ########################################
@@ -407,7 +407,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         # This comes after custom script because the script might mess with widgets.
         # And it comes after rig replacement so the object name doesn't get stored with the "NEW-" prefix.
-        self.log_minor_issues()
+        self.log_minor_issues(context)
 
         # NOTE: Any errors arising after replacing the rigs is really bad,
         # because then the user gets an error even though their old rig has been
@@ -835,7 +835,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         refresh_constraints(self.target_rig)
         context.view_layer.update()
 
-    def log_minor_issues(self):
+    def log_minor_issues(self, context):
         if self.params.widget_collection:
             self.logger.report_widgets(self.params.widget_collection)
         self.logger.report_sus_bone_collections(self.metarig, self.target_rig)
@@ -845,6 +845,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_sus_constraints(self.target_rig)
         self.logger.report_actions()
         self.logger.report_metarig_children(self.metarig)
+        self.logger.report_bad_bone_colors(context)
 
 
 def parent_orphans(rig: Object, root_name: str):
