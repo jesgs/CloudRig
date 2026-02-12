@@ -143,6 +143,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             self.extra_org = self.bones_org.new(
                 name=self.naming.increment_name(self.last_org),
                 source=self.last_org,
+                parent=self.last_org,
                 head=self.last_org.tail.copy(),
                 vector=self.last_org.vector,
                 preserve=True,
