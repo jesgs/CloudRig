@@ -8,7 +8,10 @@ from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig
 from ..rig_component_features.properties_ui import redraw_viewport
 from ..utils.rig import get_component_in_ui, get_pbone_of_active
-from .component_param_panels import draw_params_subpanels
+from .component_param_panels import (
+    draw_params_subpanels,
+    draw_rig_component_panel,
+)
 
 
 class CLOUDRIG_UL_rig_components(UIList):
@@ -156,7 +159,7 @@ class CLOUDRIG_OT_add_rig_component(Operator):
         selected_pb = rig.pose.bones.get(self.bone_name)
         if not selected_pb:
             return
-        draw_component_type_selector(context, row, self)
+        draw_component_type_selector_simple(context, row, self)
 
     def execute(self, context):
         rig = context.object
@@ -282,7 +285,7 @@ class CLOUDRIG_OT_reorder_rig_component(Operator):
         return {'FINISHED'}
 
 
-def draw_component_type_selector(context, layout, prop_owner, icon='ARMATURE_DATA'):
+def draw_component_type_selector_simple(context, layout, prop_owner, icon='ARMATURE_DATA'):
     prefs = get_addon_prefs(context)
     layout.prop_search(
         prop_owner,
@@ -303,40 +306,48 @@ def draw_rig_component_list(context, layout, default_closed=True):
     layout = panel
     prefs = get_addon_prefs(context)
     layout.row().prop(prefs, 'component_overview_mode', expand=True)
-    if prefs.component_overview_mode == 'LIST':
-        ops_col = draw_ui_list(
-            layout,
-            context,
-            class_name='CLOUDRIG_UL_rig_components',
-            list_path='object.pose.bones',
-            active_index_path='object.cloudrig.active_component_index',
-            insertion_operators=False,
-            move_operators=False,
-            unique_id='CloudRig Rig Component List',
-        )
-        ops_col.operator(CLOUDRIG_OT_add_rig_component.bl_idname, text="", icon='ADD')
-        ops_col.operator(
-            CLOUDRIG_OT_remove_rig_component.bl_idname, text="", icon='REMOVE'
-        )
-        ops_col.separator()
-        ops_col.operator(
-            CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_UP'
-        ).direction = 'UP'
-        ops_col.operator(
-            CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_DOWN'
-        ).direction = 'DOWN'
+    if prefs.component_overview_mode == 'ACTIVE':
+        draw_rig_component_panel(context, layout)
+        return
+
+    ops_col = draw_ui_list(
+        layout,
+        context,
+        class_name='CLOUDRIG_UL_rig_components',
+        list_path='object.pose.bones',
+        active_index_path='object.cloudrig.active_component_index',
+        insertion_operators=False,
+        move_operators=False,
+        unique_id='CloudRig Rig Component List',
+    )
+    ops_col.operator(CLOUDRIG_OT_add_rig_component.bl_idname, text="", icon='ADD')
+    ops_col.operator(
+        CLOUDRIG_OT_remove_rig_component.bl_idname, text="", icon='REMOVE'
+    )
+    ops_col.separator()
+    ops_col.operator(
+        CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_UP'
+    ).direction = 'UP'
+    ops_col.operator(
+        CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_DOWN'
+    ).direction = 'DOWN'
 
     active_component = get_component_in_ui(context)
+
     if not active_component or not active_component.component_pbone:
         return
 
-    header, panel = layout.panel("CloudRig Component In List", default_closed=False)
+    if active_component.component_type not in ("", 'Raw Copy'):
+        header, panel = layout.panel("CloudRig Component In List", default_closed=False)
+    else:
+        panel = None
+        header = layout.row()
     row = header.row()
     row.label(text=f"{active_component.component_pbone.name}", icon='BONE_DATA')
     icon = 'ARMATURE_DATA'
     if not active_component.component_class:
         icon = 'ERROR'
-    draw_component_type_selector(context, row, active_component, icon=icon)
+    draw_component_type_selector_simple(context, row, active_component, icon=icon)
     row.label(text="", icon='BLANK1')
     if panel:
         box = panel.box()

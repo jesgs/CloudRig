@@ -42,7 +42,7 @@ def get_component_in_ui(context) -> RigComponent | None:
     if prefs.component_overview_mode == 'ACTIVE':
         if not active_pb:
             return
-        comp = active_pb.cloudrig_component.inherited_component
+        comp = active_pb.cloudrig_component
     else:
         comp = context.active_object.cloudrig.active_component
 

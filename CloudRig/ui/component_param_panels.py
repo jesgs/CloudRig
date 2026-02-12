@@ -34,50 +34,56 @@ class CLOUDRIG_PT_rig_component(Panel):
         return True
 
     def draw(self, context):
-        layout = self.layout.column()
-        layout.use_property_split = True
-        layout.use_property_decorate = False
+        draw_rig_component_panel(context, self.layout)
 
-        prefs = get_addon_prefs(context)
-        active_pb = get_pbone_of_active(context)
-        rig_component = active_pb.cloudrig_component
-        if rig_component.component_type == "":
-            comp_pb = rig_component.component_pbone
-            if comp_pb:
-                # Display inherited component type and a button to jump to it.
-                split = label_split(layout, text="Inherited:")
-                row = split.row(align=True)
-                sub0 = row.row()
-                sub0.enabled = False
-                sub0.prop(comp_pb, 'name', icon='BONE_DATA', text="")
-                sub_1 = row.row()
-                sub_2 = row.row()
-                sub_1.enabled = False
-                sub_1.prop(comp_pb.cloudrig_component, 'component_type', text="")
-                op = sub_2.operator("armature.jump_to_bone", text="", icon='LOOP_FORWARDS')
-                op.use_target_rig = False
-                op.target_bone = comp_pb.name
-        layout.alert = rig_component.component_type!="" and not bool(rig_component.component_class)
-        row = layout.row()
-        text = "Component Type"
-        if row.alert:
-            text += " (Not Found!)"
-        row.prop_search(
-            rig_component,
-            'component_type',
-            prefs,
-            'component_types',
-            icon='ARMATURE_DATA' if not row.alert else 'ERROR',
-            text=text,
-        )
-        if rig_component.component_type == 'Spine: Squashy':
-            # TODO 5.1: Remove Spine: Cartoon.
-            aligned_label(layout, text="DEPRECATED! Please use Spine: Cartoon!", alert=True, icon='ERROR')
-        if not rig_component.component_type or row.alert:
-            return
+def draw_rig_component_panel(context, layout):
+    layout = layout.column()
+    layout.use_property_split = True
+    layout.use_property_decorate = False
 
-        layout.prop(prefs, 'advanced_mode')
-        draw_params_subpanels(context, rig_component, layout)
+    prefs = get_addon_prefs(context)
+    active_pb = get_pbone_of_active(context)
+    rig_component = active_pb.cloudrig_component
+    draw_inherited_component(layout, rig_component)
+    layout.alert = rig_component.component_type!="" and not bool(rig_component.component_class)
+    row = layout.row()
+    text = "Component Type"
+    if row.alert:
+        text += " (Not Found!)"
+    row.prop_search(
+        rig_component,
+        'component_type',
+        prefs,
+        'component_types',
+        icon='ARMATURE_DATA' if not row.alert else 'ERROR',
+        text=text,
+    )
+    if rig_component.component_type == 'Spine: Squashy':
+        # TODO 5.1: Remove Spine: Cartoon.
+        aligned_label(layout, text="DEPRECATED! Please use Spine: Cartoon!", alert=True, icon='ERROR')
+    if rig_component.component_type in ("", "Raw Copy") or row.alert:
+        return
+
+    layout.prop(prefs, 'advanced_mode')
+    draw_params_subpanels(context, rig_component, layout)
+
+def draw_inherited_component(layout, rig_component):
+    if rig_component.component_type == "":
+        comp_pb = rig_component.component_pbone
+        if comp_pb:
+            # Display inherited component type and a button to jump to it.
+            split = label_split(layout, text="Inherited:")
+            row = split.row(align=True)
+            sub0 = row.row()
+            sub0.enabled = False
+            sub0.prop(comp_pb, 'name', icon='BONE_DATA', text="")
+            sub_1 = row.row()
+            sub_2 = row.row()
+            sub_1.enabled = False
+            sub_1.prop(comp_pb.cloudrig_component, 'component_type', text="")
+            op = sub_2.operator("armature.jump_to_bone", text="", icon='LOOP_FORWARDS')
+            op.use_target_rig = False
+            op.target_bone = comp_pb.name
 
 @dataclass
 class CloudRigPanel:

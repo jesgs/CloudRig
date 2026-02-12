@@ -154,7 +154,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         name="Overview Mode",
         description="Parameter view mode",
         items=[
-            ('ACTIVE', "Active", "Show parameters of the component that the active bone in the 3D View belongs to", 'BONE_DATA', 0),
+            ('ACTIVE', "Active", "Show the 3D Viewport active bone's component & parameters", 'BONE_DATA', 0),
             ('LIST', "List", "Show a list of all components on this rig, so you don't have to select bones in the 3D View", 'COLLAPSEMENU', 1),
         ],
         default='ACTIVE',
