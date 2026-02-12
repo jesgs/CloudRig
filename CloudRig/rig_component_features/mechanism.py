@@ -37,17 +37,28 @@ class CloudMechanismMixin:
         return create_parent_constraint_holder(child, bone_set)
 
     def ensure_free_transforms(self, child: BoneInfo, bone_set=None) -> BoneInfo:
+        def get_transform_drivers(bone: BoneInfo) -> list[tuple[str, int]]:
+            drivers = []
+            for driver_ref in bone.drivers_to_copy:
+                data_path, array_index = driver_ref
+                if any(
+                    (
+                        data_path.endswith(prop_name)
+                        for prop_name in ("location", "rotation_euler", "rotation_quaternion", "rotation_axis_angle", "rotation_mode", "scale")
+                    )
+                ):
+                    drivers.append((driver_ref))
+            return drivers
+
+        drivers = get_transform_drivers(child)
+        if not drivers and not child.constraint_infos:
+            # Transforms are already free, so this function doesn't need to do anything.
+            return
+
         helper = create_parent_constraint_holder(child, bone_set)
-        for driver_ref in child.drivers_to_copy:
-            data_path, array_index = driver_ref
-            if any(
-                (
-                    data_path.endswith(prop_name)
-                    for prop_name in ("location", "rotation_euler", "rotation_quaternion", "rotation_axis_angle", "rotation_mode", "scale")
-                )
-            ):
-                helper.drivers_to_copy.append(driver_ref)
-                child.drivers_to_copy.remove(driver_ref)
+        for driver_ref in drivers:
+            helper.drivers_to_copy.append(driver_ref)
+            child.drivers_to_copy.remove(driver_ref)
         return helper
 
     def create_dsp_bone(self, parent, **kwargs):

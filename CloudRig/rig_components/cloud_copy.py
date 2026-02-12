@@ -100,7 +100,7 @@ class Component_CopyBone(Component_Base):
                 self.params.copy.property_ui_label,
             )
 
-        if self.params.copy.ensure_free and len(bone_info.constraint_infos) > 0:
+        if self.params.copy.ensure_free:
             self.root_bone = self.ensure_free_transforms(bone_info, bone_set=self.bone_sets['Mechanism Bones'])
 
         if self.params.copy.custom_pivot:

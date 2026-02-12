@@ -127,7 +127,7 @@ class Component_TweakBone(Component_Base):
 
         bone_to_tweak.drivers_to_copy = org_boneinfo.drivers_to_copy
 
-        if self.params.tweak.ensure_free and len(bone_to_tweak.constraint_infos) > 0:
+        if self.params.tweak.ensure_free:
             self.root_bone = self.ensure_free_transforms(bone_to_tweak, bone_set=self.bone_sets['Mechanism Bones'])
 
     ################################
