@@ -22,6 +22,7 @@ def generate_metarig_without_errors(context, metarig_name: str):
     generate_without_errors(context, context.active_object)
 
 def generate_without_errors(context, metarig):
+    bpy.ops.preferences.set_bone_color_presets(preset='LANARO')
     metarig = context.active_object
     metarig.cloudrig.generator.generate_test_action = True
     assert bpy.ops.pose.cloudrig_generate() == {'FINISHED'}
