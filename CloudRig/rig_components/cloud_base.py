@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -142,9 +142,9 @@ class Component_Base(
         for pbone in self.get_component_pbone_chain():
             if self.naming.has_trailing_numbers(pbone):
                 self.add_log(
-                    i18_r("Trailing zeroes"),
+                    rpt_("Trailing zeroes"),
                     trouble_bone=pbone.name,
-                    description=i18_r("Trailing zeroes in bone names can cause bone name clashes and should be avoided."),
+                    description=rpt_("Trailing zeroes in bone names can cause bone name clashes and should be avoided."),
                     operator='object.cloudrig_rename_bone',
                     op_kwargs={
                         'old_name': pbone.name,
@@ -162,8 +162,8 @@ class Component_Base(
             )
             if not bone_info:
                 self.raise_generation_error(
-                    description=i18_r("Make sure your bone names are unique and do not have trailing zeroes!"),
-                    description_short=i18_r('Bone name "{bone}" was used twice!').format(bone=bone_info.name),
+                    description=rpt_("Make sure your bone names are unique and do not have trailing zeroes!"),
+                    description_short=rpt_('Bone name "{bone}" was used twice!').format(bone=bone_info.name),
                 )
             bone_info.preserve = self.keep_original_bones
             bone_infos[bone_info.name] = bone_info
@@ -218,12 +218,12 @@ class Component_Base(
         elif "-" in base_name and (('KEEP-' not in base_name and 'ORG-' not in base_name) or not org_bi.preserve):
             target_name = con_info.name.split("-")[0] + "-" + org_bi.name
             self.raise_generation_error(
-                description=i18_r('Relinking Failed for constraint "{constraint}".\n' \
+                description=rpt_('Relinking Failed for constraint "{constraint}".\n' \
                     'The dash (-) in the constraint name tells CloudRig to move the constraint to a ' \
                     'generated bone named "{bone}", but no such bone exists.'
                 ).format(constraint=con_info.name, bone=target_name),
                 icon='CONSTRAINT_BONE',
-                description_short=i18_r('Relinking Failed: {constraint}').format(constraint=con_info.name),
+                description_short=rpt_('Relinking Failed: {constraint}').format(constraint=con_info.name),
                 trouble_bone=org_bi.name,
             )
 

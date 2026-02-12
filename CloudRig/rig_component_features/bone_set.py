@@ -3,7 +3,7 @@
 from collections import OrderedDict
 
 from bl_ui.generic_ui_list import draw_ui_list
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import (
     Operator,
     PoseBone,
@@ -90,7 +90,7 @@ class BoneSet(LinkedList):
         existing = self.rig_component.generator.find_bone_info(name)
         if existing and existing.preserve:
             self.rig_component.raise_generation_error(
-                i18_r('"{name}" already exists. May be a bug.').format(name=name),
+                rpt_('"{name}" already exists. May be a bug.').format(name=name),
                 trouble_bone=name,
             )
 

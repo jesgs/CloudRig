@@ -12,7 +12,7 @@ import webbrowser
 
 import addon_utils
 import bpy
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -319,22 +319,22 @@ class CloudLogManager:
             target_coll = target_rig.data.collections_all.get(coll.name)
             if not target_coll or len(target_coll.bones_recursive) == 0:
                 self.log(
-                    i18_r("Unused Bone Collection"),
+                    rpt_("Unused Bone Collection"),
                     note=coll.name,
                     note_icon='OUTLINER_COLLECTION',
                     icon='COLLECTION_COLOR_01',
-                    description=i18_r('Collection "{coll}" is not used by any bones.').format(coll=coll.name),
+                    description=rpt_('Collection "{coll}" is not used by any bones.').format(coll=coll.name),
                     operator=CLOUDRIG_OT_delete_bone_collection.bl_idname,
                     op_kwargs={'coll_name': coll.name},
                 )
                 continue
             if naming.has_trailing_numbers(coll):
                 self.log(
-                    i18_r("Trailing Numbers"),
+                    rpt_("Trailing Numbers"),
                     note=coll.name,
                     note_icon='OUTLINER_COLLECTION',
                     icon='COLLECTION_COLOR_01',
-                    description=i18_r('Collection "{coll}" has trailing numbers.').format(coll=coll.name),
+                    description=rpt_('Collection "{coll}" has trailing numbers.').format(coll=coll.name),
                     operator=CLOUDRIG_OT_rename_bone_collection.bl_idname,
                     op_kwargs={
                         'old_name': coll.name,
@@ -370,8 +370,8 @@ class CloudLogManager:
                     trouble_bone = bone_name
 
             self.log(
-                i18_r("Invalid Driver"),
-                description=i18_r('Invalid driver:\nDatablock: "{datablock}"\n' \
+                rpt_("Invalid Driver"),
+                description=rpt_('Invalid driver:\nDatablock: "{datablock}"\n' \
                             'Data path: "{data_path}"\nIndex: {index}')
                             .format(datablock=owner.name, data_path=fcurve.data_path, index=fcurve.array_index),
                 icon='DRIVER',
@@ -418,10 +418,10 @@ class CloudLogManager:
 
             if widget.name not in used_widgets and unprefixed not in used_widgets:
                 self.log(
-                    i18_r("Unused Custom Shape"),
+                    rpt_("Unused Custom Shape"),
                     note=widget.name,
                     icon='X',
-                    description=i18_r('Custom Shape "{widget.name}" is not used by any bones.'),
+                    description=rpt_('Custom Shape "{widget.name}" is not used by any bones.'),
                     operator=CLOUDRIG_OT_Unlink_Widget.bl_idname,
                     op_kwargs={'ob_name': widget.name},
                 )
@@ -429,10 +429,10 @@ class CloudLogManager:
             if unprefixed != widget.name:
                 if unprefixed in bpy.data.objects:
                     self.log(
-                        i18_r("Duplicate Custom Shape"),
+                        rpt_("Duplicate Custom Shape"),
                         note=widget.name,
                         icon='DUPLICATE',
-                        description=i18_r('There exists a custom shape called "{good}", ' \
+                        description=rpt_('There exists a custom shape called "{good}", ' \
                                     'that should be used instead of "{bad}".')
                                     .format(good=unprefixed, bad=widget.name),
                         operator=CLOUDRIG_OT_Swap_Bone_Shape.bl_idname,
@@ -440,10 +440,10 @@ class CloudLogManager:
                     )
                 else:
                     self.log(
-                        i18_r("Custom Shape with number suffix"),
+                        rpt_("Custom Shape with number suffix"),
                         note=widget.name,
                         icon='FILE_TEXT',
-                        description=i18_r(
+                        description=rpt_(
                             'The "{suffix}" suffix in the name of this custom shape name is not necessary.'
                             ).format(suffix=widget.name[-4:]),
                         operator=CLOUDRIG_OT_Rename_Object.bl_idname,
@@ -466,10 +466,10 @@ class CloudLogManager:
                 continue
             if action_setup.trans_min == action_setup.trans_max:
                 self.log(
-                    i18_r("Action has no transform range"),
+                    rpt_("Action has no transform range"),
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=i18_r('Action Setup "{action_setup}" has no transformation range. ' \
+                    description=rpt_('Action Setup "{action_setup}" has no transformation range. ' \
                                 'This will cause the action to always be in the same state!')
                                 .format(action_setup=action_setup.name),
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
@@ -477,10 +477,10 @@ class CloudLogManager:
                 )
             if action_setup.frame_start == action_setup.frame_end:
                 self.log(
-                    i18_r("Action has no frame range"),
+                    rpt_("Action has no frame range"),
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=i18_r('Action Setup "{action_setup}" has no frame range. ' \
+                    description=rpt_('Action Setup "{action_setup}" has no frame range. ' \
                                 'This will cause the action to always be in the same state!')
                                 .format(action_setup=action_setup.name),
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
@@ -490,10 +490,10 @@ class CloudLogManager:
             default_frame = int(action_setup.get_default_frame())
             if not action_setup.is_default_frame_integer():
                 self.log(
-                    i18_r("Action default frame must be whole"),
+                    rpt_("Action default frame must be whole"),
                     note=action_setup.name,
                     icon='ACTION',
-                    description=i18_r('Action "{action_setup}" has a default frame of {default_frame}. ' \
+                    description=rpt_('Action "{action_setup}" has a default frame of {default_frame}. ' \
                                 'The input parameters of the Action Setup should be tweaked such that the ' \
                                 '"Default Frame" value is a whole number. On that frame, there should be a keyframe ' \
                                 'of all affected bones in the default position. Otherwise, the rig will be deformed in '\
@@ -531,10 +531,10 @@ class CloudLogManager:
 
             if single_point_curves:
                 self.log(
-                    i18_r("Action with 1-key curves"),
+                    rpt_("Action with 1-key curves"),
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=i18_r('Action slot "{action}" has {num_curves} '\
+                    description=rpt_('Action slot "{action}" has {num_curves} '\
                                 'curves with only a single keyframe. These curves will be ignored by the action setup!')
                                 .format(action=action_setup.action.name, num_curves=len(single_point_curves)),
                     operator=CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname,
@@ -545,7 +545,7 @@ class CloudLogManager:
                     "Action affects rest pose",
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=i18_r('Action slot "{action_setup.action.name}" has {num_curves} curves that are ' \
+                    description=rpt_('Action slot "{action_setup.action.name}" has {num_curves} curves that are ' \
                                 'not keyframed to their default values on the default frame ({default_frame}).')
                                 .format(action=action_setup.action.name, num_curves=len(wrong_curves), default_frame=default_frame),
                     operator='object.cloudrig_jump_to_action_setup',
@@ -584,11 +584,11 @@ class CloudLogManager:
                         continue
 
                     self.log(
-                        i18_r("Misleading Local Transforms"),
+                        rpt_("Misleading Local Transforms"),
                         note=target_bone.name,
                         trouble_bone=target_bone.name,
                         icon='DRIVER_TRANSFORM',
-                        description=i18_r(
+                        description=rpt_(
                             'Driver `{data_path}` is trying to read local transforms from bone ' \
                             '"{bone}", but this bone has an Armature constraint, which ' \
                             'moves its parenting matrix into its local matrix, making it unviable ' \
@@ -602,22 +602,22 @@ class CloudLogManager:
             for con in pb.constraints:
                 if not con.is_valid:
                     self.log(
-                        i18_r("Invalid Constraint"),
+                        rpt_("Invalid Constraint"),
                         note=con.name,
                         trouble_bone=pb.name,
                         icon='CONSTRAINT_BONE',
-                        description=i18_r('Constraint is invalid. This is usually because its target bone does not exist.')
+                        description=rpt_('Constraint is invalid. This is usually because its target bone does not exist.')
                     )
                 if con.type=='ARMATURE':
                     if not arm_con:
                         arm_con = con
                     else:
                         self.log(
-                            i18_r("Multiple Armature Constraints"),
+                            rpt_("Multiple Armature Constraints"),
                             note=pb.name,
                             trouble_bone=pb.name,
                             icon='CON_ARMATURE',
-                            description=i18_r('This bone has multiple Armature constraints, which is unlikely to be intentional.')
+                            description=rpt_('This bone has multiple Armature constraints, which is unlikely to be intentional.')
                         )
 
     def report_metarig_children(self, metarig):
@@ -631,8 +631,8 @@ class CloudLogManager:
             count += 1
         if count > 0:
             self.log(
-                i18_r("Metarig Hates Children"),
-                description=i18_r(
+                rpt_("Metarig Hates Children"),
+                description=rpt_(
                     "Metarig has {count} dependent objects.\n" \
                     "Click the button below to parent any children or deformed mesh objects to the Target Rig instead.\n" \
                     "If this warning persists, you may have objects which reference the metarig via drivers,\n" \
@@ -649,8 +649,8 @@ class CloudLogManager:
             ))
         if user_has_bad_colors(context):
             self.log(
-                i18_r("Bad Bone Colors"),
-                description=i18_r("You should apply one of CloudRig's bone color presets."),
+                rpt_("Bad Bone Colors"),
+                description=rpt_("You should apply one of CloudRig's bone color presets."),
                 operator='preferences.set_bone_color_presets',
                 op_kwargs={'preset':'LANARO'},
             )

@@ -3,7 +3,7 @@
 from copy import deepcopy
 from math import pow
 
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
 
@@ -117,8 +117,8 @@ class Component_Limb(Component_Chain_IKFK):
         if self.params.limb.limit_elbow_axes:
             if self.pole_angle_deg in {180, 0}:
                 self.add_log(
-                    i18_r("Locked IK must bend on X"),
-                    description=i18_r('To use the "Limit Elbow Axes" parameter, the bone rolls of this limb should ' \
+                    rpt_("Locked IK must bend on X"),
+                    description=rpt_('To use the "Limit Elbow Axes" parameter, the bone rolls of this limb should ' \
                         'be rotated 90 degrees, so it bends on X instead of Z axis. ' \
                         'Currently, this limbn will not bend properly.'
                     ),

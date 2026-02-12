@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
     BoolVectorProperty,
@@ -116,7 +116,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     def __check_correct_chain_length(self):
         req_len = type(self).required_chain_length
         if req_len != -1 and self.bone_count != req_len:
-            self.raise_generation_error(i18_r("Chain must be exactly {req_len} connected bones.").format(req_len=req_len))
+            self.raise_generation_error(rpt_("Chain must be exactly {req_len} connected bones.").format(req_len=req_len))
 
     def fk_chain__make_root_bone(self):
         # Socket/Root bone to parent IK and FK to.

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, PointerProperty
 from bpy.types import Object, PropertyGroup
 from mathutils import Matrix
@@ -57,7 +57,7 @@ class Component_Lattice(Component_Base):
                     and self.params.lattice.lattice is not None
                 ):
                     self.raise_generation_error(
-                        i18_r("Lattice shared by multiple components"),
+                        rpt_("Lattice shared by multiple components"),
                         operator='object.cloudrig_clear_pointer_param',
                         op_kwargs={
                             'bone_name': self.metarig_base_pbone.name,

@@ -2,7 +2,7 @@
 
 from math import radians
 
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Action, ActionSlot, PropertyGroup
 from mathutils import Vector
@@ -128,7 +128,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         req_len = 2
         if len(self.bones_org) < 2:
             self.raise_generation_error(
-                i18_r("Must be a chain of at least {req_len} connected bones!")
+                rpt_("Must be a chain of at least {req_len} connected bones!")
                 .format(req_len=req_len)
             )
 
@@ -201,8 +201,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         if points_define_plane(*points, eps=eps):
             if not is_ideal_ik_chain(self.bones_org):
                 self.add_log(
-                    i18_r("IK affects rest pose"),
-                    description=i18_r("For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be " \
+                    rpt_("IK affects rest pose"),
+                    description=rpt_("For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be " \
                         "perfectly flat along a plane, and its bone rolls should align towards the pole vector. " \
                         "Simply use the button below."),
                     operator="armature.flatten_ik_chain",
@@ -220,8 +220,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.bones_org[0].tail.y += y_offset
         self.bones_org[1].head.y += y_offset
         self.add_log(
-            i18_r("Ambiguous IK Pole Direction"),
-            description=i18_r(
+            rpt_("Ambiguous IK Pole Direction"),
+            description=rpt_(
                 "This IK chain is a perfectly straight line.\n"
                 "This would normally prevent the IK constraint from choosing a direction to bend in.\n"
                 "To avoid this, the elbow joint was slightly offset in an arbitrarily chosen direction.\n"

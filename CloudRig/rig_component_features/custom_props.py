@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import EnumProperty, StringProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -28,9 +28,9 @@ class CloudCustomPropertiesMixin:
                 return properties_bone
 
             self.add_log(
-                i18_r("Custom Property bone not found"),
+                rpt_("Custom Property bone not found"),
                 trouble_bone=prop_bone_name,
-                description=i18_r('Custom Property bone named "{bone}" not found, falling back to ' \
+                description=rpt_('Custom Property bone named "{bone}" not found, falling back to ' \
                             'default Properties bone. If it exists, make sure it generates before this rig.')
                             .format(bone=prop_bone_name),
             )

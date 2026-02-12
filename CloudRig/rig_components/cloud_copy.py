@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..rig_component_features.bone_set import BoneInfo
 
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -40,8 +40,8 @@ class Component_CopyBone(Component_Base):
         for con in self.metarig_base_pbone.constraints:
             if con.type in ('CHILD_OF', 'ARMATURE'):
                 self.add_log(
-                    i18_r("Ignored root parent"),
-                    description=i18_r("Root parenting option is ignored due to presence of {constraint}").format(constraint=con.name),
+                    rpt_("Ignored root parent"),
+                    description=rpt_("Root parenting option is ignored due to presence of {constraint}").format(constraint=con.name),
                 )
                 return
         super().base__apply_custom_root_parent(component_root, parent_name)
@@ -59,10 +59,10 @@ class Component_CopyBone(Component_Base):
                 continue
             if color.palette == 'CUSTOM':
                 self.add_log(
-                    i18_r("Custom Colors are forbidden!"),
+                    rpt_("Custom Colors are forbidden!"),
                     icon='COLORSET_01_VEC',
                     trouble_bone=bone_info.name,
-                    description=i18_r("Custom Colors are not supported in Metarigs. " \
+                    description=rpt_("Custom Colors are not supported in Metarigs. " \
                         "Please choose one of the preset colors. " \
                         "Try the color presets available in CloudRig's Preferences."
                     )
@@ -77,9 +77,9 @@ class Component_CopyBone(Component_Base):
 
         if bone_info.rotation_mode == 'QUATERNION':
             self.add_log(
-                i18_r("Quaternion rotation"),
+                rpt_("Quaternion rotation"),
                 trouble_bone=self.base_bone_name,
-                description=i18_r('"{bone}" is using Quaternion rotation mode. " \
+                description=rpt_('"{bone}" is using Quaternion rotation mode. " \
                     "This is unfriendly for animators who use the Graph Editor!').format(bone=bone_info.name),
                 icon='GIZMO',
                 operator='pose.cloudrig_troubleshoot_rotationmode',

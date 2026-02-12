@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 
 from ..utils.maths import project_vector_on_plane
 from .cloud_aim import Component_Aim
@@ -35,7 +35,7 @@ class Component_Eyelid(Component_FaceChain):
         # Parent rig must be a cloud_aim type rig!
         parent_component = self.parent_component
         if not parent_component or not isinstance(parent_component, Component_Aim):
-            self.raise_generation_error(i18_r('Parent bone of a "Chain: Eyelid" component must be an "Aim" component (ie. the eye bone).'))
+            self.raise_generation_error(rpt_('Parent bone of a "Chain: Eyelid" component must be an "Aim" component (ie. the eye bone).'))
 
         sticky_prop_name = "sticky_eyelids_" + parent_component.params.aim.group.lower().replace(" ", "_")
         self.__create_sticky_property(parent_component, sticky_prop_name)

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import PropertyGroup
 
 from .cloud_fk_chain import Component_Chain_FK
@@ -20,7 +20,7 @@ class Component_Feather(Component_Chain_FK):
         super().__init__(*args, **kwargs)
 
         if self.bone_count != 1:
-            self.raise_generation_error(i18_r("Feather component must consist of exactly 1 bone."))
+            self.raise_generation_error(rpt_("Feather component must consist of exactly 1 bone."))
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)

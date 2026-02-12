@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.app.translations import pgettext_rpt as i18_r
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import ID, Collection, LayerCollection, Object, PropertyGroup
 
 
@@ -73,8 +73,8 @@ class CloudObjectUtilitiesMixin:
         def complain():
             if create_log and not self.painter:
                 self.add_log(
-                    i18_r("{object} not in Scene").format(object=object.name),
-                    description=i18_r("This helper object should be linked to the current Scene."),
+                    rpt_("{object} not in Scene").format(object=object.name),
+                    description=rpt_("This helper object should be linked to the current Scene."),
                     operator='scene.link_object_by_name',
                     op_kwargs={'ob_name': object.name},
                 )
