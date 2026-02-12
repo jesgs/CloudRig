@@ -125,14 +125,14 @@ class Component_Chain_IKFK(Component_Chain_FK):
         return last_frame
 
     def create_bone_infos(self, context):
-        if len(self.bones_org) < self.required_chain_length:
+        req_len = 2
+        if len(self.bones_org) < 2:
             self.raise_generation_error(
                 i18_r("Must be a chain of at least {req_len} connected bones!")
-                .format(req_len=self.required_chain_length)
+                .format(req_len=req_len)
             )
 
         self.ik_chain__prevent_straight_chain()
-
 
         super().create_bone_infos(context)
 
