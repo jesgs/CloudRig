@@ -516,7 +516,8 @@ class Component_ToonChain(Component_Base):
         if self.params.chain.bbone_density > 0 and def_bone.bbone_segments < 2:
             def_bone.bbone_segments = 2
         elif self.params.chain.bbone_density == 0:
-            # If we don't have bendy bones then we're done.
+            # If we don't have bendy bones, we still need to propagate scale.
+            def_bone.add_constraint('COPY_SCALE', index=0, space='WORLD', subtarget=str_bone)
             return
 
         # Set initial ease according to Sharp Sections param.
