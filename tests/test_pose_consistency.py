@@ -11,6 +11,7 @@ def test_pose_consistency(context_poses):
         'META-Cloud_Human_ToonSpine': 20,
         'META-Cloud_Human_ToonSpine_Long': 20,
         'META-grid_chain_tests': 30,
+        'META-grid_chain_tests_nobbones': 30,
         'META-relinking': 40,
     }
     metarigs_test(context_poses, obj_frame_map)

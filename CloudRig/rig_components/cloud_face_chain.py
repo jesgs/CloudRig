@@ -121,7 +121,8 @@ class Component_FaceChain(Component_ToonChain):
 
             intersection_control = rig_component.bone_sets['Intersection Controls'].new(
                 name=bone_name,
-                source=cluster[0].parent_helper,
+                # STR bone won't have a parent helper when BBone Densitry is 0.
+                source=cluster[0].parent_helper or cluster[0],
                 parent=cluster[0].source,
                 custom_shape_name=self.params.face_chain.shape_intersection.shape_name,
                 custom_shape_scale_xyz=(1, 1, 1)
@@ -197,9 +198,13 @@ def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneIn
         component = str_bone.owner_component
         str_bone.intersection_ctrl = intersection
 
-        arm_con = next((con for con in str_bone.parent_helper.constraint_infos if con.type=='ARMATURE'), None)
-        if arm_con:
-            arm_con.targets = [intersection.name]
+        if str_bone.owner_component.params.chain.bbone_density > 0:
+            arm_con = next((con for con in str_bone.parent_helper.constraint_infos if con.type=='ARMATURE'), None)
+            if arm_con:
+                arm_con.targets = [intersection.name]
+        else:
+            # STR bone will have no parent helper when BBone Density is 0.
+            str_bone.parent = intersection
 
         if str_bone.custom_shape_transform:
             str_bone.custom_shape_transform.add_constraint(

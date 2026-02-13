@@ -200,9 +200,10 @@ class Component_ToonChain(Component_Base):
             main_str.custom_shape_name = self.params.chain.shape_stretch.shape_name
         main_str.roll_align_other(org_bone)
 
-        parent_helper = self.create_parent_bone(main_str, bone_set=self.bones_mch)
-        parent_helper.add_constraint('ARMATURE', subtarget=parent_helper.parent)
-        parent_helper.parent = None
+        if self.params.chain.bbone_density > 0:
+            parent_helper = self.create_parent_bone(main_str, bone_set=self.bones_mch)
+            parent_helper.add_constraint('ARMATURE', subtarget=parent_helper.parent)
+            parent_helper.parent = None
 
         return main_str
 
