@@ -89,9 +89,25 @@ class Component_Limb_BipedLeg(Component_Limb):
             self.__create_foot_dsp(self.ik_mstr.parent)
         self.__create_foot_dsp(self.ik_mstr)
 
+        thigh, knee, foot, toe = org_chain
+
+        # Create forefoot control
+        forefoot = None
+        if self.params.leg.create_forefoot:
+            forefoot = self.bone_sets["IK Controls"].new(
+                source=toe,
+                name=self.naming.prepend_base_name(foot, "IK-Forefoot-"),
+                tail=intersect_point_line(toe.head, knee.head, knee.tail)[0],
+                parent=self.ik_mstr,
+                custom_shape_name=self.params.leg.shape_forefoot.shape_name,
+                custom_shape_rotation_euler=Vector((-pi/2, 0, 0)),
+                custom_shape_wire_width=max(1.5, self.ik_mstr.custom_shape_wire_width/2),
+            )
+            forefoot.roll_align_vector(knee.head)
+
         # IK Foot setup, including Foot Roll.
         if self.params.leg.use_foot_roll:
-            self.__make_footroll(self.ik_chain, self.bones_org)
+            self.__make_footroll(self.ik_chain, self.bones_org, forefoot or self.ik_mstr, self.ik_mstr)
 
             # For FK->IK snapping to work properly when the IK control is world-aligned,
             # we need a world-aligned child of the IK bone.
@@ -161,7 +177,6 @@ class Component_Limb_BipedLeg(Component_Limb):
             tail=toe.tail.copy(),
         )
         dsp_bone.roll_align_vector(foot.head, axis='-Z')
-        dsp_bone.parent = self.ik_chain[self.ik_chain_count]
 
         bone.custom_shape_along_length = 0.5
         bone.use_custom_shape_bone_size = False
@@ -188,7 +203,13 @@ class Component_Limb_BipedLeg(Component_Limb):
         tail = head + -intersect_to_toe * foot.length
         return head, tail
 
-    def __make_footroll(self, ik_chain: list[BoneInfo], org_chain: list[BoneInfo]):
+    def __make_footroll(
+            self,
+            ik_chain: list[BoneInfo],
+            org_chain: list[BoneInfo],
+            foot_ik: BoneInfo,
+            ik_mstr: BoneInfo,
+        ):
         ik_foot_chain = ik_chain[-2:]
         org_thigh, org_knee, org_foot, org_toe = org_chain
         org_toe.roll_align_other(org_foot)
@@ -206,7 +227,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             bbone_width=1 / 18,
             head=head,
             tail=tail,
-            parent=self.ik_mstr,
+            parent=foot_ik,
             custom_shape_name=self.params.leg.shape_footroll.shape_name,
             use_custom_shape_bone_size=True,
         )
@@ -228,21 +249,19 @@ class Component_Limb_BipedLeg(Component_Limb):
             max_z=rad(TWIST_RANGE),
         )
 
-        roll_mch = self.ik_mstr
-
         # Create bone to use as pivot point when rolling back.
-        # This is read from the metarig and should be placed at
-        # the heel of the shoe, pointing forward.
+        # This should be placed at the heel of the shoe, with the head and tail
+        # defining the width of the foot/shoe.
         heel_pvt_back = self.__get_heel_pivot_bone()
         if heel_pvt_back:
-            heel_pvt_back.parent = roll_mch
+            heel_pvt_back.parent = foot_ik
             heel_pvt_back.collections = self.bone_sets['IK Mechanism'].collections
             heel_pvt_back.roll_align_vector(org_toe.tail, axis='+Z')
 
             heel_pvt_toe = self.bone_sets['IK Mechanism'].new(
-                self.naming.add_prefix(roll_mch, "FRONT"),
+                self.naming.add_prefix(org_foot, "FRONT"),
                 source=org_toe,
-                parent=roll_mch,
+                parent=foot_ik,
                 head=org_toe.tail,
                 tail=heel_pvt_back.center,
             )
@@ -260,7 +279,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             )
 
             heel_pvt_outer = self.bone_sets['IK Mechanism'].new(
-                self.naming.add_prefix(roll_mch, 'OUTER'),
+                self.naming.add_prefix(foot_ik, 'OUTER'),
                 head=heel_pvt_back.tail,
                 tail=heel_pvt_back.tail + heel_pvt_back.z_axis * heel_pvt_back.length,
                 parent=heel_pvt_toe,
@@ -301,11 +320,13 @@ class Component_Limb_BipedLeg(Component_Limb):
                 back_con.to_max_z_rot=rad(HEEL_LIMIT)
                 outer_con.from_min_y_rot=rad(-HEEL_LIMIT)
                 outer_con.to_min_y_rot=rad(-HEEL_LIMIT)
+
+            roll_mch = ik_mstr
         else:
             roll_mch = self.bone_sets['IK Mechanism'].new(
                 name=self.naming.add_prefix(org_foot, "ROLL"),
-                source=self.ik_mstr,
-                parent=self.ik_mstr,
+                source=foot_ik,
+                parent=foot_ik,
             )
             roll_mch.roll_align_vector(org_toe.head)
             back_con = roll_mch.add_constraint(
@@ -454,6 +475,7 @@ class Component_Limb_BipedLeg(Component_Limb):
                 text="Heel Pivot",
                 alert=row.alert,
             )
+        cls.draw_prop(context, layout, params.leg, "create_forefoot")
 
     @classmethod
     def draw_appearance_params(cls, layout, context, component):
@@ -475,9 +497,18 @@ class Params(PropertyGroup):
         description="(Optional.) Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing from the center outward, with its length defining the width of the shoe.",
         default="",
     )
+    create_forefoot: BoolProperty(
+        name="Forefoot Control",
+        description="Create a control at the ball of the foot to pivot from.",
+        default=False,
+    )
 
     shape_footroll: Component_Limb.make_custom_shape_params(
         identifier="Foot Roll",
+        default="Heel",
+    )
+    shape_forefoot: Component_Limb.make_custom_shape_params(
+        identifier="Forefoot",
         default="Heel",
     )
 
