@@ -187,9 +187,12 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         # Parent FK bone to previous FK bone.
         if org_bone.prev:
             fk_bone.parent = org_bone.prev.fk_bone
+            if self.params.fk_chain.curl_each:
+                fk_bone.add_constraint('COPY_ROTATION', mix_mode='ADD', subtarget=fk_bone.parent)
         else:
             # Parent first FK to the root.
             fk_bone.parent = org_bone.parent
+
         return fk_bone
 
     @no_overlay
@@ -268,7 +271,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         bone.parent = hng_bone
         return hng_bone
 
-    def __make_curl_control(self, fk_chain):
+    def __make_curl_control(self, fk_chain: list[BoneInfo]) -> BoneInfo:
         curl_control = self.bone_sets["FK Curl Control"].new(
             name=self.naming.add_prefix(self.base_bone_name, 'CURL'),
             source=fk_chain[0],
@@ -281,7 +284,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         # Otherwise, the transformations will feel "slippery", as in, faster or slower than
         # you're used to.
         influence = 1 / len(fk_chain)
-        for fk_bone in fk_chain:
+        for i, fk_bone in enumerate(fk_chain):
             fk_bone.add_constraint(
                 "COPY_LOCATION",
                 target_space="LOCAL",
@@ -291,31 +294,31 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 influence=influence,
                 subtarget=curl_control,
             )
-            transcon = fk_bone.add_constraint(
-                "TRANSFORM",
-                name="Transform (Copy Channel Space Rotation)",
-                space="LOCAL",
-                map_from='ROTATION',
-                map_to='ROTATION',
-                mix_mode_rot="BEFORE",
-                influence=1.0,
-                subtarget=curl_control,
-            )
-            for axis in "xyz":
-                transcon.drivers.append({
-                    "prop": f"to_min_{axis}_rot",
-                    "expression": f"var / {len(fk_chain)}",
-                    "variables": {
-                        "var": {
-                            "type": "SINGLE_PROP",
-                            "targets": [
-                                {
-                                    "data_path": f'pose.bones["{curl_control.name}"].rotation_euler.{axis}'
-                                }
-                            ],
+            if not self.params.fk_chain.curl_each:
+                transcon = fk_bone.add_constraint(
+                    "TRANSFORM",
+                    name="Transform (Copy Channel Space Rotation)",
+                    space="LOCAL",
+                    map_from='ROTATION',
+                    map_to='ROTATION',
+                    mix_mode_rot="BEFORE",
+                    influence=1.0,
+                    subtarget=curl_control,
+                )
+                for axis in "xyz":
+                    transcon.drivers.append({
+                        "prop": f"to_min_{axis}_rot",
+                        "expression": f"curl / {len(fk_chain)}",
+                        "variables": {
+                            "curl": {
+                                "type": "SINGLE_PROP",
+                                "targets": [{"data_path": f'pose.bones["{curl_control.name}"].rotation_euler.{axis}'}],
+                            },
                         },
-                    },
-                })
+                    })
+            elif i == 0:
+                fk_bone.add_constraint('COPY_ROTATION', mix_mode='ADD', subtarget=curl_control)
+
             fk_bone.add_constraint(
                 "COPY_SCALE",
                 space="LOCAL",
@@ -451,6 +454,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             "create_curl_control",
             enabled=params.fk_chain.root,
         )
+        cls.draw_prop(context, layout, params.fk_chain, 'curl_each')
 
         if not cls.is_advanced_mode(context):
             return
@@ -535,11 +539,16 @@ class Params(PropertyGroup):
         description="Set the rotation mode of the FK controls", can_propagate=True
     )
     create_curl_control: BoolProperty(
-        name="Create Curl Control",
+        name="Curl Control",
         description=(
             "Create a control that lets you easily curl this FK chain. Can be useful for tails and "
             "fingers and such. Requires a root bone for space calculations"
         ),
+        default=False,
+    )
+    curl_each: BoolProperty(
+        name="Curl Each",
+        description="Each FK Control inherits local rotation from its parent, resulting in curling. This can be combined with the Curl Control, but it's not recommended.",
         default=False,
     )
 
