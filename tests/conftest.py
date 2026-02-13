@@ -44,8 +44,8 @@ def context_poses(context) -> Scene:
     return context
 
 @pytest.fixture
-def context_ik_chains(context) -> Scene:
-    load_blend("test_ik_chains.blend")
+def context_chains(context) -> Scene:
+    load_blend("test_chains.blend")
     return context
 
 #############################

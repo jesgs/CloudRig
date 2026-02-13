@@ -6,12 +6,9 @@ from mathutils import Matrix, Vector
 
 def test_pose_consistency(context_poses):
     obj_frame_map = {
-        'META-toon_chain_tests_1': 10,
         'META-Cloud_Human': 20,
         'META-Cloud_Human_ToonSpine': 20,
         'META-Cloud_Human_ToonSpine_Long': 20,
-        'META-grid_chain_tests': 30,
-        'META-grid_chain_tests_nobbones': 30,
         'META-relinking': 40,
     }
     metarigs_test(context_poses, obj_frame_map)
@@ -23,11 +20,15 @@ def test_curves(context_curves):
     }
     metarigs_test(context_curves, obj_frame_map)
 
-def test_ik_chains(context_ik_chains):
+def test_chains(context_chains):
     obj_frame_map = {
+        'META-toon_chain_tests_1': 10,
+        'META-FK_Chains': 10,
         'META-IK_Chains': 10,
+        'META-grid_chain_tests': 20,
+        'META-grid_chain_tests_nobbones': 20,
     }
-    metarigs_test(context_ik_chains, obj_frame_map)
+    metarigs_test(context_chains, obj_frame_map)
 
 #########################################
 
