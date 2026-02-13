@@ -384,13 +384,6 @@ def combine_names(things: list[Any]) -> str:
     return combined_name
 
 
-#################################
-### DEPRECATED FUNCTIONS ########
-#################################
-# TODO: These functions should no longer be used and should be removed,
-# because it relies on too many assumptions, leading to a strict
-# bone naming convention requirement.
-
 def make_name(prefixes: list[str] = [], base="", suffixes: list[str] = []) -> str:
     """Make a name from a list of prefixes, a base, and a list of suffixes."""
     name = ""

@@ -43,6 +43,9 @@ def draw_rig_component_panel(context, layout):
 
     prefs = get_addon_prefs(context)
     active_pb = get_pbone_of_active(context)
+    if not active_pb:
+        layout.label(text="No active bone.")
+        return
     rig_component = active_pb.cloudrig_component
     draw_inherited_component(layout, rig_component)
     layout.alert = rig_component.component_type!="" and not bool(rig_component.component_class)
