@@ -449,7 +449,6 @@ class Component_Curve_Hooked(Component_Base):
             else:
                 self.lock_transforms(handle, loc=False)
 
-                handle.add_constraint('DAMPED_TRACK', subtarget=hook_ctr.name)
                 handle.add_constraint('STRETCH_TO', subtarget=hook_ctr.name)
 
         return handles
