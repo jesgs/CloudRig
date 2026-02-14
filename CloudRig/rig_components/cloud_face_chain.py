@@ -278,15 +278,14 @@ def do_centered_cluster(
     # teeth or the lips, which are one rig component on each side that meet in
     # the center, and are expected to make a smooth curve.
     component = cluster[0].owner_component
-
-    pos_sum = cluster[0].head.copy()
+    pos_sum = cluster[0].tail.copy()
     for c in cluster[1:]:
-        pos_sum += c.head
+        pos_sum += c.tail
     avg_pos = pos_sum / len(cluster)
 
     if not is_anchor:
         intersection.vector = Vector((0, 0, intersection.length))
-        intersection.roll_align_vector(avg_pos)
+        intersection.roll_align_vector(avg_pos, axis='-X')
 
     for bone in cluster:
         flipped_name = component.naming.flip_name(bone)
