@@ -129,7 +129,9 @@ class Component_FaceChain(Component_ToonChain):
             )
             intersection_control.roll_align_other(cluster[0])
 
-        if abs(intersection_control.head.x) < 0.001:
+        any_left = any((self.naming.side_is_left(b) for b in cluster))
+        any_right = any((self.naming.side_is_left(b) is False for b in cluster))
+        if abs(intersection_control.head.x) < 0.001 and any_left and any_right:
             do_centered_cluster(cluster, intersection_control, is_anchor)
 
         # Parent the bones
@@ -279,13 +281,19 @@ def do_centered_cluster(
     # the center, and are expected to make a smooth curve.
     component = cluster[0].owner_component
     pos_sum = cluster[0].tail.copy()
-    for c in cluster[1:]:
-        pos_sum += c.tail
+    shape_scale_sum = cluster[0].custom_shape_scale_xyz
+    for bone in cluster[1:]:
+        pos_sum += bone.tail
+        shape_scale_sum += bone.custom_shape_scale_xyz
     avg_pos = pos_sum / len(cluster)
+    direction = (avg_pos - intersection.head).normalized()
+    avg_shape_scale = shape_scale_sum / len(cluster)
 
     if not is_anchor:
-        intersection.vector = Vector((0, 0, intersection.length))
+        intersection.vector = direction * sum([b.length for b in cluster])/len(cluster)
         intersection.roll_align_vector(avg_pos, axis='-X')
+        intersection.use_custom_shape_bone_size = False
+        intersection.custom_shape_scale_xyz = avg_shape_scale
 
     for bone in cluster:
         flipped_name = component.naming.flip_name(bone)
