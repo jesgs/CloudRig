@@ -2954,10 +2954,7 @@ class ARMATURE_OT_bone_collections_popup(Operator):
     def draw(self, context):
         layout = self.layout
 
-        if context.pose_object:
-            rig = context.pose_object
-        else:
-            rig = context.active_object
+        rig = find_cloudrig(context)
 
         layout.template_list(
             'CLOUDRIG_UL_collections',
