@@ -546,10 +546,10 @@ class CloudRigUIEditOpMixin:
         if type(prop_value) is bool:
             icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
             panel_box.prop_search(
-                self, 'icon_true', icons, 'enum_items', icon=self.icon_true
+                self, 'icon_true', icons, 'enum_items', icon=self.icon_true or 'BLANK1'
             )
             panel_box.prop_search(
-                self, 'icon_false', icons, 'enum_items', icon=self.icon_false
+                self, 'icon_false', icons, 'enum_items', icon=self.icon_false or 'BLANK1'
             )
         if type(prop_value) in (float, int):
             panel_box.prop(self, 'use_slider')
@@ -575,7 +575,7 @@ class CloudRigUIEditOpMixin:
                 box.prop(self.temp_kmi.properties, key)
                 self.op_kwargs_dict[key] = str(getattr(self.temp_kmi.properties, key))
             icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
-            op_box.prop_search(self, 'op_icon', icons, 'enum_items', icon=self.op_icon)
+            op_box.prop_search(self, 'op_icon', icons, 'enum_items', icon=self.op_icon or 'BLANK1')
 
     def draw_debug_box(self, layout, context):
         int_box = layout.box().column()

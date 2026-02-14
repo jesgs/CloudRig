@@ -13,6 +13,7 @@ import json
 import re
 import sys
 from collections import OrderedDict, defaultdict
+from typing import Any
 
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
@@ -1301,7 +1302,7 @@ def draw_slider(
             text="Missing property owner: '{owner_path}' for property '{prop_name}'.".format(owner_path=owner_path, prop_name=prop_name),
             icon='ERROR',
         )
-    elif bracketless_prop_name in owner:
+    elif supports_custom_props(owner) and bracketless_prop_name in owner:
         prop_value = owner[bracketless_prop_name]
     else:
         try:
@@ -1443,7 +1444,7 @@ def draw_property(
             if text:
                 slider_name += ": " + text
         if value_type is bool:
-            icon = icon_true if prop_value else icon_false
+            icon = (icon_true if prop_value else icon_false) or 'BLANK1'
             layout.prop(prop_owner, prop_name, toggle=True, text=slider_name, icon=icon)
         elif value_type in {int, float}:
             if bracketless_prop_name != prop_name:
@@ -1577,6 +1578,13 @@ def unquote_custom_prop_name(prop_name: str) -> str:
         return prop_name[2:-2]
     return prop_name
 
+
+def supports_custom_props(thing: Any) -> bool:
+    try:
+        thing.keys()
+        return True
+    except (TypeError, AttributeError):
+        return False
 
 #######################################
 ########### Rig Preferences ###########
