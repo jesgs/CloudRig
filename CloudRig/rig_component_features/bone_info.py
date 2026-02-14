@@ -812,6 +812,8 @@ class BoneInfo:
                 op_kwargs={'old_name': bone.name},
             )
 
+        pose_bone.hide = False
+
         def fixed_path(data_path):
             if not data_path.startswith("[") and not data_path.startswith("."):
                 return "." + data_path
