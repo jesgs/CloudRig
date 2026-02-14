@@ -546,7 +546,7 @@ class CloudLogManager:
                     "Action affects rest pose",
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=rpt_('Action slot "{action_setup.action.name}" has {num_curves} curves that are ' \
+                    description=rpt_('Action slot "{action}" has {num_curves} curves that are ' \
                                 'not keyframed to their default values on the default frame ({default_frame}).')
                                 .format(action=action_setup.action.name, num_curves=len(wrong_curves), default_frame=default_frame),
                     operator='object.cloudrig_jump_to_action_setup',
