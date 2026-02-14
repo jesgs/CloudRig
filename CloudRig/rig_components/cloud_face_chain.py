@@ -282,16 +282,19 @@ def do_centered_cluster(
     component = cluster[0].owner_component
     pos_sum = cluster[0].tail.copy()
     shape_scale_sum = cluster[0].custom_shape_scale_xyz
+    z_axis_sum = cluster[0].z_axis
     for bone in cluster[1:]:
         pos_sum += bone.tail
+        z_axis_sum += bone.z_axis
         shape_scale_sum += bone.custom_shape_scale_xyz
     avg_pos = pos_sum / len(cluster)
     direction = (avg_pos - intersection.head).normalized()
     avg_shape_scale = shape_scale_sum / len(cluster)
+    avg_z_axis = z_axis_sum / len(cluster)
 
     if not is_anchor:
         intersection.vector = direction * sum([b.length for b in cluster])/len(cluster)
-        intersection.roll_align_vector(avg_pos, axis='-X')
+        intersection.roll_align_vector(avg_z_axis, axis='+Z')
         intersection.use_custom_shape_bone_size = False
         intersection.custom_shape_scale_xyz = avg_shape_scale
 
