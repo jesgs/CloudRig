@@ -1315,6 +1315,15 @@ def draw_slider(
                 icon='ERROR',
             )
 
+    if (
+        isinstance(owner, bpy.types.BoneCollection)
+        and any_solo(owner.id_data)
+        and prop_name == 'is_visible'
+    ):
+        # If this is a bone collection visibility, and any bone collection is Solo'd,
+        # disable the visibility button (since it wouldn't work.)
+        sub_row.enabled = False
+
     if not sub_row.alert:
         draw_property(
             layout=sub_row,
@@ -1822,13 +1831,13 @@ class CloudRigBoneCollection(PropertyGroup):
     )
 
     @property
-    def are_parents_visible(self) -> bool:
+    def are_parents_visible_effectively(self) -> bool:
         parent = self.parent_collection
         if not parent:
             return True
 
         while parent:
-            if not parent.is_visible:
+            if not parent.is_visible_effectively:
                 return False
             parent = parent.cloudrig_info.parent_collection
 
@@ -1987,14 +1996,16 @@ class CLOUDRIG_UL_collections(UIList):
                     icon='BONE_DATA',
                 )
 
-        vis_row = main_row.row(align=True)
-        vis_row.operator_context = 'INVOKE_DEFAULT'
-        vis_row.enabled = cloudrig_info.are_parents_visible
+        row_eye = main_row.row(align=True)
+        row_eye.operator_context = 'INVOKE_DEFAULT'
+        row_eye.enabled = not any_solo(collection.id_data) and cloudrig_info.are_parents_visible_effectively
         if prefs.show_visibility:
             icon = 'HIDE_OFF' if collection.is_visible else 'HIDE_ON'
-            vis_row.prop(collection, 'is_visible', text="", icon=icon)
+            row_eye.prop(collection, 'is_visible', text="", icon=icon)
         if prefs.show_select:
-            sel_op = vis_row.operator(
+            sel_row = main_row.row()
+            sel_row.enabled = collection.is_visible_effectively
+            sel_op = sel_row.operator(
                 POSE_OT_cloudrig_collection_select.bl_idname,
                 text="",
                 icon='MOUSE_LMB',
@@ -2003,12 +2014,12 @@ class CLOUDRIG_UL_collections(UIList):
             sel_op.reveal_bones = False
         if prefs.show_solo:
             icon = 'SOLO_ON' if collection.is_solo else 'SOLO_OFF'
-            vis_row.prop(collection, 'is_solo', text="", icon=icon)
+            main_row.prop(collection, 'is_solo', text="", icon=icon)
         if prefs.show_editing:
-            vis_row.separator()
+            main_row.separator()
 
             icon = 'RADIOBUT_ON' if cloudrig_info.quick_access else 'RADIOBUT_OFF'
-            vis_row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
+            main_row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
             metarig = find_metarig_of_rig(context, context.active_object)
             if is_active_cloudrig(context) and metarig:
                 icon = (
@@ -2016,17 +2027,17 @@ class CLOUDRIG_UL_collections(UIList):
                     if cloudrig_info.preserve_on_regenerate
                     else 'FAKE_USER_OFF'
                 )
-                vis_row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
+                main_row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
 
             if collection.is_editable:
                 icon = 'TRACKER'
                 if collection.cloudrig_info.is_dragged:
                     icon = 'VIEW_PAN'
-                vis_row.operator(
+                main_row.operator(
                     POSE_OT_cloudrig_reorder_collections.bl_idname, text="", icon=icon
                 ).collection_name = collection.name
 
-        return vis_row
+        return main_row
 
     def draw_item(
         self,
@@ -2123,6 +2134,9 @@ class CLOUDRIG_UL_collections(UIList):
 
         return flt_flags, flt_neworder
 
+
+def any_solo(armature) -> bool:
+    return any([c.is_solo for c in armature.collections_all])
 
 def get_coll_children_recursive(coll: BoneCollection) -> list[BoneCollection]:
     children = []
