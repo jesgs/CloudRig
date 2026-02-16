@@ -81,7 +81,7 @@ class CloudUIMixin:
         cls, context, layout, prop_owner, prop_name, enabled=True, **kwargs
     ) -> UILayout | None:
         is_forced = cls.is_forced_param(prop_name)
-        if is_forced and not cls.is_advanced_mode(context):
+        if is_forced: # and not cls.is_advanced_mode(context):
             return
 
         row = draw_prop(layout, prop_owner, prop_name, enabled=enabled, **kwargs)
