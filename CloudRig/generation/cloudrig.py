@@ -1617,8 +1617,8 @@ class CloudRig_RigPreferences(PropertyGroup):
         override={'LIBRARY_OVERRIDABLE'},
     )
     show_solo: BoolProperty(
-        name="Isolate",
-        description="Show the Isolate operator",
+        name="Solo",
+        description="Show the Solo operator",
         default=True,
         options={'LIBRARY_EDITABLE'},
         override={'LIBRARY_OVERRIDABLE'},
@@ -1655,7 +1655,7 @@ class CloudRig_RigPreferences(PropertyGroup):
     def update_collection_filter(self, context=None):
         self.keep_active_collection_visible()
 
-    collection_filter: bpy.props.StringProperty(
+    collection_filter: StringProperty(
         name="Collection Filter",
         description="Search collections by name (case-sensitive)",
         update=update_collection_filter,
@@ -1846,10 +1846,13 @@ class CloudRigBoneCollection(PropertyGroup):
         for parent in self.parents_recursive:
             parent.is_expanded = True
 
+    # We need to mask the is_expanded flag so we can set selection state
+    # when is_expanded is toggled.
     def update_is_expanded(self, context):
         coll = self.collection
         coll.is_expanded = self.is_expanded
         rig = find_cloudrig(context)
+        rig.cloudrig_prefs.active_collection_index = rig.data.collections_all.find(self.name)
         if rig:
             rig.cloudrig_prefs.active_collection_index = coll.index
 
@@ -1926,26 +1929,27 @@ class CLOUDRIG_UL_collections(UIList):
         prefs = rig.cloudrig_prefs
         pbones = rig.pose.bones
 
-        row = layout.row(align=True)
+        main_row = layout.row(align=True)
         if collection.parent:
-            split = row.split(factor=0.02 * cloudrig_info.hierarchy_depth)
+            split = main_row.split(factor=0.02 * cloudrig_info.hierarchy_depth)
             split.row()
             row = split.row(align=True)
-            row = row.row(align=True)
+            main_row = row.row(align=True)
+
         if collection.children:
             icon = 'DOWNARROW_HLT' if collection.is_expanded else 'RIGHTARROW'
-            row.prop(
-                collection,
+            main_row.prop(
+                collection.cloudrig_info,
                 'is_expanded',
                 text="",
                 icon=icon,
                 emboss=False,
             )
         else:
-            row.label(text="", icon='BLANK1')
+            main_row.label(text="", icon='BLANK1')
 
         if prefs.show_local_overrides and collection.is_local_override:
-            row.prop(
+            main_row.prop(
                 cloudrig_info,
                 'name',
                 text="",
@@ -1953,7 +1957,7 @@ class CLOUDRIG_UL_collections(UIList):
                 emboss=False,
             )
         else:
-            row.prop(cloudrig_info, 'name', text="", emboss=False)
+            main_row.prop(cloudrig_info, 'name', text="", emboss=False)
 
         if context.mode != 'EDIT_ARMATURE':
             # Collections.bones is not available in the PyAPI in Edit Mode for some reason.
@@ -1973,17 +1977,17 @@ class CLOUDRIG_UL_collections(UIList):
             indirect_selected_bones = [bone for bone in indirect_visible_bones if pbones[bone.name].select]
 
             if direct_selected_bones:
-                row.label(text="", icon='LAYER_ACTIVE')
+                main_row.label(text="", icon='LAYER_ACTIVE')
             elif indirect_selected_bones:
-                row.label(text="", icon='LAYER_USED')
+                main_row.label(text="", icon='LAYER_USED')
 
             if prefs.show_bone_count:
-                row.label(
+                main_row.label(
                     text=f"{len(indirect_selected_bones)}/{len(indirect_bones)}",
                     icon='BONE_DATA',
                 )
 
-        vis_row = row.row(align=True)
+        vis_row = main_row.row(align=True)
         vis_row.operator_context = 'INVOKE_DEFAULT'
         vis_row.enabled = cloudrig_info.are_parents_visible
         if prefs.show_visibility:
@@ -1997,15 +2001,14 @@ class CLOUDRIG_UL_collections(UIList):
             )
             sel_op.collection_name = collection.name
             sel_op.reveal_bones = False
-        row = row.row(align=True)
         if prefs.show_solo:
             icon = 'SOLO_ON' if collection.is_solo else 'SOLO_OFF'
-            row.prop(collection, 'is_solo', text="", icon=icon)
+            vis_row.prop(collection, 'is_solo', text="", icon=icon)
         if prefs.show_editing:
-            row.separator()
+            vis_row.separator()
 
             icon = 'RADIOBUT_ON' if cloudrig_info.quick_access else 'RADIOBUT_OFF'
-            row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
+            vis_row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
             metarig = find_metarig_of_rig(context, context.active_object)
             if is_active_cloudrig(context) and metarig:
                 icon = (
@@ -2013,17 +2016,17 @@ class CLOUDRIG_UL_collections(UIList):
                     if cloudrig_info.preserve_on_regenerate
                     else 'FAKE_USER_OFF'
                 )
-                row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
+                vis_row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
 
             if collection.is_editable:
                 icon = 'TRACKER'
                 if collection.cloudrig_info.is_dragged:
                     icon = 'VIEW_PAN'
-                row.operator(
+                vis_row.operator(
                     POSE_OT_cloudrig_reorder_collections.bl_idname, text="", icon=icon
                 ).collection_name = collection.name
 
-        return row
+        return vis_row
 
     def draw_item(
         self,
