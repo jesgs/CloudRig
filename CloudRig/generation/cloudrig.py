@@ -919,6 +919,7 @@ class POSE_OT_armature_reset(Operator):
             viewport_display=self.reset_viewport_display,
             bone_visibility=self.reset_bone_visibility,
             action=self.reset_action,
+            transforms=self.reset_transforms,
             custom_props=self.reset_custom_props,
             pose_bones=context.selected_pose_bones if self.selection_only else rig.pose.bones,
         )
