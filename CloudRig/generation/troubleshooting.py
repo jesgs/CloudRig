@@ -1039,8 +1039,8 @@ class CLOUDRIG_OT_rename_bone_collection(RenameThingOp, Operator):
         return context.object.data.collections_all
 
     def set_name(self, thing, name):
-        super().set_name(thing, name)
         thing.cloudrig_info.name = name
+        super().set_name(thing, name)
 
 
 class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
