@@ -2,10 +2,11 @@
 
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
+from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
 
 # TODO: Creating a helper bone to hold the Armature constraint should also be
 # optional when using parent switching, not just for bendy bone parenting.
-from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, CollectionProperty, IntProperty, StringProperty
 from bpy.types import PropertyGroup, UIList
 
@@ -304,13 +305,18 @@ class CloudParentingMixin:
 
         parent_bone = self.generator.find_bone_info(parent_name)
 
+        if component_root.parent_helper:
+            component_root = component_root.parent_helper
+
         if any((con_inf.type == 'ARMATURE' for con_inf in component_root.constraint_infos)):
             self.add_log(
-                "Ignored root parent",
-                description=(
-                    f'"{component_root}" already has an Armature constraint, so the root parent '
-                    f"parameter ({parent_bone}) was ignored. "
-                ),
+                rpt_("Ignored root parent"),
+                description=rpt_(
+                    '"{bone}" already has an Armature constraint, so the root parent '
+                    "parameter ({parent_bone}) was ignored."
+                ).format(bone=component_root, parent_bone=parent_bone),
+                operator='object.property_unset',
+                op_kwargs={'rna_path': f'pose.bones["{self.base_bone_name}"].cloudrig_component.params.parenting.root_parent'},
             )
             return
 
@@ -389,7 +395,7 @@ class CloudParentingMixin:
             draw_label_with_linebreak(
                 context,
                 layout,
-                "Generate the rig to see parenting parameters.",
+                iface_("Generate the rig to see parenting parameters."),
                 align_split=True,
             )
             return

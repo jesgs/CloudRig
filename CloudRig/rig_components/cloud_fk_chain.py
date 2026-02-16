@@ -107,7 +107,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         self.fk_chain__attach_org_to_fk(self.bones_org, self.fk_chain)
 
-        if self.root_bone == self.bones_org[0]:
+        if not self.params.fk_chain.root:
             self.root_bone = self.bone_sets["FK Controls"][0]
 
     ##############################

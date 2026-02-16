@@ -1352,6 +1352,30 @@ class CLOUDRIG_OT_reparent_metarig_children(Operator):
         return {'FINISHED'}
 
 
+class OBJECT_OT_property_unset(Operator):
+    """Un-set a property of the active object."""
+
+    bl_idname = "object.property_unset"
+    bl_label = "Un-Set Property"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    rna_path: StringProperty(
+        name="Property RNA Path",
+        description="Path relative to the active object to the property to be un-set.",
+        default="",
+    )
+
+    def execute(self, context):
+        obj = context.object
+        rna_path, prop_name = self.rna_path.rsplit(".", 1)
+        prop_owner = obj.path_resolve(rna_path)
+        prop_owner.property_unset(prop_name)
+        self.report({'INFO'}, rpt_('Unset "{property}" property.').format(property=prop_name))
+        if obj.type == 'ARMATURE':
+            obj.cloudrig.generator.remove_active_log()
+        return {'FINISHED'}
+
+
 registry = [
     CLOUDRIG_UL_log_entry_slots,
     CloudRigLogEntry,
@@ -1372,4 +1396,5 @@ registry = [
     CLOUDRIG_OT_link_obj_to_scene,
     CLOUDRIG_OT_dismiss_version_warning,
     CLOUDRIG_OT_reparent_metarig_children,
+    OBJECT_OT_property_unset,
 ]

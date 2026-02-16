@@ -37,13 +37,6 @@ class Component_CopyBone(Component_Base):
         self.params.custom_props.props_storage_bone = self.base_bone_name
 
     def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
-        for con in self.metarig_base_pbone.constraints:
-            if con.type in ('CHILD_OF', 'ARMATURE'):
-                self.add_log(
-                    rpt_("Ignored root parent"),
-                    description=rpt_("Root parenting option is ignored due to presence of {constraint}").format(constraint=con.name),
-                )
-                return
         super().base__apply_custom_root_parent(component_root, parent_name)
 
     def create_bone_infos(self, context):
