@@ -420,7 +420,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         distance = sum([b.length for b in ik_chain[:self.ik_chain_count]])
         limit_con = self.ik_tgt_bone.add_constraint(
             'LIMIT_DISTANCE',
-            subtarget=ik_chain[0],
+            subtarget=self.root_bone,
             distance=distance,
             space='POSE',
         )
@@ -430,16 +430,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "variables": [(self.properties_bone.name, self.ik_stretch_name)],
         }
         limit_con.drivers.append(drv_limit_influence.copy())
-
-        # TODO: Would be better if we had a function to simply copy this limit
-        # distance constraint (along with the two drivers), and then just change the subtarget.
-        mstr_limit_con = self.ik_mstr.add_constraint(
-            'LIMIT_DISTANCE',
-            subtarget=self.root_bone,
-            distance=distance,
-            space='POSE',
-        )
-        mstr_limit_con.drivers.append(drv_limit_influence)
 
         # The distance on the limit constraint needs to be dynamic to support
         # scaling the character from the root. To calculate that distance,
@@ -470,7 +460,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 },
             }
         limit_con.drivers.append(distance_driver.copy())
-        mstr_limit_con.drivers.append(distance_driver)
 
         # Add IK stretch toggle driver to the IK Stretch properties of the IK chain.
         for ik_bone in ik_chain[:self.ik_chain_count]:
