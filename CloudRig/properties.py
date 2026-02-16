@@ -411,6 +411,9 @@ class RigComponent(PropertyGroup):
         prefs = get_addon_prefs()
         comp_info = prefs.component_types.get(new_value)
         if not comp_info:
+            if curr_value != new_value:
+                # If user un-assigned the component, let's just reset everything to default.
+                self.property_unset('params')
             return ""
         return comp_info.module_name
     component_type: StringProperty(
