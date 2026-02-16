@@ -656,6 +656,17 @@ class CloudLogManager:
                 op_kwargs={'preset':'LANARO'},
             )
 
+    def report_old_cloudrig_props(self, metarig):
+        leftover_props = find_leftover_properties(metarig)
+        if leftover_props:
+            self.log(
+                rpt_("{count} leftover properties").format(count=len(leftover_props)),
+                description=rpt_("These properties are no longer registered and can be safely removed."),
+                icon='GHOST_DISABLED',
+                operator='object.cloudrig_cleanup_properties',
+            )
+
+
 class CloudRigLogEntry(PropertyGroup):
     "Log Entry"
     __longdoc__ = """Container for storing information about a single metarig warning/error.
@@ -1376,6 +1387,51 @@ class OBJECT_OT_property_unset(Operator):
         return {'FINISHED'}
 
 
+class CLOUDRIG_OT_remove_old_properties(Operator):
+    """Remove old properties that are no longer registered."""
+
+    bl_idname = "object.cloudrig_cleanup_properties"
+    bl_label = "Remove Old Properties"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        metarig = context.object
+        counter = 0
+        for rna_path, prop_name in find_leftover_properties(metarig):
+            try:
+                prop_owner = metarig.path_resolve(rna_path)
+                del prop_owner[prop_name]
+                counter += 1
+            except (ValueError, KeyError):
+                continue
+
+        self.report({'INFO'}, "Removed {count} properties.".format(count=counter))
+
+        metarig.cloudrig.generator.remove_active_log()
+        return {'FINISHED'}
+
+def find_leftover_properties(metarig) -> list[tuple[str, str]]:
+    leftover_props = []
+    def report_recursive_sus_props(rna_path: str, prop_owner):
+        from _bpy_types import PropertyGroup as PG
+        for key in prop_owner.keys():
+            if not hasattr(prop_owner, key):
+                leftover_props.append((rna_path, key))
+                continue
+            value = getattr(prop_owner, key)
+            if isinstance(value, PG):
+                report_recursive_sus_props(rna_path + "." + key, value)
+
+    prop_owners = {'cloudrig': metarig.cloudrig}
+    for pb in metarig.pose.bones:
+        prop_owners[f'pose.bones["{pb.name}"].cloudrig_component'] = pb.cloudrig_component
+
+    for rna_path, prop_owner in prop_owners.items():
+        report_recursive_sus_props(rna_path, prop_owner)
+
+    return leftover_props
+
+
 registry = [
     CLOUDRIG_UL_log_entry_slots,
     CloudRigLogEntry,
@@ -1397,4 +1453,5 @@ registry = [
     CLOUDRIG_OT_dismiss_version_warning,
     CLOUDRIG_OT_reparent_metarig_children,
     OBJECT_OT_property_unset,
+    CLOUDRIG_OT_remove_old_properties
 ]

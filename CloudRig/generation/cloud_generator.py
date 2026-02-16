@@ -846,6 +846,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger.report_actions()
         self.logger.report_metarig_children(self.metarig)
         self.logger.report_bad_bone_colors(context)
+        self.logger.report_old_cloudrig_props(self.metarig)
 
 
 def parent_orphans(rig: Object, root_name: str):
