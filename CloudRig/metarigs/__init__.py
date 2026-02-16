@@ -46,6 +46,8 @@ class CLOUDRIG_OT_sample_add(Operator):
     def execute(self, context):
         if context.mode == 'EDIT_ARMATURE':
             sample_obj = add_sample_to_current_rig(context, self.sample_name)
+            self.report({'INFO'}, "Added rig sample: " + self.sample_name)
+            return {'FINISHED'}
         else:
             sample_obj = append_sample(context, self.sample_name)
         if not sample_obj:
@@ -233,6 +235,11 @@ def refresh_rig_sample_list():
 
 def draw_cloudrig_metarig_menu(self, context):
     self.layout.menu('CLOUDRIG_MT_metarigs', icon='OUTLINER_OB_ARMATURE')
+    draw_cloudrig_samples_menu(self, context)
+
+def draw_cloudrig_samples_menu(self, context):
+    if context.mode == 'EDIT_ARMATURE' and not context.active_object.cloudrig.enabled:
+        return
     self.layout.menu('CLOUDRIG_MT_rig_samples', icon='OUTLINER_OB_ARMATURE')
 
 
@@ -255,7 +262,9 @@ def register():
     bpy.app.timers.register(delayed_refresh_metarig_list)
     bpy.app.handlers.load_post.append(delayed_refresh_metarig_list)
     bpy.types.VIEW3D_MT_armature_add.append(draw_cloudrig_metarig_menu)
+    bpy.types.TOPBAR_MT_edit_armature_add.append(draw_cloudrig_samples_menu)
     versioning.update_all_metarigs()
 
 def unregister():
     bpy.types.VIEW3D_MT_armature_add.remove(draw_cloudrig_metarig_menu)
+    bpy.types.TOPBAR_MT_edit_armature_add.remove(draw_cloudrig_samples_menu)
