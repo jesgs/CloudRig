@@ -73,7 +73,7 @@ def recurive_register(modules: list[ModuleType], register: bool):
 
 
 def register():
-    """Very first CloudRig code execution entry point, called by Blender."""
+    """Very first entry point called by Blender when enabling the add-on."""
     if __name__.startswith("rigify"):
         raise Exception("CloudRig is not a Rigify feature set!")
     recurive_register(modules, True)
@@ -81,7 +81,7 @@ def register():
 
 
 def unregister():
-    """Called by Blender when disabling the CloudRig add-on."""
+    """Called by Blender when disabling the add-on."""
 
     # We want to save add-on prefs to file so they don't get lost when the add-on is disabled.
     # This should be done before unregistering anything, otherwise things can fail.

@@ -691,7 +691,7 @@ class Properties_CloudRig(PropertyGroup):
         self.refresh_generation_order()
         self.id_data.cloudrig_prefs.sync_collection_names()
 
-    def refresh_generation_order(self):
+    def refresh_generation_order(self, pbone_subset: list[PoseBone]=[]):
         """Set the `order` and `depth` property of rig components.
 
         These are used for determining what order to execute rig components in
@@ -701,9 +701,10 @@ class Properties_CloudRig(PropertyGroup):
         just in case.
         """
         metarig_ob = self.id_data
-
+        if not pbone_subset:
+            pbone_subset = metarig_ob.pose.bones
         # Find component bones that have no parent components.
-        orphan_comp_pbones = [pb for pb in metarig_ob.pose.bones if not pb.cloudrig_component.parent]
+        orphan_comp_pbones = [pb for pb in pbone_subset if not pb.cloudrig_component.parent]
         orphan_comp_pbones.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
 
         # Number them hierarchically
@@ -711,9 +712,7 @@ class Properties_CloudRig(PropertyGroup):
         for i, pbone in enumerate(orphan_comp_pbones):
             pbone.cloudrig_component.update_caches()
             pbone.cloudrig_component.sibling_order = i
-            order_idx = self.order_components_recursive(
-                pbone, order_idx=order_idx, depth=0
-            )
+            order_idx = self.order_components_recursive(pbone, order_idx=order_idx, depth=0)
             order_idx += 1
 
     def order_components_recursive(self, pbone: PoseBone, order_idx=0, depth=0) -> int:

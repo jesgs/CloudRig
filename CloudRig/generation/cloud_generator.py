@@ -426,7 +426,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     def build_component_pbone_order(metarig: Object, pbone_subset: list[PoseBone]=[]) -> list[PoseBone]:
         """Return those Pose Bones of a metarig which have Rig Components assigned,
         ordered in the desired generation order."""
-        metarig.cloudrig.refresh_generation_order()
+
+        metarig.cloudrig.refresh_generation_order(pbone_subset)
         if not pbone_subset:
             pbone_subset = metarig.pose.bones[:]
 
