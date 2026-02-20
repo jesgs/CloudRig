@@ -1,12 +1,14 @@
 import bpy
+from bpy.types import Object, Operator
 from bpy.utils import flip_name
+from mathutils import Vector
 
 from ..bs_utils.hotkeys import register_hotkey
 from ..generation.cloudrig import find_cloudrig, is_cloud_metarig
 from ..utils.rig import get_pbones_of_selected
 
 
-class POSE_OT_scale_custom_shape(bpy.types.Operator):
+class POSE_OT_scale_custom_shape(Operator):
     bl_idname = "pose.scale_custom_shape"
     bl_label = "Scale Custom Shape"
     bl_description = "Scale custom shape of selected pose bones.\n\nShift: More precision\nAlt: Control Bendy Bone display size (only if that display type is already set)\nCtrl: Force Uniform Scale"
@@ -20,7 +22,7 @@ class POSE_OT_scale_custom_shape(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        rig = cls.get_rig(context)
         bones = [
             pb for pb in get_pbones_of_selected(context, whole_ebone=True)
             if (pb.custom_shape or is_cloud_metarig(rig))
@@ -30,17 +32,24 @@ class POSE_OT_scale_custom_shape(bpy.types.Operator):
             return False
         return True
 
+    @staticmethod
+    def get_rig(context) -> Object:
+        return find_cloudrig(context) or context.pose_object or context.active_object
+
     def invoke(self, context, event):
-        rig = find_cloudrig(context) or context.pose_object or context.active_object
+        self.rig = rig = self.get_rig(context)
         self.pbones = [
             pb for pb in get_pbones_of_selected(context, whole_ebone=True)
             if (pb.custom_shape or is_cloud_metarig(rig))
         ]
-        if rig.pose.use_mirror_x:
+
+        self.mirror_pbones = []
+        if rig.data.use_mirror_x:
             for pb in self.pbones[:]:
                 opp_pb = rig.pose.bones.get(flip_name(pb.name))
-                if opp_pb:
-                    self.pbones.append(opp_pb)
+                if opp_pb and opp_pb not in self.pbones:
+                    self.mirror_pbones.append(opp_pb)
+            self.pbones += self.mirror_pbones
 
         if not self.pbones:
             self.report({'WARNING'}, "No pose bones with custom shapes selected")
@@ -78,6 +87,9 @@ class POSE_OT_scale_custom_shape(bpy.types.Operator):
             scale_factor = 1.0 + delta
 
             for pb in self.pbones:
+                if pb in self.mirror_pbones:
+                    continue
+
                 if self.constraint_axis is None:
                     if event.alt:
                         pb.bone.bbone_x *= scale_factor
@@ -101,6 +113,14 @@ class POSE_OT_scale_custom_shape(bpy.types.Operator):
                     else:
                         avg = sum(pb.custom_shape_scale_xyz[:])/3
                         pb.custom_shape_scale_xyz = (avg, avg, avg)
+
+                if self.rig.data.use_mirror_x:
+                    opp_pb = self.rig.pose.bones.get(flip_name(pb.name))
+                    if opp_pb:
+                        opp_pb.bone.bbone_x = pb.bone.bbone_x
+                        opp_pb.bone.bbone_z = pb.bone.bbone_z
+                        opp_pb.custom_shape_scale_xyz = pb.custom_shape_scale_xyz * Vector((-1, 1, 1))
+
 
             self.prev_mouse_x = event.mouse_x
 
