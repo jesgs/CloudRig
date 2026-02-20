@@ -16,7 +16,8 @@ class Component_Finger(Component_Chain_IKFK):
         'chain.tip_control': True,
         'fk_chain.root': True,
         'fk_chain.double_first': False,
-        'ik_chain.world_aligned': False,
+        'ik_chain.world_align': False,
+        'ik_chain.flatten_controls': False,
     }
 
     required_chain_length = 3

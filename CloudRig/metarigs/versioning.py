@@ -207,6 +207,35 @@ def version_cloud_metarig(metarig):
             if pbone.cloudrig_component.component_type in ('Chain: IK', 'Limb: Generic', 'Limb: Biped Leg'):
                 pbone.cloudrig_component.params.ik_chain.default_stretch = 1.0
 
+    if cloudrig.metarig_version < 12:
+        # 'World Aligned' params are now strictly aligned to Blender's exact
+        # world axes, rather than the nearest axes of the bone's current transforms.
+        # The old behaviour was moved to a new "flatten_controls" param,
+        # which is deprecated, since the new behaviour is just nicer.
+        param_map = {
+            'Spine: Cartoon': 'spine_toon',
+            'Spine: IK/FK': 'spine',
+            'Chain: IK': 'ik_chain',
+            'Limb: Biped Leg': 'ik_chain',
+            'Limb: Generic': 'ik_chain',
+        }
+
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component
+            param_name = param_map.get(comp.component_type)
+            if not param_name:
+                continue
+
+            params = getattr(comp.params, param_name)
+
+            if param_name == 'ik_chain':
+                # Renamed from "world_aligned" to "world_align".
+                params.flatten_controls = params.get('world_aligned', False)
+            else:
+                params.flatten_controls = params.world_align
+            params.world_align = False
+
+
 @persistent
 def update_all_metarigs(dummy=None):
     if not hasattr(bpy.data, 'objects'):

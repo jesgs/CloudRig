@@ -68,6 +68,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
             length=self.bones_org[0].length+self.bones_org[1].length/2,
             custom_shape_name=self.params.spine.shape_torso.shape_name,
         )
+        if self.params.spine.world_align:
+            self.torso_ctr.world_align()
+            self.torso_ctr.custom_shape_rotation_euler.x = pi/2
         return self.torso_ctr
 
     def fk_chain__make(self, org_chain) -> list[BoneInfo]:
@@ -93,7 +96,14 @@ class Component_Spine_IKFK(Component_Chain_FK):
         fk_chain[0].parent = self.mstr_hips
         fk_chain[0].collections = self.bones_mch.collections
 
-        if self.params.spine.world_align:
+        # TODO: Flatten will be deprecated in 6.0
+        spine_params = self.params.spine
+        if spine_params.world_align:
+            self.root_bone.world_align()
+            self.mstr_hips.world_align()
+            self.mstr_hips.custom_shape_rotation_euler = (-pi/2, 0, pi/2)
+
+        elif spine_params.flatten_controls:
             self.root_bone.flatten()
             self.mstr_hips.flatten()
 
@@ -142,6 +152,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
             custom_shape_name=self.params.spine.shape_chest.shape_name,
         )
         if self.params.spine.world_align:
+            chest.world_align()
+        elif self.params.spine.flatten_controls:
             chest.flatten()
         chest.custom_shape_scale_xyz = chest.custom_shape_scale_xyz.zyx
         chest.custom_shape_scale_xyz.y *= 2
@@ -380,7 +392,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
         cls.draw_control_label(layout, "Spine")
         cls.draw_prop(context, layout, params.spine, 'use_ik')
         cls.draw_prop(context, layout, params.spine, 'double')
-        cls.draw_prop(context, layout, params.spine, 'world_align')
+
+        cls.draw_prop(context, layout, params.spine, "world_align", enabled=(not params.spine.flatten_controls))
+        cls.draw_prop(context, layout, params.spine, "flatten_controls", enabled=(not params.spine.world_align))
 
     @classmethod
     def draw_appearance_params(cls, layout, context, component):
@@ -406,8 +420,13 @@ class Params(PropertyGroup):
     )
     world_align: BoolProperty(
         name="World-Align Controls",
-        description="Flatten the torso and hips to align with the closest world axis",
+        description="Align the torso and hip controls with the world axes",
         default=True,
+    )
+    flatten_controls: BoolProperty(
+        name="Flatten Controls (Deprecated)",
+        description="Align torso and hip controls with the closest world axis. This option is deprecated and will be removed in Blender 6.0 in favor of 'World Align Controls'.",
+        default=False,
     )
 
     shape_hip: Component_Chain_FK.make_custom_shape_params(

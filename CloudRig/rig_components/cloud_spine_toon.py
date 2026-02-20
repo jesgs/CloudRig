@@ -41,7 +41,11 @@ class Component_Spine_Toon(Component_Chain_FK):
             length=self.bones_org[0].length+self.bones_org[1].length/2,
             custom_shape_name=self.params.spine_toon.shape_torso.shape_name,
         )
-        if self.params.spine_toon.world_align:
+        spine_toon_params = self.params.spine_toon
+        if spine_toon_params.world_align:
+            self.torso_ctr.world_align()
+            self.torso_ctr.custom_shape_rotation_euler.x = pi/2
+        elif spine_toon_params.flatten_controls:
             self.torso_ctr.flatten()
         self.torso_ctr.custom_shape_wire_width += 1.0
         # Also assign to IK collections.
@@ -297,7 +301,8 @@ class Component_Spine_Toon(Component_Chain_FK):
         super().draw_control_params(layout, context, component)
         params = component.params
 
-        cls.draw_prop(context, layout, params.spine_toon, 'world_align')
+        cls.draw_prop(context, layout, params.spine_toon, "world_align", enabled=(not params.spine_toon.flatten_controls))
+        cls.draw_prop(context, layout, params.spine_toon, "flatten_controls", enabled=(not params.spine_toon.world_align))
 
     @classmethod
     def draw_appearance_params(cls, layout, context, component):
@@ -314,8 +319,13 @@ class Params(PropertyGroup):
     """Defines the parameters to be registered in RNA. Must be exactly `Params`."""
     world_align: BoolProperty(
         name="World-Align Torso",
-        description="Flatten the torso to align with the closest world axis",
+        description="Align the torso control with the world axes",
         default=True,
+    )
+    flatten_controls: BoolProperty(
+        name="Flatten Controls (Deprecated)",
+        description="Align torso and hip controls with the closest world axis. This option is deprecated and will be removed in Blender 6.0 in favor of 'World Align Controls'.",
+        default=False,
     )
 
     shape_ik: Component_Chain_FK.make_custom_shape_params(

@@ -547,6 +547,13 @@ class BoneInfo:
         rounded = round(deg / 90) * 90
         self.roll = pi / 180 * rounded
 
+    def world_align(self):
+        """Orient this bone such that it exactly aligns with Blender's world axes."""
+        self.tail.x = self.head.x
+        self.tail.y = self.head.y + self.length
+        self.tail.z = self.head.z
+        self.roll = 0
+
     def roll_align_vector(self, vector: Vector, axis='+Z'):
         try:
             self.roll = calc_roll_to_align_axis(self, vector, axis)

@@ -11,7 +11,6 @@ from mathutils.geometry import intersect_point_line
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.overlay_painter import no_overlay
-from ..utils.maths import flat
 from .cloud_limb import Component_Limb
 
 
@@ -111,14 +110,18 @@ class Component_Limb_BipedLeg(Component_Limb):
 
             # For FK->IK snapping to work properly when the IK control is world-aligned,
             # we need a world-aligned child of the IK bone.
-            if self.params.ik_chain.world_aligned:
+            if self.params.ik_chain.world_align or self.params.ik_chain.flatten_controls:
                 self.foot_snap_bone = self.bone_sets['IK Mechanism'].new(
                     name=self.naming.add_prefix(self.bone_sets['FK Controls'][2], "SNAP"),
                     source=self.bone_sets['FK Controls'][2],
-                    vector=flat(self.bone_sets['FK Controls'][2].vector),
                     parent=self.ik_chain[2],
                     roll=0,
                 )
+                if self.params.ik_chain.world_align:
+                    self.foot_snap_bone.world_align()
+                elif self.params.ik_chain.flatten_controls:
+                    self.foot_snap_bone.flatten()
+
 
         self.__make_ik_toe()
 
@@ -144,7 +147,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             fk_chain, ik_chain, ik_mstr, ik_pole
         )
 
-        if self.params.ik_chain.world_aligned and self.params.leg.use_foot_roll:
+        if self.params.ik_chain.world_align and self.params.leg.use_foot_roll:
             # In the case of world aligned IK control + footroll, we must
             # snap the FK foot to a specialized helper bone rather than any IK bone.
             ui_data['op_kwargs']['map_fk_to_ik'][-1] = (

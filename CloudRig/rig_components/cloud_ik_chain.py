@@ -158,7 +158,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         self.ik_chain__make_ik_setup(self.bones_org)
 
-        if self.params.ik_chain.world_aligned:
+        if self.params.ik_chain.world_align or self.params.ik_chain.flatten_controls:
             self.ik_chain__world_align_fk()
 
         # Add IK/FK Snapping to the UI.
@@ -370,7 +370,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 ik_bone.parent = ik_chain[-2]
 
             if i == self.ik_chain_count:
-                # Add the IK constraint to the previous bone, targetting this one.
+                # Add the IK constraint to the previous bone, targeting this one.
                 ik_chain[-2].add_constraint(
                     "IK",
                     pole_target=self.target_rig if pole_target else None,
@@ -381,7 +381,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 )
                 # Parent this one to the IK master.
                 ik_bone.parent = ik_mstr
-                if self.params.ik_chain.world_aligned:
+                if self.params.ik_chain.world_align:
+                    ik_mstr.world_align()
+                elif self.params.ik_chain.flatten_controls:
                     ik_mstr.flatten()
                 ik_mstr.custom_shape_transform = ik_bone
 
@@ -488,7 +490,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
         )
         fk_bone.source.constraint_infos[0].subtarget = world_bone
         fk_bone.custom_shape_transform = world_bone
-        fk_bone.flatten()
+        if self.params.ik_chain.world_align:
+            fk_bone.world_align()
+        elif self.params.ik_chain.flatten_controls:
+            fk_bone.flatten()
         return world_bone
 
     @no_overlay(return_value={})
@@ -637,7 +642,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         cls.draw_prop(context, layout, params.ik_chain, "at_tip")
 
         if cls.is_advanced_mode(context):
-            cls.draw_prop(context, layout, params.ik_chain, "world_aligned")
+            cls.draw_prop(context, layout, params.ik_chain, "world_align", enabled=(not params.ik_chain.flatten_controls))
+            cls.draw_prop(context, layout, params.ik_chain, "flatten_controls", enabled=(not params.ik_chain.world_align))
 
         split = label_split(layout, text="")
         split.operator("armature.flatten_ik_chain")
@@ -666,9 +672,14 @@ class Params(PropertyGroup):
         description="Put the IK control at the tail of the chain, rather than the head of the last bone",
         default=False,
     )
-    world_aligned: BoolProperty(
-        name="World Aligned IK Master",
-        description="Ankle/Wrist IK/FK controls are aligned with world axes",
+    world_align: BoolProperty(
+        name="World-Align Controls",
+        description="Align the last controls with the world axes",
+        default=False,
+    )
+    flatten_controls: BoolProperty(
+        name="Flatten Controls (Deprecated)",
+        description="Align the last controls with the closest world axis. This option is deprecated and will be removed in Blender 6.0 in favor of 'World Align Controls'.",
         default=False,
     )
     use_pole: BoolProperty(
