@@ -601,10 +601,15 @@ def get_bone_display_matrix(bone: BoneInfo | PoseBone) -> Matrix:
     # which scales the shape by the bone length.
     scale = bone.custom_shape_scale_xyz.copy()
     if bone.use_custom_shape_bone_size:
-        if isinstance(bone, BoneInfo):
-            scale *= bone.length
-        else:
-            scale *= bone.bone.length
+        try:
+            if isinstance(bone, BoneInfo):
+                scale *= bone.length
+            else:
+                scale *= bone.bone.length
+        except ValueError:
+            # The bone might be 0-length momentarily while inputting
+            # numbers into the transform operator.
+            pass
 
     # Step 3: Create a matrix from the custom shape translation, rotation
     # and this scale which already accounts for bone length.

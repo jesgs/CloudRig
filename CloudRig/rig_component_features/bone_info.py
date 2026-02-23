@@ -486,7 +486,8 @@ class BoneInfo:
     @property
     def length(self) -> float:
         lgt = (self.tail - self.head).length
-        assert lgt > 0, f"Length of bone must not be 0: {self}, {self.head}, {self.tail}"
+        if lgt <= 0:
+            raise ValueError(rpt_("Length of bone must not be 0: {bone}, {head}, {tail}".format(bone=self.name, head=self.head, tail=self.tail)))
         return lgt
 
     @length.setter
