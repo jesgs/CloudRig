@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+from types import ModuleType
 
 from bpy.props import (
     BoolProperty,
@@ -59,6 +60,18 @@ class CloudRigComponentTypeInfo(PropertyGroup):
         name="Rig Module Name",
         description="Name used under the hood for matching the component type to its implementation module (ie. Python file)",
     )
+
+    @property
+    def component_module(self) -> ModuleType | None:
+        prefs = get_addon_prefs()
+        comp_info = prefs.component_types.get(self.name)
+        if not comp_info:
+            return
+        return rig_components.ALL_COMPONENT_MODULES.get(comp_info.module_name)
+
+    @property
+    def component_class(self) -> type:
+        return getattr(self.component_module, 'RIG_COMPONENT_CLASS')
 
 
 class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):

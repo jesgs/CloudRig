@@ -10,6 +10,7 @@ from mathutils import Vector
 from mathutils.geometry import intersect_point_line
 
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.bone_set import BoneSet
 from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_limb import Component_Limb
 
@@ -125,15 +126,11 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         self.__make_ik_toe()
 
-    def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
+    def ik_chain__make_master_ctr(self, bone_set: BoneSet, source_bone: BoneInfo) -> BoneInfo:
         """Tweak the foot shape."""
-        if shape_name == "":
-            shape_name = "Foot"
-        ik_master = super().ik_chain__make_master_ctr(
-            bone_set, source_bone, bone_name, shape_name
-        )
+        ik_master = super().ik_chain__make_master_ctr(bone_set, source_bone)
         ik_master.custom_shape_scale = 2.8
-        if self.side_suffix == 'L':
+        if self.naming.side_is_left(source_bone):
             ik_master.custom_shape_scale_xyz.x *= -1
 
         return ik_master
@@ -454,6 +451,10 @@ class Component_Limb_BipedLeg(Component_Limb):
             collections=['IK Secondary'],
             wire_width=1.5,
         )
+
+    @classmethod
+    def set_param_defaults(cls, params):
+        params.ik_chain.shape_ik_master.shape_name = 'Foot'
 
     @classmethod
     def draw_control_params(cls, layout, context, component):

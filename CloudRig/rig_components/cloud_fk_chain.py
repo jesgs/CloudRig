@@ -423,6 +423,10 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
+    def set_param_defaults(cls, params):
+        params.chain.sharp = True
+
+    @classmethod
     def draw_appearance_params(cls, layout, context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params

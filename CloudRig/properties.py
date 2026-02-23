@@ -394,27 +394,25 @@ class RigComponent(PropertyGroup):
     # This could be an EnumProp, but a StringProp allows us to use prop_search,
     # which is better UX.
     def comp_type_get_transform(self, curr_value, is_set) -> str:
-        prefs = get_addon_prefs()
-        comp_info = next((comp for comp in prefs.component_types if comp.module_name==curr_value), None)
-        if not comp_info and curr_value:
-            # Backwards compatibility: If the UI name is stored in the property, let this still work.
-            # Properties that are kept alive this way will break if the UI name of the component changes,
-            # unless the rig is re-generated first, which will fire the necessary updates.
-            comp_info = prefs.component_types.get(curr_value)
-        if not comp_info:
-            return ""
-        return comp_info.name
+        return get_component_ui_name(curr_value)
+
     def comp_type_set_transform(self, new_value, curr_value, is_set) -> str:
         """Convert the artist-friendly component name to the implementation name
         This allows changing the displayed name of component types without breakage.
         """
         prefs = get_addon_prefs()
         comp_info = prefs.component_types.get(new_value)
+        curr_comp_ui_name = get_component_ui_name(curr_value)
         if not comp_info:
-            if curr_value != new_value:
+            if curr_comp_ui_name != new_value:
                 # If user un-assigned the component, let's just reset everything to default.
                 self.property_unset('params')
             return ""
+        if curr_comp_ui_name != new_value:
+            # If assignment actually changed, let new component set some soft-defaults.
+            comp_class = comp_info.component_class
+            if comp_class:
+                comp_class.set_param_defaults(self.params)
         return comp_info.module_name
     component_type: StringProperty(
         name="Component Type",
@@ -435,7 +433,7 @@ class RigComponent(PropertyGroup):
         comp_info = prefs.component_types.get(self.component_type)
         if not comp_info:
             return
-        return rig_components.ALL_COMPONENT_MODULES.get(comp_info.module_name)
+        return comp_info.component_module
 
     @property
     def component_class(self) -> type:
@@ -613,6 +611,17 @@ class RigComponent(PropertyGroup):
     def __str__(self) -> str:
         return f"{self.base_bone_name}: {self.component_type or 'No Component'}"
 
+def get_component_ui_name(component_module_name: str):
+    prefs = get_addon_prefs()
+    comp_info = next((comp for comp in prefs.component_types if comp.module_name==component_module_name), None)
+    if not comp_info and component_module_name:
+        # Backwards compatibility: If the UI name is stored in the property, let this still work.
+        # Properties that are kept alive this way will break if the UI name of the component changes,
+        # unless the rig is re-generated first, which will fire the necessary updates.
+        comp_info = prefs.component_types.get(component_module_name)
+    if not comp_info:
+        return ""
+    return comp_info.name
 
 class Properties_CloudRig(PropertyGroup):
     def active_component_update_callback(self, _context=None):

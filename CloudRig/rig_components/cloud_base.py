@@ -9,7 +9,7 @@ from bpy.app.translations import pgettext_rpt as rpt_
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from ..generation.troubleshooting import CloudRig_Generator
+    from ..generation.cloud_generator import CloudRig_Generator
     from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 
 import bpy
@@ -275,6 +275,11 @@ class Component_Base(
                 current_value = getattr(component_prop, parts[0])
                 if current_value != forced_value:
                     setattr(component_prop, parts[0], forced_value)
+
+    @classmethod
+    def set_param_defaults(cls, params):
+        pass
+
 
     @classmethod
     def draw_control_params(cls, layout, context, component):

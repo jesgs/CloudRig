@@ -9,6 +9,7 @@ from mathutils import Vector
 
 from ..bs_utils.ui import label_split
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.bone_set import BoneSet
 from ..rig_component_features.overlay_painter import no_overlay
 from ..utils.rig import (
     calculate_ik_pole_vector,
@@ -263,11 +264,11 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # Set up IK Stretch
         self.ik_chain__make_ik_stretch(self.bones_org, self.ik_chain)
 
-    def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
+    def ik_chain__make_master_ctr(self, bone_set: BoneSet, source_bone: BoneInfo) -> BoneInfo:
         ik_master = bone_set.new(
-            name=bone_name or self.naming.add_prefix(source_bone, "IK"),
+            name=self.naming.add_prefix(source_bone, "IK"),
             source=source_bone,
-            custom_shape_name=shape_name or self.params.ik_chain.shape_ik_master.shape_name,
+            custom_shape_name=self.params.ik_chain.shape_ik_master.shape_name,
             parent=self.generator.params.ensure_root,
             use_transform_at_custom_shape=True,
         )

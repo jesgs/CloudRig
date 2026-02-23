@@ -126,15 +126,6 @@ class Component_Limb(Component_Chain_IKFK):
             ik_elbow = self.ik_chain[1]
             ik_elbow.lock_ik_z = ik_elbow.lock_ik_y = True
 
-    def ik_chain__make_master_ctr(self, bone_set, source_bone, bone_name="", shape_name=""):
-        if shape_name == "":
-            shape_name = self.params.ik_chain.shape_ik_master.shape_name
-        ik_master = super().ik_chain__make_master_ctr(
-            bone_set, source_bone, bone_name, shape_name
-        )
-
-        return ik_master
-
     @no_overlay
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
         if self.params.limb.double_ik:
