@@ -8,7 +8,6 @@ from bpy.types import Armature, Bone, EditBone, Object, PoseBone
 if TYPE_CHECKING:
     from ..properties import RigComponent
 from mathutils import Vector
-from mathutils.geometry import intersect_line_plane
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import active_rig, calculate_ik_pole_vector
@@ -170,13 +169,16 @@ def align_bone_axis_to_vector(ebone: EditBone, vector: Vector, axis="+Z"):
     ebone.roll = calc_roll_to_align_axis(ebone, vector, axis)
 
 
-def project_point_to_plane(point: Vector, origin: Vector, normal: Vector) -> Vector:
-    if normal.length == 0:
+
+
+def project_point_to_plane(
+        point: Vector,
+        plane_point: Vector,
+        plane_normal: Vector
+    ) -> Vector:
+    if plane_normal.length == 0:
         raise ValueError(f"This normal vector cannot define a plane! ({normal})")
-    normal = normal.normalized()
-    vector = point - origin
-    dist = vector.dot(normal)
-    return point - dist * normal
+    return point - plane_normal * (point - plane_point).dot(plane_normal)
 
 
 def calc_roll_to_align_axis(ebone: EditBone, vector: Vector, axis="+Z") -> float:
@@ -236,10 +238,11 @@ def ik_chain_flatten_single_iter(eb_chain, axis="+Z") -> bool:
     coords = get_flattened_coords(eb_chain)
     assert coords
 
+    THRESHOLD = eb_chain[0].length * 0.01
     did_anything = False
     for i, edit_bone in enumerate(eb_chain):
         flattened_head, flattened_tail = coords[i]
-        if edit_bone.head != flattened_head or edit_bone.tail != flattened_tail:
+        if (edit_bone.head-flattened_head).length > THRESHOLD or (edit_bone.tail-flattened_tail).length > THRESHOLD:
             edit_bone.head = flattened_head
             edit_bone.tail = flattened_tail
             did_anything = True
@@ -262,20 +265,24 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
     one of their axes (out of +Z/-Z/+X/-X) points towards the (theoretical)
     pole target position.
     """
+
+
     try:
-        coords = get_flattened_coords(chain)
+        flattened_coords = get_flattened_coords(chain)
     except ValueError:
         # NOTE: This shouldn't really happen anymore, because we're trying to auto-correct
         # IK chains in ik_chain__prevent_straight_chain().
         return False
 
-    THRESHOLD = 0.01
-    for (head, tail), ebone in zip(coords, chain):
-        if not head:
+    THRESHOLD = chain[0].length * 0.01
+    ROLL_THREHSOLD = 0.001
+
+    for (flattened_head, flattened_tail), ebone in zip(flattened_coords, chain):
+        if not flattened_head:
             # This happens when several bones are perfectly straight.
             # (intersect_line_plane() will return None).
             continue
-        if (head - ebone.head).length > THRESHOLD or (tail - ebone.tail).length > THRESHOLD:
+        if (flattened_head - ebone.head).length > THRESHOLD or (flattened_tail - ebone.tail).length > THRESHOLD:
             return False
 
     _ik_angle, _pole_direction, pole_location = calculate_ik_pole_vector(chain[0], chain[1])
@@ -284,8 +291,7 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
         wrapped_roll = wrap_angle_pi(ebone.roll)
         # Allow any 90-degree increment.
         good_rolls = (wrapped_roll, wrapped_roll + pi, wrapped_roll - pi, wrapped_roll + pi / 2, wrapped_roll - pi / 2)
-        threshold = 0.001
-        if not any([abs(desired_roll - good_roll) < threshold for good_roll in good_rolls]):
+        if not any([abs(desired_roll - good_roll) < ROLL_THREHSOLD for good_roll in good_rolls]):
             return False
 
     return True
@@ -340,19 +346,9 @@ def get_flattened_coords(eb_chain: list[EditBone]) -> list[tuple[Vector, Vector]
     for edit_bone in eb_chain:
         pair = []
         for head_or_tail in [edit_bone.head, edit_bone.tail]:
-            # Find the line that connects this vector to its closest point on the plane
-            # XXX Not sure how to use an infinite line for the intersection test but this is infinite enough for me.
-            line = [
-                head_or_tail - plane_normal * 20000,
-                head_or_tail + plane_normal * 20000,
-            ]
-            # Blender gives us a nice function for intersecting a line with a plane
-            intersect = intersect_line_plane(line[0], line[1], plane_points[0], plane_normal)
-            # Set the vector to the resulting point
-            if not intersect:
-                raise ValueError(f"Could not define a plane from this bone chain: {[eb.name for eb in eb_chain]}")
-
-            pair.append(intersect)
+            # Project the point onto the plane.
+            projected_point = project_point_to_plane(head_or_tail, plane_points[0], plane_normal)
+            pair.append(projected_point)
         if pair:
             ret.append(pair)
     return ret

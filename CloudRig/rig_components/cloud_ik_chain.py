@@ -201,7 +201,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         if points_define_plane(*points, eps=eps):
             if not is_ideal_ik_chain(self.bones_org):
                 self.add_log(
-                    rpt_("IK affects rest pose"),
+                    rpt_("IK mismatched with FK"),
                     description=rpt_("For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be " \
                         "perfectly flat along a plane, and its bone rolls should align towards the pole vector. " \
                         "Simply use the button below."),
