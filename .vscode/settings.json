@@ -1,11 +1,4 @@
 {
-    "python-envs.pythonProjects": [
-        {
-            "path": "",
-            "envManager": "ms-python.python:pyenv",
-            "packageManager": "ms-python.python:pip"
-        }
-    ],
     "python.analysis.diagnosticSeverityOverrides": {
         "reportOptionalMemberAccess": "none",
         "reportInvalidTypeForm": "none"
