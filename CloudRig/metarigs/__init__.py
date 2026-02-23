@@ -170,6 +170,10 @@ def append_metarig_or_sample(context, full_name: str) -> Object | None:
                 continue
             wgt_ob.user_remap(other_wgt_ob)
 
+    # Version the metarig, so we don't have to update metarigs.blend every time
+    # (though doing so does reduce console messages)
+    versioning.version_cloud_metarig(obj)
+
     return obj
 
 

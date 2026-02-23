@@ -235,6 +235,14 @@ def version_cloud_metarig(metarig):
                 params.flatten_controls = params.world_align
             params.world_align = False
 
+    if cloudrig.metarig_version < 13:
+        # Foot shape became customizable, but its default is inherited from the IK chain.
+        # Uses new "soft-default" mechanism to switch to the Foot shape, but has to be done
+        # retro-actively for pre-existing metarigs.
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component
+            if comp.component_type == 'Limb: Biped Leg':
+                comp.params.ik_chain.shape_ik_master.shape_name = "Foot"
 
 @persistent
 def update_all_metarigs(dummy=None):
