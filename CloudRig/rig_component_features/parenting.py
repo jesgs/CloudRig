@@ -295,15 +295,15 @@ class CloudParentingMixin:
                 return i
 
     def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
+        if parent_name == "":
+            parent_name = self.params.parenting.root_parent
+        if parent_name == "":
+            return
+
         if not component_root:
             component_root = self.root_bone
         assert component_root, f"No root on component of '{self}'. Cannot do custom parenting. This is a bug because " \
                                 "all components should have a root!"
-
-        if parent_name == "":
-            parent_name = self.params.parenting.root_parent
-
-        parent_bone = self.generator.find_bone_info(parent_name)
 
         if component_root.parent_helper:
             component_root = component_root.parent_helper
@@ -320,6 +320,7 @@ class CloudParentingMixin:
             )
             return
 
+        parent_bone = self.generator.find_bone_info(parent_name)
         if not parent_bone:
             # Still try string-based parenting. If this fails, an error will be
             # logged in write_edit_data().

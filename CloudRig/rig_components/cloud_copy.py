@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..rig_component_features.bone_set import BoneInfo
+    from ..rig_component_features.bone_set import BoneInfo, BoneSet
 
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
@@ -37,7 +37,7 @@ class Component_CopyBone(Component_Base):
         self.params.custom_props.props_storage_bone = self.base_bone_name
 
     def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
-        super().base__apply_custom_root_parent(component_root, parent_name)
+        super().base__apply_custom_root_parent(self.root_bone, parent_name)
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
@@ -94,7 +94,9 @@ class Component_CopyBone(Component_Base):
             )
 
         if self.params.copy.ensure_free:
-            self.root_bone = self.ensure_free_transforms(bone_info, bone_set=self.bone_sets['Mechanism Bones'])
+            helper = self.ensure_free_transforms(bone_info, bone_set=self.bone_sets['Mechanism Bones'])
+            if helper:
+                self.root_bone = helper
 
         if self.params.copy.custom_pivot:
             self.root_bone = self.__make_custom_pivot(self.root_bone, bone_set=self.bone_sets['Pivot Control'])
@@ -102,7 +104,7 @@ class Component_CopyBone(Component_Base):
     ##############################
     # Single Control functions.
 
-    def __make_custom_pivot(self, boneinfo, bone_set=None):
+    def __make_custom_pivot(self, boneinfo: BoneInfo, bone_set: BoneSet|None=None) -> BoneInfo:
         if not bone_set:
             bone_set = boneinfo.bone_set
         pivot = self.create_parent_bone(boneinfo, bone_set)
