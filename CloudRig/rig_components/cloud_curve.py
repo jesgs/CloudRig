@@ -547,13 +547,14 @@ class Component_Curve_Hooked(Component_Base):
             driver.expression = "var"
             my_var = driver.variables.new()
             my_var.name = "var"
-            my_var.type = 'TRANSFORMS'
-
             var_tgt = my_var.targets[0]
             var_tgt.id = self.target_rig
-            var_tgt.transform_space = 'WORLD_SPACE'
-            var_tgt.transform_type = 'SCALE_X'
-            var_tgt.bone_target = hooks[point_i].name
+
+            # We have to implement Pose Space ourselves, since
+            # Blender doesn't have that option for Drivers...
+            my_var.type = 'SINGLE_PROP'
+            var_tgt.data_path = f'pose.bones["{hooks[point_i].name}"].matrix'
+            driver.expression = "var.to_scale().x"
 
             if self.params.curve.separate_radius and hasattr(hooks[point_i], 'radius_control'):
                 var_tgt.bone_target = hooks[point_i].radius_control.name

@@ -17,6 +17,7 @@ def test_curves(context_curves):
     obj_frame_map = {
         'META-curves': 10,
         'META-curves_symmetry': 20,
+        'META-spline_ik': 30,
     }
     metarigs_test(context_curves, obj_frame_map)
 
