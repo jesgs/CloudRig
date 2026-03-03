@@ -8,6 +8,7 @@ from rna_prop_ui import rna_idprop_value_item_type
 from ..bs_utils.properties import (
     copy_property_group,
     get_custom_prop_names,
+    get_opposite_obj,
     rename_custom_prop,
 )
 from ..generation.cloudrig import active_rig, object_mode
@@ -156,29 +157,46 @@ def remove_constraint_with_drivers(
     pbone.constraints.remove(con)
 
 
-def symmetrize_constraint(armature: Object, pbone: PoseBone, con: Constraint):
+def symmetrize_constraint(armature: Object, pbone: PoseBone, from_con: Constraint):
     """Apply some additional mirroring logic that the Symmetrize operator doesn't do for us."""
-    flipped_con_name = flip_name(con.name)
+    flipped_con_name = flip_name(from_con.name)
     flipped_bone_name = flip_name(pbone.name)
     opp_pb = armature.pose.bones.get(flipped_bone_name)
 
     if pbone == opp_pb:
         # Bone name cannot be flipped, so we skip.
         return
-    if pbone == opp_pb and con.name == flipped_con_name:
+    if pbone == opp_pb and from_con.name == flipped_con_name:
         # No opposite bone found and the constraint name could not be flipped, so we skip.
         return
 
-    symmetrized_con = find_or_create_constraint(opp_pb, con.type, con.name)
-    assert symmetrized_con, "Constraint should exist! This is a bug!"
-    if con.type == 'ARMATURE':
+    to_con = find_or_create_constraint(opp_pb, from_con.type, from_con.name)
+    assert to_con, "Constraint should exist! This is a bug!"
+    if from_con.type == 'ARMATURE':
         # The built-in Symmetrize operator only flips Armature Constraint subtargets,
         # if there is also a target ID. Otherwise, the subtarget gets ignored...
-        for t_src, t_dst in zip(con.targets, symmetrized_con.targets):
+        for t_src, t_dst in zip(from_con.targets, to_con.targets):
             t_dst.subtarget = flip_name(t_src.subtarget)
-    symmetrized_con.name = flipped_con_name
+    to_con.name = flipped_con_name
 
-    symmetrize_drivers(armature, pbone, opp_pb, con, symmetrized_con)
+    # Try flipping the target objects.
+    if hasattr(to_con, 'targets'):
+        targets = (from_con.targets, to_con.targets)
+    elif hasattr(to_con, 'target') and to_con.target:
+        targets = ([from_con], [to_con])
+    else:
+        targets = ([], [])
+
+    for from_targ, to_targ in zip(*targets):
+        if from_targ.target:
+            to_targ.target = get_opposite_obj(from_targ.target)
+        # Try flipping the target vertex group.
+        if to_targ.target and to_targ.target.type != 'ARMATURE' and from_targ.subtarget:
+            flipped_name = flip_name(from_targ.subtarget)
+            if to_targ.target.type != 'MESH' or flipped_name in to_targ.target.vertex_groups:
+                to_targ.subtarget = flip_name(from_targ.subtarget)
+
+    symmetrize_drivers(armature, pbone, opp_pb, from_con, to_con)
 
 
 def symmetrize_drivers(
