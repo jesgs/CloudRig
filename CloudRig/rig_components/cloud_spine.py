@@ -219,6 +219,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         for i, ik_ctr_bone in enumerate(reversed(self.ik_ctr_chain)):
             ik_r_bone = self.bone_sets['Spine Mechanism'].new(
                 name=self.naming.add_prefix(ik_ctr_bone.source, "IK-R"),
+                source=ik_ctr_bone,
                 head=ik_ctr_bone.tail,
                 tail=ik_ctr_bone.head,
                 parent=next_parent,

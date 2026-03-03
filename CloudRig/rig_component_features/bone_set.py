@@ -79,12 +79,22 @@ class BoneSet(LinkedList):
     def new(
             self,
             name="Bone",
-            source: BoneInfo | PoseBone | None=None,
+            *,
+            source: BoneInfo | PoseBone | None,
             keep_collections=False,
             keep_colors=False,
             keep_wire_width=False,
             **kwargs) -> BoneInfo:
-        """Create and add a new BoneInfo to self."""
+        """Create and add a new BoneInfo to self.
+
+        The new bone will start out as a copy of `source`, if there is one.
+        Passing a `source` is required, but passing None is allowed.
+        This is done because caller should need to explicitly specify that
+        they don't want this bone to inherit properties.
+
+        `keep_collections/colors/wire_width`: Ignore the Bone Set's relevant
+        properties, and preserve whatever is in the source bone instead.
+        """
 
         # Prevent name collision.
         existing = self.rig_component.generator.find_bone_info(name)

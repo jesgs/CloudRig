@@ -134,8 +134,8 @@ class BoneInfo:
     def __init__(
         self,
         bone_set: BoneSet,
-        name="Bone",
-        source: PoseBone | BoneInfo | None = None,
+        name: str,
+        source: (PoseBone | BoneInfo | None),
         allow_pose_transforms = False,
         owner_component: Component_Base = None,
         keep_collections=False,

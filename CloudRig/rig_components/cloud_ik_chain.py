@@ -301,6 +301,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         base_name = prefix+self.base_name+suffix+blender_zeroes
         pole_ctrl = self.pole_ctrl = self.bone_sets["IK Controls"].new(
             name=self.naming.add_prefix(base_name, "POLE"),
+            source=None,
             bbone_width=0.1,
             head=self.pole_location,
             tail=self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2,

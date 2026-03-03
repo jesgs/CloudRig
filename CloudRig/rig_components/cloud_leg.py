@@ -224,6 +224,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 
         roll_ctrl = self.bone_sets['IK Controls'].new(
             name=self.naming.add_prefix(org_foot, "ROLL-M"), # TODO: Swap the name of this with roll_mch
+            source=None,
             bbone_width=1 / 18,
             head=head,
             tail=tail,
@@ -280,6 +281,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 
             heel_pvt_outer = self.bone_sets['IK Mechanism'].new(
                 self.naming.add_prefix(foot_ik, 'OUTER'),
+                source=org_toe,
                 head=heel_pvt_back.tail,
                 tail=heel_pvt_back.tail + heel_pvt_back.z_axis * heel_pvt_back.length,
                 parent=heel_pvt_toe,

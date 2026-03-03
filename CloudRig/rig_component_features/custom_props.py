@@ -48,6 +48,7 @@ class CloudCustomPropertiesMixin:
 
             return self.bone_sets['Mechanism Bones'].new(
                 name=bone_name,
+                source=None,
                 head=Vector((0, self.scale * 2, 0)),
                 tail=Vector((0, self.scale * 2, self.scale * 2)),
                 bbone_width=1 / 8,

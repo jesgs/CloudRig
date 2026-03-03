@@ -15,7 +15,10 @@ def install_addon():
 
 @pytest.fixture
 def context(install_addon):
-    return bpy.context
+    ctx = bpy.context
+    # Some CloudRig drivers need Python script execution.
+    ctx.preferences.filepaths.use_scripts_auto_execute = True
+    return ctx
 
 #############################
 
