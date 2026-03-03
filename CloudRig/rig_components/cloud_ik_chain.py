@@ -151,11 +151,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
             )
             if self.params.chain.tip_control:
                 # If there's an STR Tip control, we need to tweak its parent to be the extra ORG bone.
-                parent_helper = self.main_str_bones[-1].parent_helper
-                if parent_helper:
-                    arm_con = next((con for con in parent_helper.constraint_infos if con.type=='ARMATURE' and con.targets))
-                    if arm_con:
-                        arm_con.targets[0]['subtarget'] = self.extra_org.name
+                arm_con = self.main_str_bones[-1].parent_armature_constraint
+                if arm_con:
+                    arm_con.targets[0]['subtarget'] = self.extra_org.name
 
         self.ik_chain__make_ik_setup(self.bones_org)
 

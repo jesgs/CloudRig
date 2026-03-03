@@ -112,7 +112,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
     @no_overlay
     def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.85):
         super().fk_chain__counter_rotate_str_bones(self.bones_org[1:], main_str_bones[1:], influence)
-        main_str_bones[1].parent_helper.constraint_infos[0].targets = [self.mstr_hips.name]
+        arm_con = main_str_bones[1].parent_armature_constraint
+        if arm_con:
+            arm_con.targets = [self.mstr_hips.name]
         main_str_bones[1].constraint_infos[-1].invert_xyz = (False, False, False)
         main_str_bones[1].constraint_infos[-1].influence = 0.75
 

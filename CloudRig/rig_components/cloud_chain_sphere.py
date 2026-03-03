@@ -54,7 +54,9 @@ class Component_SphereChain(Component_ToonChain):
         )
         sph_ctrl.roll_align_vector(str_bone.tail)
 
-        str_bone.parent_helper.constraint_infos[0].targets = [sph_ctrl.name]
+        arm_con = str_bone.parent_armature_constraint
+        if arm_con:
+            arm_con.targets = [sph_ctrl.name]
 
         return sphere_ctrl
 

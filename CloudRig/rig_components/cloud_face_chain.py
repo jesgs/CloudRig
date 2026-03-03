@@ -2,7 +2,6 @@
 
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
-from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.overlay_painter import no_overlay
@@ -201,7 +200,7 @@ def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneIn
         str_bone.intersection_ctrl = intersection
 
         if str_bone.owner_component.params.chain.bbone_density > 0:
-            arm_con = next((con for con in str_bone.parent_helper.constraint_infos if con.type=='ARMATURE'), None)
+            arm_con = str_bone.parent_armature_constraint
             if arm_con:
                 arm_con.targets = [intersection.name]
         else:

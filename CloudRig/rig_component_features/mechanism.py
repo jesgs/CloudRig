@@ -9,7 +9,7 @@ from mathutils import Vector
 
 if TYPE_CHECKING:
     from ..rig_component_features.bone_set import BoneSet
-    from .bone_info import BoneInfo
+    from .bone_info import BoneInfo, ConstraintInfo
 
 from ..generation.naming import add_prefix
 
@@ -64,21 +64,29 @@ class CloudMechanismMixin:
     def create_dsp_bone(self, parent, **kwargs):
         return create_dsp_bone(parent, self.bones_mch, **kwargs)
 
-    def constrain_between_bones(self, child: BoneInfo, start: BoneInfo, end: BoneInfo, influence=0.5):
-        child.add_constraint(
+    def constrain_between_bones(
+            self,
+            child: BoneInfo,
+            start: BoneInfo,
+            end: BoneInfo,
+            influence=0.5
+        ) -> tuple[ConstraintInfo, ConstraintInfo, ConstraintInfo]:
+        copy_first = child.add_constraint(
             'COPY_TRANSFORMS',
             name="Copy Transforms (First)",
             space='WORLD',
             subtarget=start,
         )
-        child.add_constraint(
+        copy_last = child.add_constraint(
             'COPY_TRANSFORMS',
             name="Copy Transforms (Last)",
             space='WORLD',
             subtarget=end,
             influence=influence,
         )
-        child.add_constraint('DAMPED_TRACK', subtarget=end)
+        dt_con = child.add_constraint('DAMPED_TRACK', subtarget=end)
+
+        return copy_first, copy_last, dt_con
 
     def make_def_bone(self, parent_bone: BoneInfo, bone_name: str, bone_set):
         """Make a DEF- bone parented to bone."""

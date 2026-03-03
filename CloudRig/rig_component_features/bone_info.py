@@ -442,6 +442,12 @@ class BoneInfo:
         self.use_connect = False
 
     @property
+    def parent_armature_constraint(self) -> ConstraintInfo | None:
+        """Return the Armature constraint of the parent helper, if both exist."""
+        if self.parent_helper:
+            return next((con for con in self.parent_helper.constraint_infos if con.type=='ARMATURE'), None)
+
+    @property
     def bbone_width(self) -> float:
         """Return average display size of both axes."""
         return (self.bbone_x + self.bbone_z) / 2

@@ -212,8 +212,8 @@ class Component_Spine_Toon(Component_Chain_FK):
                 parent_helper.put(Vector.lerp(hips.tail, chest.head, chest_influence))
                 parent_helper.vector = (chest.head-hips.tail).normalized() * parent_helper.vector.length
                 parent_helper.roll_align_other(hips)
-                self.constrain_between_bones(parent_helper, hips, chest, chest_influence)
-                parent_helper.constraint_infos[0].head_tail = 1.0
+                copy_first, _copy_last, _dt_con = self.constrain_between_bones(parent_helper, hips, chest, chest_influence)
+                copy_first.head_tail = 1.0
 
             next_parent = chest
 
