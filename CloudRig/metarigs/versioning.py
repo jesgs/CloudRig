@@ -244,6 +244,14 @@ def version_cloud_metarig(metarig):
             if comp.component_type == 'Limb: Biped Leg':
                 comp.params.ik_chain.shape_ik_master.shape_name = "Foot"
 
+    if cloudrig.metarig_version < 14 and bpy.app.version < (5, 1, 0):
+        # Fix for #309, only needed in Blender 5.0.
+        for action_setup in cloudrig.generator.action_setups:
+            if not action_setup.is_corrective:
+                continue
+            action_setup.trigger_select_a = action_setup.setup_id_to_str(action_setup.trigger_select_a, True)
+            action_setup.trigger_select_b = action_setup.setup_id_to_str(action_setup.trigger_select_b, True)
+
 @persistent
 def update_all_metarigs(dummy=None):
     if not hasattr(bpy.data, 'objects'):

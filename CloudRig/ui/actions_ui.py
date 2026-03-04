@@ -103,7 +103,7 @@ class ActionConstraintSetup(PropertyGroup):
             name = str(self.unique_id)
         return name
 
-    name: StringProperty(get=get_name_transform)
+    name: StringProperty(get=get_name_transform) if bpy.app.version >= (5, 1, 0) else StringProperty()
 
     enabled: BoolProperty(
         name="Enabled",
@@ -216,14 +216,14 @@ class ActionConstraintSetup(PropertyGroup):
     trigger_select_a: StringProperty(
         name="Trigger A",
         description="Action Setup whose activation will trigger this setup as a corrective",
-        get_transform=setup_id_to_str,
-        set_transform=setup_name_to_id,
+        get_transform=setup_id_to_str if bpy.app.version >= (5, 1, 0) else None,
+        set_transform=setup_name_to_id if bpy.app.version >= (5, 1, 0) else None,
     )
     trigger_select_b: StringProperty(
         name="Trigger B",
         description="Action Setup whose activation will trigger this setup as a corrective",
-        get_transform=setup_id_to_str,
-        set_transform=setup_name_to_id,
+        get_transform=setup_id_to_str if bpy.app.version >= (5, 1, 0) else None,
+        set_transform=setup_name_to_id if bpy.app.version >= (5, 1, 0) else None,
     )
     @property
     def trigger_a(self) -> ActionConstraintSetup | None:
