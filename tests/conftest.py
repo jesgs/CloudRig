@@ -56,10 +56,15 @@ def context_chains(context) -> Scene:
 def load_blend(blend_name: str):
     blend_path = Path(__file__).parent / Path(f"blends/{blend_name}")
     bpy.ops.wm.open_mainfile(filepath=blend_path.as_posix())
+    bpy.context.workspace.use_filter_by_owner = False
 
 def select_obj(context, obj_name=None):
+    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.select_all(action='DESELECT')
     if obj_name:
         obj = bpy.data.objects[obj_name]
-        context.view_layer.objects.active = obj
+        # Some naive un-hiding...
         obj.hide_set(False)
+        obj.hide_viewport = False
         obj.select_set(True)
+        context.view_layer.objects.active = obj
