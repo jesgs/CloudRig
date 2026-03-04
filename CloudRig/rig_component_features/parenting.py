@@ -314,7 +314,7 @@ class CloudParentingMixin:
                 description=rpt_(
                     '"{bone}" already has an Armature constraint, so the root parent '
                     "parameter ({parent_bone}) was ignored."
-                ).format(bone=component_root, parent_bone=parent_bone),
+                ).format(bone=component_root, parent_bone=parent_name),
                 operator='object.property_unset',
                 op_kwargs={'rna_path': f'pose.bones["{self.base_bone_name}"].cloudrig_component.params.parenting.root_parent'},
             )

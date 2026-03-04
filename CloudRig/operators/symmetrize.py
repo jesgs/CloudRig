@@ -159,7 +159,11 @@ def remove_constraint_with_drivers(
 
 def symmetrize_constraint(armature: Object, pbone: PoseBone, from_con: Constraint):
     """Apply some additional mirroring logic that the Symmetrize operator doesn't do for us."""
-    flipped_con_name = flip_name(from_con.name)
+
+    if '@' in from_con.name:
+        flipped_con_name = "@".join([flip_name(part) for part in from_con.name.split("@")])
+    else:
+        flipped_con_name = flip_name(from_con.name)
     flipped_bone_name = flip_name(pbone.name)
     opp_pb = armature.pose.bones.get(flipped_bone_name)
 
