@@ -177,7 +177,7 @@ class Component_ToonChain(Component_Base):
             str_name = self.naming.suffix_base_name(str_name, "_1")
         while self.generator.find_bone_info(str_name):
             str_name = self.naming.increment_name(str_name)
-        size = sum(org_bone.custom_shape_scale_xyz[:])/3 * org_bone.length * self.params.chain.shape_size
+        size = sum((abs(s) for s in org_bone.custom_shape_scale_xyz))/3 * org_bone.length * self.params.chain.shape_size
         main_str = self.bone_sets['Stretch Controls'].new(
             name=str_name,
             source=org_bone,

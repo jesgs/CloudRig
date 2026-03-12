@@ -135,7 +135,7 @@ class Component_Lattice(Component_Base):
         lattice_ob.parent_type = 'BONE'
         lattice_ob.parent_bone = self.lattice_root.name
         lattice_ob.matrix_world = root_bone.matrix
-        scale = sum(root_bone.custom_shape_scale_xyz[:])/3
+        scale = sum((abs(s) for s in root_bone.custom_shape_scale_xyz))/3
         if root_bone.use_custom_shape_bone_size:
             scale *= root_bone.length
         lattice_ob.matrix_world = lattice_ob.matrix_world @ Matrix.Scale(scale, 4)

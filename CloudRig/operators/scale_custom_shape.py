@@ -111,7 +111,7 @@ class POSE_OT_scale_custom_shape(Operator):
                         avg = (pb.bone.bbone_x + pb.bone.bbone_z)/2
                         pb.bone.bbone_x = pb.bone.bbone_z = avg
                     else:
-                        avg = sum(pb.custom_shape_scale_xyz[:])/3
+                        avg = sum((abs(s) for s in pb.custom_shape_scale_xyz))/3
                         pb.custom_shape_scale_xyz = (avg, avg, avg)
 
                 if self.rig.data.use_mirror_x:
