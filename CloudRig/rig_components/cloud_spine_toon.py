@@ -2,7 +2,7 @@
 
 from math import pi
 
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, FloatProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
 
@@ -27,6 +27,8 @@ class Component_Spine_Toon(Component_Chain_FK):
         'fk_chain.double_first': False,
         'fk_chain.display_center': False,
     }
+
+    always_use_custom_props = True
 
     ################################
     # Inherited functions.
@@ -166,7 +168,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             panel_name='FK/IK Switch',
             slider_name='Spine',
             custom_prop_settings={
-                'default' : 1.0,
+                'default' : self.params.spine_toon.default_fkik,
             }
         )
         ik_chain = self.__make_ik_chain(fk_chain, chest, hips)
@@ -236,7 +238,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             panel_name='IK',
             slider_name=f'{self.base_name} Squash',
             custom_prop_settings={
-                'default' : 0.7,
+                'default' : self.params.spine_toon.default_stretch,
                 'soft_max' : 1.0,
                 'max': 2.0
             }
@@ -314,6 +316,13 @@ class Component_Spine_Toon(Component_Chain_FK):
         cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_ik_secondary")
         return layout
 
+    @classmethod
+    def draw_custom_prop_params(cls, layout, context, component):
+        super().draw_custom_prop_params(layout, context, component)
+        layout.separator()
+        cls.draw_prop(context, layout, component.params.spine_toon, 'default_fkik', slider=True)
+        cls.draw_prop(context, layout, component.params.spine_toon, 'default_stretch', slider=True)
+
 
 class Params(PropertyGroup):
     """Defines the parameters to be registered in RNA. Must be exactly `Params`."""
@@ -339,6 +348,15 @@ class Params(PropertyGroup):
     shape_torso: Component_Chain_FK.make_custom_shape_params(
         identifier="Torso",
         default="Torso"
+    )
+
+    default_fkik: FloatProperty(
+        name="Default FK/IK",
+        min=0, max=1, default=1,
+    )
+    default_stretch: FloatProperty(
+        name="Default IK Squash",
+        min=0, max=1, default=0.7,
     )
 
 RIG_COMPONENT_CLASS = Component_Spine_Toon
