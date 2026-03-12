@@ -480,7 +480,8 @@ def draw_batch_cache():
     global BATCH_CACHE
 
     gpu.state.blend_set('ALPHA')
-    gpu.state.depth_test_set('LESS_EQUAL')
+    if bpy.context.space_data.shading.type != 'WIREFRAME':
+        gpu.state.depth_test_set('LESS_EQUAL')
 
     shader = get_shader()
     if BATCH_CACHE and not DEBUG_IGNORE_CACHES:
