@@ -135,7 +135,7 @@ class Component_Aim(Component_Base):
         ctr_bone.add_constraint('COPY_ROTATION', subtarget=aim_bone.name, mix_mode='AFTER')
 
         # Lock all location and Y scale
-        self.lock_transforms(ctr_bone, loc=True, rot=False, scale=[False, True, False])
+        self.lock_transforms(ctr_bone, loc=True, rot=org_bone.lock_rotation[:], scale=[False, True, False])
 
         # Scale hack! Don't actually allow scaling the control bone,
         # but send the scaling input into the display bone's scale, so it appears like it is scaling.
