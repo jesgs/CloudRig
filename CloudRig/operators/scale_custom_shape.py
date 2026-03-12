@@ -116,7 +116,7 @@ class POSE_OT_scale_custom_shape(Operator):
 
                 if self.rig.data.use_mirror_x:
                     opp_pb = self.rig.pose.bones.get(flip_name(pb.name))
-                    if opp_pb:
+                    if opp_pb and opp_pb != pb:
                         opp_pb.bone.bbone_x = pb.bone.bbone_x
                         opp_pb.bone.bbone_z = pb.bone.bbone_z
                         opp_pb.custom_shape_scale_xyz = pb.custom_shape_scale_xyz * Vector((-1, 1, 1))
