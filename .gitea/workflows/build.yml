@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 jobs:
   test:
-    runs-on: cloudrig-latest
+    runs-on: bpy-latest
     steps:
       # clone main repo
       - name: Clone repository
