@@ -138,10 +138,15 @@ class CloudRigUIEditOpMixin:
 
         # Help initialize BoneCollection visibility toggles.
         if isinstance(prop_owner, BoneCollection):
-            if self.prop_name == "":
+            if self.prop_name == "" or self.prop_name not in prop_owner and not hasattr(prop_owner, self.prop_name):
                 self.prop_name = "is_visible"
+
             if self.slider_name == "":
                 self.slider_name = prop_owner.name
+
+        if isinstance(prop_owner, PoseBone):
+            if self.prop_name == "" or self.prop_name not in prop_owner and not hasattr(prop_owner, self.prop_name):
+                self.prop_name = ""
 
     def update_parent_selector(self, context):
         parent_option = context.scene.cloudrig_property_parent_selector.get(
@@ -278,12 +283,12 @@ class CloudRigUIEditOpMixin:
     icon_true: StringProperty(
         name="True Icon",
         default='CHECKBOX_HLT',
-        description="Property icon when value is True",
+        description="Optional: Property icon when value is True",
     )
     icon_false: StringProperty(
         name="False Icon",
         default='CHECKBOX_DEHLT',
-        description="Property icon when value is False",
+        description="Optional: Property icon when value is False",
     )
     use_expand_enum: BoolProperty(
         name="Expand Enum",
@@ -501,10 +506,8 @@ class CloudRigUIEditOpMixin:
                 )
         elif hasattr(prop_owner, brackets_prop_name):
             prop_box.prop(prop_owner, brackets_prop_name)
-        elif type(prop_owner) in {ID, PoseBone, Bone}:
-            prop_box.label(
-                text="Property will be created with a value of 1.0.", icon='CHECKMARK'
-            )
+        elif supports_custom_props(prop_owner) and self.use_manual_prop_name:
+            prop_box.label(text="Property will be created with a value of 1.0.", icon='CHECKMARK')
         else:
             row = prop_box.row()
             row.alert = True
