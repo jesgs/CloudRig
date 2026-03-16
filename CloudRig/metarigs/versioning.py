@@ -146,7 +146,9 @@ def version_cloud_metarig(metarig):
         # The conversion is easy enough to do.
         for pbone in metarig.pose.bones:
             comp = pbone.cloudrig_component.inherited_component
-            if comp and comp.component_type == 'Bone Copy':
+            if comp and comp.component_type in ('Bone Copy', 'Bone Tweak', 'Raw Copy'):
+                continue
+            if comp.component_class.__name__ == 'Component_RawCopy':
                 continue
             old_scale = pbone.bone.bbone_x * 10
             length = pbone.bone.length
