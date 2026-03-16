@@ -328,10 +328,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         current_metarig_version = get_addon_prefs(context).cloud_metarig_version
         if self.params.metarig_version > current_metarig_version:
             self.logger.log(
-                "Outdated CloudRig",
-                description="This metarig was generated with a newer version of CloudRig.\nYou should update CloudRig in Edit->Preferences->Get Extensions.",
+                rpt_("Outdated CloudRig"),
+                description=rpt_("This metarig was generated with a newer version of CloudRig.\nYou should update CloudRig in Edit->Preferences->Get Extensions."),
                 operator='object.cloudrig_dismiss_warning',
-                op_text='Dismiss Warning',
+                op_text=rpt_('Dismiss Warning'),
             )
         else:
             self.params.metarig_version = current_metarig_version
@@ -505,13 +505,13 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
             if not comp_instance:
                 self.logger.log(
-                    "Invalid Component Type",
+                    rpt_("Invalid Component Type"),
                     note=pb.cloudrig_component.component_type,
                     base_bone_name=pb.name,
-                    description="This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type.",
+                    description=rpt_("This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type."),
                     operator='pose.cloudrig_assign_component_type',
                     op_kwargs={'bone_name': pb.name, 'remove_active_log': True},
-                    op_text="Assign Component",
+                    op_text=rpt_("Assign Component"),
                 )
                 continue
             comp_map[pb.name] = comp_instance
@@ -522,7 +522,13 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if root_name in metarig.data.bones:
             bone = metarig.data.bones[root_name]
             if bone.parent:
-                self.logger.log("Root Bone has a parent!", base_bone_name=bone.parent.name, description="If you've added an additional root parent, make sure to set that as the Root Bone under the Generation panel")
+                self.logger.log(
+                    rpt_("Root Bone has a parent!"),
+                    base_bone_name=bone.parent.name,
+                    description=rpt_(
+                        "If you've added an additional root parent, make sure to set " \
+                        "that as the Root Bone under the Generation panel"),
+                )
             return metarig.pose.bones[root_name]
 
         bpy.ops.object.mode_set(mode='EDIT')
@@ -675,10 +681,10 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             if not pose_bone:
                 # TODO: This should never happen. Should probably be treated as a bug.
                 self.logger.log(
-                    "Bone creation failed",
+                    rpt_("Bone creation failed"),
                     base_bone_name=bone_info.owner_component.base_bone_name,
                     trouble_bone=bone_info.name,
-                    description=f'BoneInfo "{bone_info.name}" was not created for some reason.',
+                    description=rpt_('BoneInfo "{bone}" was not created for some reason.').format(bone=bone_info.name),
                 )
                 continue
 
@@ -701,8 +707,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             script.as_module()
         except Exception as exc:
             self.logger.log_fatal_error(
-                "Post-Generation Script failed.",
-                description=f'Execution of post-generation script in text datablock "{script.name}" failed, see stack trace below.',
+                rpt_("Post-Generation Script failed."),
+                description=rpt_('Execution of post-generation script in text datablock "{script}" failed, see stack trace below.').format(script=script.name),
                 note=str(exc),
                 display_stack_trace='ALWAYS',
             )
@@ -1231,12 +1237,12 @@ class CLOUDRIG_OT_generate(Operator):
                 # Any other exception type is a bug.
                 # We give the user a button to report the error.
                 generator.logger.log_fatal_error(
-                    "Generation Failed!",
-                    description="Generation failed unexpectedly.",
+                    rpt_("Generation Failed!"),
+                    description=rpt_("Generation failed unexpectedly."),
                     note=str(exception),
                     operator=operator,
                     op_kwargs=op_kwargs,
-                    op_text="Report Bug",
+                    op_text=rpt_("Report Bug"),
                     op_icon='URL',
                     display_stack_trace='ALWAYS',
                 )

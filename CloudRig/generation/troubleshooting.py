@@ -299,7 +299,7 @@ class CloudLogManager:
         if wipe_log:
             self.clear()
         entry = self.log(
-            "(Fatal) " + description_short,
+            rpt_("(Fatal) ") + description_short,
             description=description or description_short,
             **kwargs,
         )
@@ -1060,7 +1060,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         new_obj = bpy.data.objects.get((self.new_name, None))
 
         if not old_obj and new_obj:
-            self.report({'ERROR'}, 'One of "{old}" or "{new}" were not found.'.format(a=self.old_name, b=self.new_name))
+            self.report({'ERROR'}, 'One of "{old}" or "{new}" were not found.'.format())
             return {'CANCELLED'}
 
         rigs = [metarig]
