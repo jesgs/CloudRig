@@ -94,16 +94,20 @@ class CloudRigPanel:
     func_name: str
     is_advanced: bool = False
 
-    @classmethod
-    def poll(cls, context):
+    def poll(self, context):
+        comp = get_component_in_ui(context)
+        component_class = comp.component_class
+        if hasattr(component_class, 'poll_'+self.func_name):
+            poll_func = getattr(component_class, 'poll_'+self.func_name)
+            if poll_func:
+                return poll_func(context, comp)
         return True
 
     def draw_header(self, context, layout):
         pass
 
 class AnimPanel(CloudRigPanel):
-    @classmethod
-    def poll(cls, context):
+    def poll(self, context):
         return context.object.cloudrig.generator.generate_test_action
 
     def draw_header(self, context, layout):
@@ -112,18 +116,8 @@ class AnimPanel(CloudRigPanel):
         layout.use_property_split = False
         layout.prop(params.fk_chain, 'test_animation_generate', text="")
 
-class CustomPropPanel(CloudRigPanel):
-    @classmethod
-    def poll(cls, context):
-        if not super().poll(context):
-            return False
-        comp = get_component_in_ui(context)
-        component_class = comp.component_class
-        return component_class.base__is_using_custom_props(context, comp.params)
-
 class BoneSetPanel(CloudRigPanel):
-    @classmethod
-    def poll(cls, context):
+    def poll(self, context):
         if not super().poll(context):
             return False
 
@@ -150,7 +144,7 @@ PANEL_DATAS = OrderedDict(
         AnimPanel("Test Animation", "draw_anim_params"),
         CloudRigPanel("Bendy Bones", "draw_bendy_params"),
         CloudRigPanel("Appearance", "draw_appearance_params"),
-        CustomPropPanel("Custom Properties", "draw_custom_prop_params", True),
+        CloudRigPanel("Custom Properties", "draw_custom_prop_params", True),
         BoneSetPanel("Bone Organization", "draw_bone_set_params", True),
     ]
 )
@@ -176,7 +170,7 @@ def draw_params_subpanel_single(context, rig_component, layout, panel_name: str)
     poll_func_name = "poll_"+panel_data.func_name
     if (
         hasattr(comp_class, poll_func_name) and
-        not getattr(comp_class, poll_func_name)(context, rig_component.params)
+        not getattr(comp_class, poll_func_name)(context, rig_component)
     ):
         return
     header, panel = layout.panel(f"CloudRig {panel_data.ui_name}", default_closed=True)

@@ -413,7 +413,7 @@ class RigComponent(PropertyGroup):
             # If assignment actually changed, let new component set some soft-defaults.
             comp_class = comp_info.component_class
             if comp_class:
-                comp_class.set_param_defaults(self.params)
+                comp_class.set_param_defaults(self)
         return comp_info.module_name
     component_type: StringProperty(
         name="Component Type",

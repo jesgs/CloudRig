@@ -12,6 +12,8 @@ from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
 
+from ..bs_utils.properties import get_custom_prop_names
+from ..bs_utils.ui import aligned_label
 from .cloud_base import Component_Base
 
 
@@ -19,11 +21,6 @@ class Component_CopyBone(Component_Base):
     """Copy this bone to the Target Rig."""
 
     ui_name = "Single Control"
-    always_use_custom_props = True
-
-    forced_params = {
-        'custom_props.props_storage': 'CUSTOM',
-    }
 
     keep_original_bones_collections = True
     keep_original_bones_colors = False
@@ -117,8 +114,8 @@ class Component_CopyBone(Component_Base):
         )
         pivot.custom_shape_name = self.params.copy.shape_pivot.shape_name
         pivot.custom_shape_scale_xyz = Vector([max(boneinfo.custom_shape_scale_xyz)] * 3)
-        pivot.custom_shape_translation = (0, 0, 0)
-        pivot.custom_shape_rotation_euler = (0, 0, 0)
+        pivot.custom_shape_translation = Vector((0, 0, 0))
+        pivot.custom_shape_rotation_euler = Vector((0, 0, 0))
         pivot.collections = boneinfo.collections
         pivot.color_palette_base = boneinfo.color_palette_base
         pivot.color_palette_pose = boneinfo.color_palette_pose
@@ -171,6 +168,11 @@ class Component_CopyBone(Component_Base):
     # Parameters
 
     @classmethod
+    def set_param_defaults(cls, component):
+        component.params.custom_props.props_storage = 'CUSTOM'
+        component.params.custom_props.props_storage_bone = component.base_bone_name
+
+    @classmethod
     def draw_control_params(cls, layout, context, component):
         params = component.params
         cls.draw_prop(context, layout, params.copy, 'ensure_free')
@@ -178,15 +180,30 @@ class Component_CopyBone(Component_Base):
         cls.draw_prop(context, layout, params.copy, 'create_deform')
 
     @classmethod
-    def draw_custom_prop_params(cls, layout, context, component):
-        layout = super().draw_custom_prop_params(layout, context, component)
-        layout.separator()
+    def poll_draw_custom_prop_params(cls, context, component):
+        """Determine whether the custom property storage UI should be drawn or not."""
+        if super().poll_draw_custom_prop_params(context, component):
+            return True
 
-        params = component.params
-        cls.draw_prop(context, layout, params.copy, 'property_ui_subpanel')
-        row = layout.row()
-        row.enabled = bool(params.copy.property_ui_subpanel)
-        cls.draw_prop(context, row, params.copy, 'property_ui_label')
+        if list(get_custom_prop_names(component.owner_pose_bone)):
+            return True
+
+        return False
+
+    @classmethod
+    def draw_custom_prop_params(cls, layout, context, component):
+        if component.params.parenting.parent_switching:
+            aligned_label(layout, text="Parent Switch Property")
+            layout = super().draw_custom_prop_params(layout, context, component)
+            layout.separator()
+
+        if list(get_custom_prop_names(component.owner_pose_bone)):
+            aligned_label(layout, text="Bone's Own Properties")
+            params = component.params
+            cls.draw_prop(context, layout, params.copy, 'property_ui_subpanel')
+            row = layout.row()
+            row.enabled = bool(params.copy.property_ui_subpanel)
+            cls.draw_prop(context, row, params.copy, 'property_ui_label')
         return layout
 
     @classmethod

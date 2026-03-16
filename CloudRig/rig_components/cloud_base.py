@@ -277,7 +277,7 @@ class Component_Base(
                     setattr(component_prop, parts[0], forced_value)
 
     @classmethod
-    def set_param_defaults(cls, params):
+    def set_param_defaults(cls, component):
         pass
 
 

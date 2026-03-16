@@ -423,8 +423,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def set_param_defaults(cls, params):
-        params.chain.sharp = True
+    def set_param_defaults(cls, component):
+        component.params.chain.sharp = True
 
     @classmethod
     def draw_appearance_params(cls, layout, context, component):
@@ -488,9 +488,10 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         row.prop(params.fk_chain, "test_animation_axes", text="Z", toggle=True, index=2)
 
     @classmethod
-    def base__is_using_custom_props(cls, context, params):
-        if super().base__is_using_custom_props(context, params):
+    def poll_draw_custom_prop_params(cls, context, component):
+        if super().poll_draw_custom_prop_params(context, component):
             return True
+        params = component.params
 
         cloudrig = context.object.cloudrig.generator
         if params.fk_chain.hinge and params.fk_chain.root and cloudrig.ensure_root:

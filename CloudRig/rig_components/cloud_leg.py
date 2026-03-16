@@ -455,8 +455,8 @@ class Component_Limb_BipedLeg(Component_Limb):
         )
 
     @classmethod
-    def set_param_defaults(cls, params):
-        params.ik_chain.shape_ik_master.shape_name = 'Foot'
+    def set_param_defaults(cls, component):
+        component.params.ik_chain.shape_ik_master.shape_name = 'Foot'
 
     @classmethod
     def draw_control_params(cls, layout, context, component):

@@ -82,8 +82,9 @@ class CloudCustomPropertiesMixin:
         return prop_bone
 
     @classmethod
-    def base__is_using_custom_props(cls, context, params):
+    def poll_draw_custom_prop_params(cls, context, component):
         """Determine whether the custom property storage UI should be drawn or not."""
+        params = component.params
         if cls.always_use_custom_props:
             return True
         if params.parenting.parent_switching:
@@ -97,7 +98,12 @@ class CloudCustomPropertiesMixin:
         params = component.params
 
         cls.draw_prop(
-            context, layout, params.custom_props, 'props_storage', expand=True, text="Storage Bone"
+            context,
+            layout,
+            params.custom_props,
+            'props_storage',
+            expand=True,
+            text="Storage Bone",
         )
         if params.custom_props.props_storage == 'CUSTOM':
             if rig:
