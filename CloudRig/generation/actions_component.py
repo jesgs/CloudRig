@@ -273,8 +273,8 @@ class ActionConstraintComponent(LoggerMixin):
         # Generate ActionConstraintSide for active valid slots.
         # This has to happen incrementally, because later entries
         # in the side map rely on previous entries having already been created.
+        self.action_setup_side_map = {}
         if self.action_setups:
-            self.action_setup_side_map = {}
             valid_setups = [
                 act_setup for act_setup in self.action_setups
                 if act_setup.enabled and act_setup.action and act_setup.action_slot
@@ -310,8 +310,8 @@ class ActionConstraintComponent(LoggerMixin):
             if action_setup.is_corrective:
                 return max(
                     action_order(action_setup),
-                    action_order(action_setup.trigger_a) + 0.5,
-                    action_order(action_setup.trigger_b) + 0.5,
+                    action_order(action_setup.trigger_a) + 0.5 if action_setup.trigger_a else 0,
+                    action_order(action_setup.trigger_b) + 0.5 if action_setup.trigger_b else 0,
                 )
             else:
                 return action_order(action_setup)

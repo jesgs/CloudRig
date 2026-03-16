@@ -71,12 +71,7 @@ from .troubleshooting import CloudLogManager, CloudRigLogEntry
 
 
 class GeneratorProperties(PropertyGroup):
-    # RNA data used by the CloudRig Generator.
-    metarig_version: IntProperty(
-        name="Metarig Version",
-        description="Used for automatic versioning of metarigs",
-        default=0,
-    )
+    """RNA data used by the CloudRig Generator."""
 
     ########################################
     ### General params #####################
@@ -326,7 +321,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         metarig.data.name = self.metarig.name
         current_metarig_version = get_addon_prefs(context).cloud_metarig_version
-        if self.params.metarig_version > current_metarig_version:
+        if metarig.cloudrig.metarig_version > current_metarig_version:
             self.logger.log(
                 rpt_("Outdated CloudRig"),
                 description=rpt_("This metarig was generated with a newer version of CloudRig.\nYou should update CloudRig in Edit->Preferences->Get Extensions."),
@@ -334,7 +329,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 op_text=rpt_('Dismiss Warning'),
             )
         else:
-            self.params.metarig_version = current_metarig_version
+            metarig.cloudrig.metarig_version = current_metarig_version
         self.driver_map = map_pbones_to_drivers(self.metarig)
 
         # If the previous generation failed, delete the failed rig.
@@ -374,6 +369,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if self.params.action_setups:
             action_con_component = ActionConstraintComponent(self)
             for action_setup, action_side_map in action_con_component.action_setup_side_map.items():
+                if not action_side_map:
+                    continue
                 for side, action_setup_side in action_side_map.items():
                     action_setup_side.create_custom_property()
                     action_setup_side.rig_bones_and_shape_keys()

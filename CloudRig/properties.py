@@ -667,8 +667,11 @@ class Properties_CloudRig(PropertyGroup):
 
     def enabled_update_callback(self, context=None):
         if self.enabled:
-            self.id_data.cloudrig_prefs.collection_ui_type = 'CLOUDRIG'
-            self.id_data.cloudrig_prefs.active_collection_index *= 1
+            metarig = self.id_data
+            metarig.cloudrig_prefs.collection_ui_type = 'CLOUDRIG'
+            metarig.cloudrig_prefs.active_collection_index *= 1
+            if metarig.cloudrig.metarig_version == 0:
+                metarig.cloudrig.metarig_version = get_addon_prefs(context).cloud_metarig_version
         self.refresh_generator_data()
         self.active_component_update_callback()
 
@@ -682,7 +685,7 @@ class Properties_CloudRig(PropertyGroup):
     metarig_version: IntProperty(
         name="CloudRig MetaRig Version",
         description="For internal use only",
-        default=1,
+        default=0,
     )
 
     @property

@@ -1324,7 +1324,7 @@ class CLOUDRIG_OT_dismiss_version_warning(Operator):
     def execute(self, context):
         current = get_addon_prefs(context).cloud_metarig_version
         generator = context.object.cloudrig.generator
-        generator.metarig_version = current
+        context.object.cloudrig.metarig_version = current
         if generator.active_log.operator == 'object.cloudrig_dismiss_warning':
             generator.remove_active_log()
 
