@@ -47,11 +47,13 @@ def version_cloud_metarig(metarig):
     # The old value is not stored in the file at all if it was left as default, so
     # there's no way to guarantee correct versioning when changing the default value of a parameter.
     # So, make really damn sure that default values are correct when first implementing them!
-    metarig_version = get_addon_prefs().cloud_metarig_version
+    addon_metarig_version = get_addon_prefs().cloud_metarig_version
+    metarig_version = cloudrig.metarig_version
+    cloudrig.metarig_version = addon_metarig_version
     print(
-        f"CloudRig Versioning: {metarig.name} bumping version {cloudrig.metarig_version} -> {metarig_version}"
+        f"CloudRig Versioning: {metarig.name} bumping version {metarig_version} -> {addon_metarig_version}"
     )
-    if cloudrig.metarig_version < 3:
+    if metarig_version < 3:
         # Generated rigs used to keep the metarig data, which confuses some poll functions.
         if (
             'generation_date' in metarig.data
@@ -62,7 +64,7 @@ def version_cloud_metarig(metarig):
             metarig.property_unset('cloudrig')
             return
 
-    if cloudrig.metarig_version < 4:
+    if metarig_version < 4:
         # Action Slots were renamed to Action Set-ups, and now support Blender's Action Slots.
         def find_first_setup_using_action(action: bpy.types.Action) -> ActionConstraintSetup | None:
             if not action:
@@ -87,7 +89,7 @@ def version_cloud_metarig(metarig):
         if 'action_slots' in generator_properties:
             del generator_properties['action_slots']
 
-    if cloudrig.metarig_version < 5:
+    if metarig_version < 5:
         # Trigger the new set_transform callback in 5.0, which updates the underlying data
         # of the component_type property to be masked by the transform callbacks,
         # making it resilient to changing the UI names of components in the future.
@@ -95,7 +97,7 @@ def version_cloud_metarig(metarig):
             if pbone.cloudrig_component.component_type:
                 pbone.cloudrig_component.component_type = pbone.cloudrig_component.component_type
 
-    if cloudrig.metarig_version < 6:
+    if metarig_version < 6:
         # Rename widget params.
         widget_map = {
             "Root Simple" : "Root 2",
@@ -141,7 +143,7 @@ def version_cloud_metarig(metarig):
                         new_name = widget_map[param.name].replace("_", " ")
                         param.name = new_name
 
-    if cloudrig.metarig_version < 7:
+    if metarig_version < 7:
         # We moved from using BBone Scale as a way to control widget size, to using the metarig bones' custom_shape_scale_xyz instead.
         # The conversion is easy enough to do.
         for pbone in metarig.pose.bones:
@@ -157,7 +159,7 @@ def version_cloud_metarig(metarig):
             if comp and comp.component_type == 'Spine: Cartoon' and pbone == comp.component_pbone_chain[-1]:
                 pbone.custom_shape_scale_xyz.y = 1.1
 
-    if cloudrig.metarig_version < 8:
+    if metarig_version < 8:
         # We let Lattice components use custom shape scale to define the size of the lattice.
         # Previously, lattice size was defined by the bone's length.
         for pbone in metarig.pose.bones:
@@ -166,7 +168,7 @@ def version_cloud_metarig(metarig):
                 pbone.custom_shape_scale_xyz = Vector((1, 1, 1))
                 pbone.use_custom_shape_bone_size = True
 
-    if cloudrig.metarig_version < 9:
+    if metarig_version < 9:
         # We changed some bone shapes.
         rotated_shapes = {
             'WGT-Root': Euler((-pi/2, 0, 0)),
@@ -183,8 +185,7 @@ def version_cloud_metarig(metarig):
             if pbone.custom_shape and pbone.custom_shape.name in rotated_shapes:
                 pbone.custom_shape_rotation_euler.rotate(rotated_shapes[pbone.custom_shape.name])
 
-
-    if cloudrig.metarig_version < 10:
+    if metarig_version < 10:
         # New heel roll logic.
         for pbone in metarig.pose.bones:
             if pbone.cloudrig_component.component_type == 'Limb: Biped Leg':
@@ -203,13 +204,13 @@ def version_cloud_metarig(metarig):
                 ebone.tail = center-Vector((length/2, 0, 0)) * side
                 ebone.roll = 0
 
-    if cloudrig.metarig_version < 11:
+    if metarig_version < 11:
         # IK Stretch is now disabled by default.
         for pbone in metarig.pose.bones:
             if pbone.cloudrig_component.component_type in ('Chain: IK', 'Limb: Generic', 'Limb: Biped Leg'):
                 pbone.cloudrig_component.params.ik_chain.default_stretch = 1.0
 
-    if cloudrig.metarig_version < 12:
+    if metarig_version < 12:
         # 'World Aligned' params are now strictly aligned to Blender's exact
         # world axes, rather than the nearest axes of the bone's current transforms.
         # The old behaviour was moved to a new "flatten_controls" param,
@@ -237,7 +238,7 @@ def version_cloud_metarig(metarig):
                 params.flatten_controls = params.world_align
             params.world_align = False
 
-    if cloudrig.metarig_version < 13:
+    if metarig_version < 13:
         # Foot shape became customizable, but its default is inherited from the IK chain.
         # Uses new "soft-default" mechanism to switch to the Foot shape, but has to be done
         # retro-actively for pre-existing metarigs.
@@ -246,7 +247,7 @@ def version_cloud_metarig(metarig):
             if comp.component_type == 'Limb: Biped Leg':
                 comp.params.ik_chain.shape_ik_master.shape_name = "Foot"
 
-    if cloudrig.metarig_version < 14 and bpy.app.version < (5, 1, 0):
+    if metarig_version < 14 and bpy.app.version < (5, 1, 0):
         # Fix for #309, only needed in Blender 5.0.
         for action_setup in cloudrig.generator.action_setups:
             if not action_setup.is_corrective:
@@ -297,7 +298,6 @@ def update_all_metarigs(dummy=None):
             version_cloud_metarig(metarig)
             bpy.ops.object.mode_set(mode='OBJECT')
         visibility.restore(context)
-        metarig.cloudrig.metarig_version = metarig_version
 
 
 def register():
