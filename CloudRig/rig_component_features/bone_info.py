@@ -1025,6 +1025,21 @@ class ConstraintInfo(dict):
         self['target'] = value
 
     @property
+    def pole_target(self) -> Object | None:
+        """Pole target for IK constraints. Automatically remaps metarig to rig."""
+        pole_target = self.get('pole_target')
+        if pole_target is self.metarig:
+            self.pole_target = self.rig
+        return self.get('pole_target')
+
+    @pole_target.setter
+    def pole_target(self, value: Object):
+        if value == self.metarig:
+            # Setting the metarig as a pole target is not allowed!
+            value = self.rig
+        self['pole_target'] = value
+
+    @property
     def subtarget(self) -> str:
         if "@" not in self.name:
             return self.get('subtarget', "")
@@ -1216,6 +1231,8 @@ class ConstraintInfo(dict):
         order = [
             'target',
             'subtarget',
+            'pole_target',
+            'pole_subtarget',
             'target_space',
             'owner_space',
         ]
