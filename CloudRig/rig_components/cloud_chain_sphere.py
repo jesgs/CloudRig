@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import PointerProperty, StringProperty
 from bpy.types import Object, PropertyGroup
@@ -82,7 +83,10 @@ class Component_SphereChain(Component_ToonChain):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Sphere Controls', color_palette='THEME09')
+        cls.define_bone_set(
+            n_("Sphere Controls"),
+            color_palette='THEME09',
+        )
 
     @classmethod
     def draw_control_params(cls, layout, context, component):

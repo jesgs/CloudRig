@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..rig_component_features.bone_set import BoneInfo, BoneSet
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
@@ -237,7 +238,10 @@ class Component_CopyBone(Component_Base):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Pivot Control', color_palette='THEME02')
+        cls.define_bone_set(
+            n_("Pivot Control"),
+            color_palette='THEME02'
+        )
 
 class Params(PropertyGroup):
     create_deform: BoolProperty(

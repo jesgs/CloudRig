@@ -3,6 +3,7 @@
 import os
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import StringProperty
 from bpy.types import ID, Menu, Object, Operator
 from bpy_extras.id_map_utils import get_all_referenced_ids, get_id_reference_map
@@ -59,7 +60,7 @@ class CLOUDRIG_OT_sample_add(Operator):
 
 
 class CLOUDRIG_MT_metarigs(Menu):
-    bl_label = "CloudRig Metarigs"
+    bl_label = iface_("CloudRig Metarigs")
 
     def draw(self, context):
         global METARIG_NAMES
@@ -72,7 +73,7 @@ class CLOUDRIG_MT_metarigs(Menu):
 
 
 class CLOUDRIG_MT_rig_samples(Menu):
-    bl_label = "CloudRig Samples"
+    bl_label = iface_("CloudRig Samples")
 
     def draw(self, context):
         global SAMPLE_NAMES

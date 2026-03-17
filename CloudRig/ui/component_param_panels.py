@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from dataclasses import dataclass
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Panel
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -139,13 +140,13 @@ class BoneSetPanel(CloudRigPanel):
 PANEL_DATAS = OrderedDict(
     (data.ui_name, data) for data in
     [
-        CloudRigPanel("Parenting", "draw_parenting_params"),
-        CloudRigPanel("Controls", "draw_control_params"),
-        AnimPanel("Test Animation", "draw_anim_params"),
-        CloudRigPanel("Bendy Bones", "draw_bendy_params"),
-        CloudRigPanel("Appearance", "draw_appearance_params"),
-        CloudRigPanel("Custom Properties", "draw_custom_prop_params", True),
-        BoneSetPanel("Bone Organization", "draw_bone_set_params", True),
+        CloudRigPanel(iface_("Parenting"), "draw_parenting_params"),
+        CloudRigPanel(iface_("Controls"), "draw_control_params"),
+        AnimPanel(iface_("Test Animation"), "draw_anim_params"),
+        CloudRigPanel(iface_("Bendy Bones"), "draw_bendy_params"),
+        CloudRigPanel(iface_("Appearance"), "draw_appearance_params"),
+        CloudRigPanel(iface_("Custom Properties"), "draw_custom_prop_params", True),
+        BoneSetPanel(iface_("Bone Organization"), "draw_bone_set_params", True),
     ]
 )
 

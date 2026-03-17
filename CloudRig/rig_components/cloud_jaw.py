@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
 
@@ -208,7 +209,7 @@ class Component_Jaw(Component_CopyBone):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'Jaw Controls', color_palette='THEME12', collections=['Face Main']
+            n_("Jaw Controls"), color_palette='THEME12', collections=['Face Main']
         )
 
     @classmethod

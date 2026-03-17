@@ -360,7 +360,7 @@ class CloudParentingMixin:
             return
         parent_bone = rig.pose.bones.get(params.parenting.root_parent)
         is_parent_bendy = parent_bone and parent_bone.bone.bbone_segments > 1
-        text = "Root Parent (Bendy): " if is_parent_bendy else "Root Parent: "
+        text = iface_("Root Parent (Bendy): ") if is_parent_bendy else iface_("Root Parent: ")
 
         row = layout.row(align=True)
         cls.draw_prop_search(

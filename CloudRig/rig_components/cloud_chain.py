@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, FloatProperty, IntProperty
 from bpy.types import PropertyGroup
@@ -817,16 +818,28 @@ class Component_ToonChain(Component_Base):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Stretch Controls', color_palette='THEME09')
-        cls.define_bone_set('Deform Controls', color_palette='THEME09')
         cls.define_bone_set(
-            'Deform Helpers', collections=['Mechanism Bones'], is_advanced=True
+            n_("Stretch Controls"),
+            color_palette='THEME09'
         )
         cls.define_bone_set(
-            'Stretch Helpers', collections=['Mechanism Bones'], is_advanced=True
+            n_("Deform Controls"),
+            color_palette='THEME09',
         )
         cls.define_bone_set(
-            'Shape Key Helpers', collections=['Mechanism Bones'], is_advanced=True
+            n_("Deform Helpers"),
+            collections=['Mechanism Bones'],
+            is_advanced=True,
+        )
+        cls.define_bone_set(
+            n_("Stretch Helpers"),
+            collections=['Mechanism Bones'],
+            is_advanced=True,
+        )
+        cls.define_bone_set(
+            n_("Shape Key Helpers"),
+            collections=['Mechanism Bones'],
+            is_advanced=True,
         )
 
     @classmethod

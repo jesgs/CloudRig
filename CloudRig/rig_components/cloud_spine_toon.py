@@ -2,6 +2,7 @@
 
 from math import pi
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, FloatProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -281,19 +282,19 @@ class Component_Spine_Toon(Component_Chain_FK):
     def define_bone_sets(cls):
         super().define_bone_sets()
         cls.define_bone_set(
-            "Toon Spine IK",
+            n_("Toon Spine IK"),
             color_palette="THEME13",
             collections=["IK Controls"],
             wire_width=2.0,
         )
         cls.define_bone_set(
-            "Toon Spine IK Secondary",
+            n_("Toon Spine IK Secondary"),
             color_palette="THEME12",
             collections=["IK Secondary"],
             wire_width=1.0,
         )
         cls.define_bone_set(
-            "Toon Spine Mechanism",
+            n_("Toon Spine Mechanism"),
             collections=["Mechanism Bones"],
             is_advanced=True
         )

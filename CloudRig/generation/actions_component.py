@@ -150,9 +150,9 @@ class ActionConstraintSide(LoggerMixin):
     def rig_bone(self, bone_name):
         if bone_name not in self.generator.target_rig.pose.bones:
             self.generator.logger.log(
-                "Action constraint failed",
+                rpt_("Action constraint failed"),
                 trouble_bone=bone_name,
-                description=f'Bone "{bone_name}" was not found, so it cannot get an Action constraint for `{self.action_setup.action.name}`.',
+                description=rpt_('Bone "{bone}" was not found, so it cannot get an Action constraint for `{action}`.').format(bone=bone_name, action=self.action_setup.action.name),
             )
             return
 

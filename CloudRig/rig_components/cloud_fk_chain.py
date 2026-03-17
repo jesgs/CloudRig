@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
@@ -397,19 +398,21 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            "FK Controls",
+            n_("FK Controls"),
             color_palette="THEME02",
             collections=["FK Controls"],
             wire_width=1.5,
         )
         cls.define_bone_set(
-            "FK Curl Control",
+            n_("FK Curl Control"),
             color_palette="THEME07",
             collections=["FK Controls"],
             wire_width=2.0,
         )
         cls.define_bone_set(
-            "FK Controls Extra", color_palette="THEME02", collections=["FK Secondary"]
+            n_("FK Controls Extra"),
+            color_palette="THEME02",
+            collections=["FK Secondary"],
         )
 
     @classmethod

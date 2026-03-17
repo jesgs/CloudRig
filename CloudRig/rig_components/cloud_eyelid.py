@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 
 from ..utils.maths import project_vector_on_plane
@@ -125,7 +126,7 @@ class Component_Eyelid(Component_FaceChain):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'Eyelid Mechanism', collections=['Mechanism Bones'], is_advanced=True
+            n_("Eyelid Mechanism"), collections=['Mechanism Bones'], is_advanced=True
         )
 
 

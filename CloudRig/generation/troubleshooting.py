@@ -543,7 +543,7 @@ class CloudLogManager:
                 )
             if wrong_curves:
                 self.log(
-                    "Action affects rest pose",
+                    rpt_("Action affects rest pose"),
                     note=action_setup.action.name,
                     icon='ACTION',
                     description=rpt_('Action slot "{action}" has {num_curves} curves that are ' \

@@ -2,6 +2,7 @@
 
 from math import radians
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Action, ActionSlot, PropertyGroup
@@ -611,19 +612,19 @@ class Component_Chain_IKFK(Component_Chain_FK):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            "IK Controls",
+            n_("IK Controls"),
             color_palette="THEME13",
             collections=["IK Controls"],
             wire_width=2.0,
         )
         cls.define_bone_set(
-            "IK Controls Secondary",
+            n_("IK Controls Secondary"),
             color_palette="THEME13",
             collections=["IK Secondary"],
             wire_width=1.0,
         )
         cls.define_bone_set(
-            "IK Mechanism",
+            n_("IK Mechanism"),
             collections=["Mechanism Bones"],
             is_advanced=True,
         )

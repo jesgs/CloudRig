@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
 from bpy.types import Object, PropertyGroup
@@ -263,7 +264,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'Curve FK Controls',
+            n_("Curve FK Controls"),
             color_palette='THEME02',
             wire_width=1.5,
         )

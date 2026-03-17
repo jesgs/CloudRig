@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
 
@@ -165,13 +166,13 @@ class Component_FaceChain(Component_ToonChain):
         # STR bones who then had a merged control created for them will be assigned
         # the bone group and layer of this BoneSet.
         cls.define_bone_set(
-            'Sub Controls',
+            n_("Sub Controls"),
             color_palette='THEME02',
             collections=['Mechanism Bones'],
             is_advanced=True,
         )
         cls.define_bone_set(
-            'Intersection Controls',
+            n_("Intersection Controls"),
             color_palette='THEME09',
             collections=['Stretch Controls'],
             wire_width=1.5,

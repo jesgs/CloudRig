@@ -3,6 +3,7 @@
 from copy import deepcopy
 from math import pow
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
@@ -465,7 +466,7 @@ class Component_Limb(Component_Chain_IKFK):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'IK Child Controls', color_palette='THEME09', collections=['IK Secondary'], wire_width=1.5,
+            n_("IK Child Controls"), color_palette='THEME09', collections=['IK Secondary'], wire_width=1.5,
         )
 
     @classmethod

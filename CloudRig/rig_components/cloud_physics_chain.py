@@ -4,6 +4,7 @@ from math import sqrt
 
 import bmesh
 import bpy
+from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, PointerProperty
 from bpy.types import Object, PropertyGroup
 
@@ -211,7 +212,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'Physics Bones', color_palette='THEME04', collections=['Physics Bones']
+            n_("Physics Bones"), color_palette='THEME04', collections=['Physics Bones']
         )
 
     @classmethod

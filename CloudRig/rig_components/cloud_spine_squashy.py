@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_n as n_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -28,7 +30,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         if not self.bone_count > 1:
             self.raise_generation_error(
-                "Component must consist of a chain of at least 2 connected bones!"
+                rpt_("Component must consist of a chain of at least 2 connected bones!")
             )
 
         self.squashy_name = "squashy_spine_" + self.base_name.lower()
@@ -225,19 +227,19 @@ class Component_Spine_Squashy(Component_Chain_FK):
         super().define_bone_sets()
         """Create parameters for this rig's bone sets."""
         cls.define_bone_set(
-            'Spine Main Controls',
+            n_("Spine Main Controls"),
             color_palette='THEME12',
             collections=['IK Controls'],
             wire_width=2.0,
         )
         cls.define_bone_set(
-            'Spine Parent Controls',
+            n_("Spine Parent Controls"),
             color_palette='THEME09',
             collections=['IK Controls'],
             wire_width=2.0,
         )
         cls.define_bone_set(
-            'Spine Mechanism',
+            n_("Spine Mechanism"),
             collections=['Mechanism Bones'],
             is_advanced=True,
         )

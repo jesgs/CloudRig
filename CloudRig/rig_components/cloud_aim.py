@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -329,19 +330,19 @@ class Component_Aim(Component_Base):
     def define_bone_sets(cls):
         super().define_bone_sets()
         cls.define_bone_set(
-            "Aim Group Target Control",
+            n_("Aim Group Target Control"),
             collections=['Face Main'],
             color_palette='THEME02',
             wire_width=3,
         )
         cls.define_bone_set(
-            "Aim Target Control", collections=['Face Main'], color_palette='THEME12', wire_width=1.5
+            n_("Aim Target Control"), collections=['Face Main'], color_palette='THEME12', wire_width=1.5
         )
         cls.define_bone_set(
-            "Aim Root Control", collections=['Face Secondary'], color_palette='THEME12'
+            n_("Aim Root Control"), collections=['Face Secondary'], color_palette='THEME12'
         )
         cls.define_bone_set(
-            "Aim Deform", collections=['Deform Bones'], is_advanced=True
+            n_("Aim Deform"), collections=['Deform Bones'], is_advanced=True
         )
 
     @classmethod

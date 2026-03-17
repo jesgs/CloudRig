@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 
 if TYPE_CHECKING:
@@ -297,9 +298,21 @@ class Component_Base(
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Deform Bones', is_advanced=True, defaults={'display_type': 'BBONE'})
-        cls.define_bone_set('Mechanism Bones', is_advanced=True, defaults={'display_type': 'STICK'})
-        cls.define_bone_set('Original Bones', is_advanced=True, wire_width=0.5)
+        cls.define_bone_set(
+            n_("Deform Bones"),
+            is_advanced=True,
+            defaults={'display_type': 'BBONE'},
+        )
+        cls.define_bone_set(
+            n_("Mechanism Bones"),
+            is_advanced=True,
+            defaults={'display_type': 'STICK'},
+        )
+        cls.define_bone_set(
+            n_("Original Bones"),
+            is_advanced=True,
+            wire_width=0.5,
+        )
 
 
     @classmethod

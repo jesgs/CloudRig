@@ -3,6 +3,7 @@
 from math import pi
 from math import radians as rad
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
@@ -448,7 +449,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            'Foot Reverse IK Controls',
+            n_("Foot Reverse IK Controls"),
             color_palette='THEME12',
             collections=['IK Secondary'],
             wire_width=1.5,

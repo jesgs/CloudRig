@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, PointerProperty
 from bpy.types import Object, PropertyGroup
@@ -160,7 +161,7 @@ class Component_Lattice(Component_Base):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set('Lattice Controls', color_palette='THEME12', wire_width=2.0)
+        cls.define_bone_set(n_("Lattice Controls"), color_palette='THEME12', wire_width=2.0)
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
