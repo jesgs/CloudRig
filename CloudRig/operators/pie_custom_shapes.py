@@ -43,7 +43,7 @@ class POSE_OT_unassign_custom_shape(Operator):
                 counter += 1
                 pb.custom_shape = None
 
-        self.report({'INFO'}, f"Bone shapes unassigned: {counter}.")
+        self.report({'INFO'}, "Bone shapes unassigned: {num_bones}.".format(num_bones=counter))
 
         return {'FINISHED'}
 
@@ -98,7 +98,7 @@ class POSE_OT_assign_selected_custom_shape(Operator):
                 pb.custom_shape = widget
                 counter += 1
 
-        self.report({'INFO'}, f"Shapes assigned to bones: {counter}.")
+        self.report({'INFO'}, "Shapes assigned to bones: {num_bones}.".format(num_bones=counter))
 
         return {'FINISHED'}
 
@@ -168,7 +168,7 @@ class POSE_OT_copy_custom_shape_to_selected_bones(Operator):
             pb.bone.show_wire = active_pb.bone.show_wire
             pb.custom_shape_wire_width = active_pb.custom_shape_wire_width
 
-        self.report({'INFO'}, f"Copied shape to bones: {i}.")
+        self.report({'INFO'}, "Copied shape to bones: {num_bones}.".format(num_bones=i))
 
         return {'FINISHED'}
 
@@ -391,7 +391,7 @@ class POSE_OT_assign_selected_object_as_custom_shape(Operator):
                 pb.custom_shape = shape
                 counter += 1
 
-        self.report({'INFO'}, f"{shape.name} assigned to bones: {counter}.")
+        self.report({'INFO'}, "{object} assigned to bones: {num_bones}.".format(object=shape.name, num_bones=counter))
         return {'FINISHED'}
 
 

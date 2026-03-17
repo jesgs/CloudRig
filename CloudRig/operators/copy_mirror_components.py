@@ -44,8 +44,9 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
             if to_pbone != from_pbone and to_pbone.select:
                 self.report(
                     {'ERROR'},
-                    f"Bone {from_pbone.name} selected on both sides, mirroring would be ambiguous, "
-                    f"aborting. Only select the left or right side, not both!",
+                    "Bone {bone} selected on both sides, mirroring would be ambiguous, "
+                    "aborting. Only select the left or right side, not both!"
+                    .format(bone=from_pbone.name),
                 )
                 return {'CANCELLED'}
 
@@ -59,7 +60,7 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
             copy_property_group(from_pbone.cloudrig_component, to_pbone.cloudrig_component, x_mirror=True)
             num_mirrored += 1
 
-        self.report({'INFO'}, f"Mirrored parameters of {num_mirrored} bones.")
+        self.report({'INFO'}, "Mirrored parameters of {num_mirrored} bones.".format(num_mirrored=num_mirrored))
 
         return {'FINISHED'}
 
@@ -106,7 +107,8 @@ class POSE_OT_cloudrig_copy_component(Operator):
 
         self.report(
             {'INFO'},
-            f"Copied {from_bone.cloudrig_component.component_type} parameters to {num_copied} bones.",
+            "Copied {component_type} parameters to {num_copied} bones."
+            .format(component_type=from_bone.cloudrig_component.component_type, num_copied=num_copied),
         )
 
         return {'FINISHED'}

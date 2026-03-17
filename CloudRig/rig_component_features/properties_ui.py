@@ -655,13 +655,19 @@ class CloudRigUIEditOpMixin:
                 if ret:
                     return ret
             self.report(
-                {'INFO'}, f"Added {len(owner.keys())} properties to the rig UI."
+                {'INFO'},
+                "Added {num_props} properties to the rig UI."
+                .format(num_props=len(owner.keys()))
             )
         else:
             ret = self.execute_add_property(context)
             if ret:
                 return ret
-            self.report({'INFO'}, f"Added property {self.slider_name} to the rig UI.")
+            self.report(
+                {'INFO'},
+                "Added property {prop_name} to the rig UI."
+                .format(prop_name=self.slider_name)
+            )
 
         redraw_viewport()
         return {'FINISHED'}

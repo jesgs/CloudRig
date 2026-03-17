@@ -470,7 +470,7 @@ class CloudLogManager:
                     rpt_("Action has no transform range"),
                     note=action_setup.action.name,
                     icon='ACTION',
-                    description=rpt_('Action Setup "{action_setup}" has no transformation range. ' \
+                    description=rpt_('Action Setup "{action_setup}" has no transformation range. '
                                 'This will cause the action to always be in the same state!')
                                 .format(action_setup=action_setup.name),
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
@@ -770,7 +770,7 @@ def draw_log_panel(context, layout):
     logs = generator.logs
     count = len(logs)
     icon = 'CHECKMARK' if count == 0 else 'ERROR'
-    text = iface_("Log: 1 Issue") if count == 1 else iface_("Log: {count} Issues".format(count=count))
+    text = iface_("Log: 1 Issue") if count == 1 else iface_("Log: {count} Issues").format(count=count)
     header.label(text=text, icon=icon)
 
     if not panel:
@@ -1144,7 +1144,7 @@ class CLOUDRIG_OT_Unlink_Widget(Operator):
             if obj in set(coll.objects):
                 coll.objects.unlink(obj)
 
-        self.report({'INFO'}, f"Unlinked Custom Shape: {self.ob_name}")
+        self.report({'INFO'}, "Unlinked Custom Shape: {object}".format(object=self.ob_name))
         return {'FINISHED'}
 
 
@@ -1273,7 +1273,7 @@ class CLOUDRIG_OT_edit_bone_transform(Operator):
         ebone = metarig.data.edit_bones.get(self.bone_name)
         if not ebone:
             metarig.cloudrig.generator.remove_active_log()
-            self.report({'ERROR'}, f"Bone not found: {self.bone_name}")
+            self.report({'ERROR'}, "Bone not found: {bone}".format(bone=self.bone_name))
             return {'CANCELLED'}
 
         vectors = [ebone.head]
@@ -1288,7 +1288,7 @@ class CLOUDRIG_OT_edit_bone_transform(Operator):
         bpy.ops.object.mode_set(mode=org_mode)
 
         metarig.cloudrig.generator.remove_active_log()
-        self.report({'INFO'}, f"Tweaked rest pose of {self.bone_name}.")
+        self.report({'INFO'}, "Tweaked rest pose of {bone}.".format(bone=self.bone_name))
         return {'FINISHED'}
 
 
@@ -1304,13 +1304,13 @@ class CLOUDRIG_OT_link_obj_to_scene(Operator):
     def execute(self, context):
         obj = bpy.data.objects.get(self.ob_name)
         if not obj:
-            self.report({'ERROR'}, f"Couldn't find {self.ob_name}.")
+            self.report({'ERROR'}, "Couldn't find {object}.".format(object=self.ob_name))
         else:
             context.scene.collection.objects.link(obj)
 
         metarig = context.object
         metarig.cloudrig.generator.remove_active_log()
-        self.report({'INFO'}, f"Linked {obj.name} to {context.scene.name}.")
+        self.report({'INFO'}, "Linked {object} to {scene}.".format(object=obj.name, scene=context.scene.name))
         return {'FINISHED'}
 
 
@@ -1359,7 +1359,7 @@ class CLOUDRIG_OT_reparent_metarig_children(Operator):
 
         metarig.cloudrig.generator.remove_active_log()
 
-        self.report({'INFO'}, f"Parented {count} objects to generated rig.")
+        self.report({'INFO'}, "Parented {count} objects to generated rig.".format(count=count))
         return {'FINISHED'}
 
 

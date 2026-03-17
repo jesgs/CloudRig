@@ -493,7 +493,7 @@ class BoneInfo:
     def length(self) -> float:
         lgt = (self.tail - self.head).length
         if lgt <= 0:
-            raise ValueError(rpt_("Length of bone must not be 0: {bone}, {head}, {tail}".format(bone=self.name, head=self.head, tail=self.tail)))
+            raise ValueError(rpt_("Length of bone must not be 0: {bone}, {head}, {tail}").format(bone=self.name, head=self.head, tail=self.tail))
         return lgt
 
     @length.setter

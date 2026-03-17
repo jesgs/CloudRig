@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from bpy.app.translations import pgettext_n as n_
+from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty, FloatProperty, StringProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -206,7 +207,8 @@ class Component_Aim(Component_Base):
 
                 custom_prop_settings={
                     'default': 1.0,
-                    'description': f'Makes "{highlight_ctr.name}" follow "{ctr_bone.name}"',
+                    'description': tip_('Makes "{child}" follow "{parent}"')
+                    .format(child=highlight_ctr.name, parent=ctr_bone.name),
                 },
                 operator="pose.cloudrig_snap_bake",
                 op_icon="FILE_REFRESH",

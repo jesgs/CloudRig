@@ -5,6 +5,7 @@ from math import pow
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
 
@@ -234,7 +235,8 @@ class Component_Limb(Component_Chain_IKFK):
                 panel_name="Auto Rubber Hose",
                 custom_prop_settings={
                     'default': 0.0,
-                    'description': 'Automatically smoothen the curvature of the limb and avoid sharp angles, for a cartoony effect',
+                    'description': tip_("Automatically smoothen the curvature of the limb "
+                    "and avoid sharp angles, for a cartoony effect"),
                 },
                 row_name=self.base_name,
                 slider_name=self.limb_ui_name,

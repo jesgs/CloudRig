@@ -4,6 +4,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import Panel
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -64,7 +65,7 @@ def draw_rig_component_panel(context, layout):
     )
     if rig_component.component_type == 'Spine: Squashy':
         # TODO 5.1: Remove Spine: Cartoon.
-        aligned_label(layout, text="DEPRECATED! Please use Spine: Cartoon!", alert=True, icon='ERROR')
+        aligned_label(layout, text=rpt_("DEPRECATED! Please use Spine: Cartoon!"), alert=True, icon='ERROR')
     if rig_component.component_type in ("", "Raw Copy") or row.alert:
         return
 

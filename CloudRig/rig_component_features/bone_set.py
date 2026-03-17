@@ -3,6 +3,7 @@
 from collections import OrderedDict
 
 from bl_ui.generic_ui_list import draw_ui_list
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import (
     Operator,
@@ -441,7 +442,11 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
         bone_set = component.active_bone_set
         bone_set.collections.add()
         bone_set.collections_active_index = len(bone_set.collections)-1
-        self.report({'INFO'}, f"Added collection slot to {bone_set.ui_name}.")
+        self.report(
+            {'INFO'},
+            "Added collection slot to {bone_set}."
+            .format(bone_set=iface_(bone_set.ui_name))
+        )
         return {'FINISHED'}
 
 
@@ -473,7 +478,9 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
         bone_set.collections.remove(bone_set.collections_active_index)
         self.report(
             {'INFO'},
-            f"{bone_set.ui_name} will not be assigned to '{coll_name}' collection.",
+            "{bone_set} will not be assigned to '{collection}' collection."
+            .format(bone_set=iface_(bone_set.ui_name), collection=coll_name)
+            ,
         )
         bone_set.collections_active_index -= 1
         return {'FINISHED'}
@@ -491,7 +498,8 @@ class CLOUDRIG_OT_bone_set_collection_reset(Operator):
         component.reset_collections_of_bone_set(component.active_bone_set)
         self.report(
             {'INFO'},
-            f"{component.active_bone_set.ui_name} collection assignments reset to default.",
+            "{bone_set} collection assignments reset to default."
+            .format(bone_set=iface_(component.active_bone_set.ui_name)),
         )
         bone_set = component.active_bone_set
         if bone_set:

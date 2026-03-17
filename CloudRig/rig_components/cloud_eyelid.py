@@ -2,6 +2,7 @@
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.app.translations import pgettext_tip as tip_
 
 from ..utils.maths import project_vector_on_plane
 from .cloud_aim import Component_Aim
@@ -114,7 +115,7 @@ class Component_Eyelid(Component_FaceChain):
             slider_name=self.parent_component.bones_org[0].name,
             custom_prop_settings={
                 'default': 0.1,
-                'description': 'How much the eyelids should follow the movements of the eyeball',
+                'description': tip_('How much the eyelids should follow the movements of the eyeball'),
             },
         )
 

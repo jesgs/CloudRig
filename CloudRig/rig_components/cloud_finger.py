@@ -2,6 +2,8 @@
 
 from math import radians
 
+from bpy.app.translations import pgettext_tip as tip_
+
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_ik_chain import Component_Chain_IKFK
@@ -205,7 +207,7 @@ class Component_Finger(Component_Chain_IKFK):
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 'default': 1.0,
-                'description': 'When enabled, the last bone in the chain is also considered part of the IK chain',
+                'description': tip_('When enabled, the last bone in the chain is also considered part of the IK chain'),
             },
         )
 

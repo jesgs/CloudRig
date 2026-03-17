@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 from math import pi
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
@@ -326,7 +327,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 rpt_("Outdated CloudRig"),
                 description=rpt_("This metarig was generated with a newer version of CloudRig.\nYou should update CloudRig in Edit->Preferences->Get Extensions."),
                 operator='object.cloudrig_dismiss_warning',
-                op_text=rpt_('Dismiss Warning'),
+                op_text=iface_('Dismiss Warning'),
             )
         else:
             metarig.cloudrig.metarig_version = current_metarig_version
@@ -508,7 +509,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                     description=rpt_("This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type."),
                     operator='pose.cloudrig_assign_component_type',
                     op_kwargs={'bone_name': pb.name, 'remove_active_log': True},
-                    op_text=rpt_("Assign Component"),
+                    op_text=iface_("Assign Component"),
                 )
                 continue
             comp_map[pb.name] = comp_instance
@@ -1095,7 +1096,8 @@ class CLOUDRIG_OT_generate(Operator):
         if prev_generated_rig and prev_generated_rig not in set(context.view_layer.objects):
             self.report(
                 {'ERROR'},
-                f"Target rig '{prev_generated_rig.name}' cannot be re-generated because it is not in the current view layer.",
+                "Target rig '{rig}' cannot be re-generated because it is not in the current view layer."
+                .format(rig=prev_generated_rig.name),
             )
             return {'CANCELLED'}
 
@@ -1152,7 +1154,8 @@ class CLOUDRIG_OT_generate(Operator):
             # This means an error has occurred. It was already handled in generate_rig().
             self.report(
                 {'ERROR'},
-                f"Generation of {metarig.name} has failed. See the Generation Log for more info.",
+                "Generation of {metarig} has failed. See the Generation Log for more info."
+                .format(metarig=metarig.name),
             )
             return {'FINISHED'}
         elif self.focus_generated:
@@ -1171,10 +1174,15 @@ class CLOUDRIG_OT_generate(Operator):
         if len(metarig.cloudrig.generator.logs) > 0:
             self.report(
                 {'WARNING'},
-                f"Generation of {new_rig.name} successful with {len(metarig.cloudrig.generator.logs)} warnings. ({duration:.2f}s)",
+                "Generation of {new_rig} successful with {num_warnings} warnings. ({seconds}s)"
+                .format(new_rig=new_rig.name, num_warnings=len(metarig.cloudrig.generator.logs), seconds=f"{duration:.2f}"),
             )
         else:
-            self.report({'INFO'}, f"Generation of {new_rig.name} successful. ({duration:.2f}s)")
+            self.report(
+                {'INFO'},
+                "Generation of {new_rig} successful. ({seconds}s)"
+                .format(new_rig=new_rig.name, seconds=f"{duration:.2f}")
+            )
 
         return {'FINISHED'}
 
@@ -1239,14 +1247,15 @@ class CLOUDRIG_OT_generate(Operator):
                     note=str(exception),
                     operator=operator,
                     op_kwargs=op_kwargs,
-                    op_text=rpt_("Report Bug"),
+                    op_text=iface_("Report Bug"),
                     op_icon='URL',
                     display_stack_trace='ALWAYS',
                 )
 
                 self.report(
                     {'ERROR'},
-                    f"A bug has occurred. You can report it through the Generation Log interface.\n{traceback.format_exc()}",
+                    "A bug has occurred. You can report it through the Generation Log interface.{traceback}"
+                    .format(traceback=f"\n{traceback.format_exc()}"),
                 )
 
             return

@@ -2,6 +2,7 @@
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
@@ -203,7 +204,9 @@ class Component_Spine_Squashy(Component_Chain_FK):
             slider_name=self.base_name,
             custom_prop_settings={
                 'default': 1.0,
-                'description': "Switch to an IK-like posing mode. Instead of posing the spine from bottom to top, this lets you control the two end points in an intuitive way",
+                'description': tip_("Switch to an IK-like posing mode. "
+                "Instead of posing the spine from bottom to top, this lets you "
+                "control the two end points in an intuitive way"),
             },
         )
 
@@ -215,7 +218,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
             slider_name=self.base_name + " Squash & Stretch",
             custom_prop_settings={
                 'default': 0.0,
-                'description': "Allow the spine to stretch beyond its normal length while in IK mode, for a cartoony effect",
+                'description': tip_("Allow the spine to stretch beyond its normal "
+                "length while in IK mode, for a cartoony effect"),
             },
         )
 

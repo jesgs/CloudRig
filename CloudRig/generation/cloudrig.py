@@ -2723,7 +2723,11 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
         rig.cloudrig_prefs.active_collection_index = active_coll.index
 
         if active_coll.parent:
-            self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'.")
+            self.report(
+                {'INFO'},
+                "Parented to '{parent}'."
+                .format(parent=active_coll.parent.name)
+            )
         else:
             self.report({'INFO'}, "Set parent to None.")
         return {'FINISHED'}
@@ -2742,7 +2746,11 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
         rig.cloudrig_prefs.active_collection_index = active_coll.index
 
         if active_coll.parent:
-            self.report({'INFO'}, f"Parented to '{active_coll.parent.name}'.")
+            self.report(
+                {'INFO'},
+                "Parented to '{parent}'."
+                .format(parent=active_coll.parent.name)
+            )
         else:
             self.report({'INFO'}, "Set parent to None.")
         return {'FINISHED'}
@@ -2874,7 +2882,7 @@ class POSE_OT_cloudrig_collection_clipboard_copy(Operator):
 
         context.window_manager.clipboard = json.dumps(json_obj)
 
-        self.report({'INFO'}, f"Copied {counter} collections to Blender clipboard.")
+        self.report({'INFO'}, "Copied {counter} collections to Blender clipboard.".format(counter=counter))
         return {'FINISHED'}
 
 
@@ -2946,7 +2954,7 @@ class POSE_OT_cloudrig_collection_clipboard_paste(Operator):
             self.report({'ERROR'}, "No collections in clipboard to be pasted.")
             return {'CANCELLED'}
 
-        self.report({'INFO'}, f"Pasted {counter} collections from clipboard.")
+        self.report({'INFO'}, "Pasted {counter} collections from clipboard.".format(counter=counter))
         return {'FINISHED'}
 
 

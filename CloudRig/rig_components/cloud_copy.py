@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..rig_component_features.bone_set import BoneInfo, BoneSet
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
@@ -75,7 +76,7 @@ class Component_CopyBone(Component_Base):
                 icon='GIZMO',
                 operator='pose.cloudrig_troubleshoot_rotationmode',
                 op_kwargs={'bone_name': self.base_bone_name},
-                op_text=rpt_("Set {bone} to Euler".format(bone=bone_info.name)),
+                op_text=iface_("Set {bone} to Euler").format(bone=bone_info.name),
             )
             bone_info.rotation_mode = 'XYZ'
 
@@ -194,12 +195,12 @@ class Component_CopyBone(Component_Base):
     @classmethod
     def draw_custom_prop_params(cls, layout, context, component):
         if component.params.parenting.parent_switching:
-            aligned_label(layout, text="Parent Switch Property")
+            aligned_label(layout, text=iface_("Parent Switch Property"))
             layout = super().draw_custom_prop_params(layout, context, component)
             layout.separator()
 
         if list(get_custom_prop_names(component.owner_pose_bone)):
-            aligned_label(layout, text="Bone's Own Properties")
+            aligned_label(layout, text=iface_("Bone's Own Properties"))
             params = component.params
             cls.draw_prop(context, layout, params.copy, 'property_ui_subpanel')
             row = layout.row()

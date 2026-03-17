@@ -7,6 +7,7 @@ import random
 import bpy
 from bl_math import clamp
 from bl_ui.generic_ui_list import draw_ui_list
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
@@ -554,7 +555,7 @@ def draw_ui_trigger(context, layout: UILayout, action_setup: ActionConstraintSet
         return
 
     if not trigger_setup:
-        aligned_label(layout, text="Trigger Missing", icon='ERROR', alert=True)
+        aligned_label(layout, text=iface_("Trigger Missing"), icon='ERROR', alert=True)
         return
 
     show_prop_name = 'show_action_' + trigger_prop[-1]

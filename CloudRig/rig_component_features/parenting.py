@@ -4,6 +4,7 @@ import bpy
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.app.translations import pgettext_tip as tip_
 
 # TODO: Creating a helper bone to hold the Armature constraint should also be
 # optional when using parent switching, not just for bendy bone parenting.
@@ -182,7 +183,7 @@ class CloudParentingMixin:
                 custom_prop_settings={
                     "default": self.get_default_parent_index(parent_bone_names),
                     "max": len(parent_bone_names) - 1,
-                    "description": f'Changes the parent bone of "{child_bone.name}"',
+                    "description": tip_('Changes the parent bone of "{bone}"').format(bone=child_bone.name),
                 },
                 operator="pose.cloudrig_switch_parent_bake",
                 op_icon="COLLAPSEMENU",

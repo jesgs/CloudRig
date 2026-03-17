@@ -102,8 +102,7 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
 
     def execute(self, context):
         affected = self.affect_bones(context)
-        plural = "s" if len(affected) != 1 else ""
-        self.report({'INFO'}, f"Disconnected {len(affected)} bone{plural}.")
+        self.report({'INFO'}, "Disconnected {num_bones}.".format(num_bones=len(affected)))
         return {'FINISHED'}
 
 
@@ -134,8 +133,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
 
     def execute(self, context):
         affected = self.affect_bones(context)
-        plural = "s" if len(affected) != 1 else ""
-        self.report({'INFO'}, f"Unparented {len(affected)} bone{plural}.")
+        self.report({'INFO'}, "Unparented {num_bones}.".format(num_bones=len(affected)))
         return {'FINISHED'}
 
 
@@ -358,9 +356,11 @@ class POSE_OT_parent_object_to_selected_bones(Operator):
             obj.parent = rig
             obj.parent_type = 'OBJECT'
 
-        objs = obj.name if len(target_objs) == 1 else f"{len(target_objs)} objects"
-        plural_bone = "s" if len(pbones) != 1 else ""
-        self.report({'INFO'}, f"Parented {objs} to {len(pbones)} bone{plural_bone}.")
+        self.report(
+            {'INFO'},
+            "Parented {num_objects} objects to {num_bones} bones."
+            .format(num_objects=len(target_objs), num_bones=len(pbones))
+        )
         return {'FINISHED'}
 
 

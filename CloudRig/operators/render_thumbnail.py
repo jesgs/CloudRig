@@ -403,9 +403,9 @@ class VIEW3D_OT_render_widget_thumbnails(Operator):
                 downscale_to_size=self.downscale_to_size,
             )
             if filepath:
-                self.report({'INFO'}, f"Rendered thumbnail: {filepath}")
+                self.report({'INFO'}, "Rendered thumbnail: " + filepath)
             else:
-                self.report({'INFO'}, f"Rendered thumbnail.")
+                self.report({'INFO'}, "Rendered thumbnail.")
         return {'FINISHED'}
 
 def render_widget(

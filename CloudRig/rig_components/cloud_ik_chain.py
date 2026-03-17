@@ -4,6 +4,7 @@ from math import radians
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Action, ActionSlot, PropertyGroup
 from mathutils import Vector
@@ -413,7 +414,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 "default": self.params.ik_chain.default_stretch,
-                "description": "Allow the limb to stretch beyond its normal maximum reach for a cartoony effect",
+                "description": tip_("Allow the limb to stretch beyond its normal maximum reach for a cartoony effect"),
                 "precision": 1,
                 "step": 10,
             },
@@ -524,7 +525,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "slider_name": self.limb_ui_name,
             "custom_prop_settings": {
                 "default": self.params.ik_chain.default_fkik,
-                "description": f"Switch {self.base_name} to Inverse Kinematics posing mode",
+                "description": tip_("Switch {bone} to Inverse Kinematics posing mode")
+                .format(bone=self.base_name),
             },
             "operator": "pose.cloudrig_toggle_ikfk_bake",
             "op_icon": "FILE_REFRESH",
@@ -595,7 +597,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 "default": default,
-                "description": f'Make "{ik_pole.name}" follow "{ik_mstr.name}"',
+                "description": tip_('Make "{ik_pole}" follow "{ik_mstr}"')
+                .format(ik_pole=ik_pole.name, ik_mstr=ik_mstr.name),
             },
             operator="pose.cloudrig_snap_bake",
             op_icon="FILE_REFRESH",

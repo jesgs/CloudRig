@@ -2,6 +2,7 @@
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import (
     BoolProperty,
     BoolVectorProperty,
@@ -245,7 +246,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             slider_name=limb_name or self.limb_ui_name,
             custom_prop_settings={
                 "default": default_value,
-                "description": "When enabled, rotation is not inherited, except from the armature's root",
+                "description": tip_("When enabled, rotation is not inherited, except from the armature's root"),
             },
             operator="pose.cloudrig_snap_bake",
             op_icon="FILE_REFRESH",
