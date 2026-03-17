@@ -1,4 +1,5 @@
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Object, Operator
 from bpy.utils import flip_name
 from mathutils import Vector
@@ -10,7 +11,7 @@ from ..utils.rig import get_pbones_of_selected
 
 class POSE_OT_scale_custom_shape(Operator):
     bl_idname = "pose.scale_custom_shape"
-    bl_label = "Scale Custom Shape"
+    bl_label = iface_("Scale Custom Shape")
     bl_description = "Scale custom shape of selected pose bones.\n\nShift: More precision\nAlt: Control Bendy Bone display size (only if that display type is already set)\nCtrl: Force Uniform Scale"
     bl_options = {'REGISTER', 'UNDO'}
 

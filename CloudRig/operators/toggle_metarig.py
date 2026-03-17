@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import BoolProperty
 from bpy.types import Bone, EditBone, Object, Operator, PoseBone
 
@@ -24,7 +25,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
     """Toggle visibility and selection between the Metarig and the Target Rig."""
 
     bl_idname = "object.cloudrig_metarig_toggle"
-    bl_label = "Toggle Meta/Generated Rig"
+    bl_label = iface_("Toggle Meta/Generated Rig")
     bl_options = {'REGISTER', 'UNDO'}
 
     match_collections: BoolProperty(

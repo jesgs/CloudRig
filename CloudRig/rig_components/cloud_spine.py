@@ -2,6 +2,7 @@
 
 from math import pi
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
@@ -320,8 +321,8 @@ class Component_Spine_IKFK(Component_Chain_FK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.ik_stretch_name,
-            panel_name="IK",
-            label_name="IK Stretch",
+            panel_name=n_("IK"),
+            label_name=n_("IK Stretch"),
             row_name=self.base_name,
             slider_name=self.base_name,
             custom_prop_settings={
@@ -334,7 +335,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.ik_prop_name,
-            panel_name="FK/IK Switch",
+            panel_name=n_("FK/IK Switch"),
             row_name=self.base_name,
             slider_name=self.base_name,
             custom_prop_settings={
@@ -396,7 +397,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         params = component.params
 
         layout.separator()
-        cls.draw_control_label(layout, "Spine")
+        cls.draw_control_label(layout, iface_("Spine"))
         cls.draw_prop(context, layout, params.spine, 'use_ik')
         cls.draw_prop(context, layout, params.spine, 'double')
 

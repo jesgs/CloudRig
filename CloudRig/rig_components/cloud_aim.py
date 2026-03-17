@@ -21,7 +21,9 @@ class Component_Aim(Component_Base):
 
     relink_default_prefix = "CTR"
 
-    parent_switch_behaviour = "The active parent will own the Aim Target or the Group Master Target if there are multiple eye components with a matching string as their Eye Group parameter."
+    parent_switch_behaviour = n_("The active parent will own the Aim Target or "
+    "the Group Master Target if there are multiple eye components with a matching "
+    "string as their Eye Group parameter.")
     parent_switch_overwrites_root_parent = False
 
     ##############################
@@ -64,7 +66,7 @@ class Component_Aim(Component_Base):
         child_bone=None,
         prop_bone=None,
         prop_name="",
-        panel_name="Face",
+        panel_name=n_("Face"),
         row_name="",
         label_name="",
         entry_name=""
@@ -200,8 +202,8 @@ class Component_Aim(Component_Base):
                 prop_bone=highlight_ctr,
                 prop_id=prop_name,
 
-                panel_name="Face",
-                label_name="Eye Highlights Follow",
+                panel_name=n_("Face"),
+                label_name=n_("Eye Highlights Follow"),
                 row_name="Eye Highlights",
                 slider_name=self.side_prefix + " Eye",
 

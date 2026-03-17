@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import BoolProperty
 from bpy.types import FCurve, Object, Operator
 
@@ -138,7 +139,7 @@ class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, Operator):
     bl_description = "Extrude a bone and increment its name. Hold Shift when confirming the extrusion to leave the name as it is"
     # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
     bl_options = {'REGISTER'}
-    bl_label = "Better Extrude Bone"
+    bl_label = iface_("Better Extrude Bone")
 
     @classmethod
     def poll(cls, context):
@@ -168,7 +169,7 @@ class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, Operator):
     bl_description = "Duplicate a bone and increment its name. Hold Shift to leave the name as it is"
     # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
     bl_options = {'REGISTER'}
-    bl_label = "Better Duplicate Bone"
+    bl_label = iface_("Better Duplicate Bone")
 
     @classmethod
     def poll(cls, context):

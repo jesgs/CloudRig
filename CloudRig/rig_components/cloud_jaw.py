@@ -133,7 +133,7 @@ class Component_Jaw(Component_CopyBone):
         self.rig_ui__add_bone_property(
             prop_bone=jaw_bi,
             prop_id='preserve_volume',
-            panel_name="Face",
+            panel_name=n_("Face"),
             slider_name="Preserve Volume",
             custom_prop_settings={
                 'default': True,
@@ -155,7 +155,7 @@ class Component_Jaw(Component_CopyBone):
         self.rig_ui__add_bone_property(
             prop_bone=jaw_bi,
             prop_id='teeth_follow_mouth',
-            panel_name="Face",
+            panel_name=n_("Face"),
             slider_name="Teeth Follow Mouth",
             custom_prop_settings={
                 'default': 1.0,

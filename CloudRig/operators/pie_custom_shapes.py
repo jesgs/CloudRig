@@ -2,6 +2,7 @@
 
 import bpy
 from bl_ui.properties_data_bone import BONE_PT_display
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import EnumProperty
 from bpy.types import Menu, Operator, PoseBone
 from mathutils import Matrix
@@ -276,7 +277,7 @@ class MESH_OT_return_to_pose_mode(Operator):
     """Return from custom shape editing back to pose mode on the previously active Armature object"""
 
     bl_idname = "mesh.return_to_pose_mode"
-    bl_label = "Edit Custom Shape"
+    bl_label = iface_("Edit Custom Shape")
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     @classmethod
@@ -524,7 +525,7 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
 
 
 class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
-    bl_label = "Edit Custom Shape"
+    bl_label = iface_("Edit Custom Shape")
 
     def draw(self, context):
         layout = self.layout

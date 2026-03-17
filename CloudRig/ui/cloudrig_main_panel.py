@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Object, Panel
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -34,9 +35,9 @@ class CloudRig_MainPanel:
 
         layout.enabled = cloudrig.enabled
 
-        text = "Generate CloudRig"
+        text = iface_("Generate CloudRig")
         if metarig.cloudrig.generator.target_rig:
-            text = "Re-Generate CloudRig"
+            text = iface_("Re-Generate CloudRig")
         layout.operator("pose.cloudrig_generate", text=text)
 
         prefs = get_addon_prefs(context)

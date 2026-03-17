@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import EditBone, Menu, Object, Operator, PoseBone
 
 from ..bs_utils.hotkeys import register_hotkey
@@ -109,7 +110,7 @@ def remove_drivers_of_bone(
 
 
 class CLOUDRIG_MT_PIE_bone_specials(Menu):
-    bl_label = "Bone Specials"
+    bl_label = iface_("Bone Specials")
 
     def draw(self, context):
         layout = self.layout
@@ -124,9 +125,9 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
         )
 
         # 2) > Delete Bones (With Symmetry)
-        text_del = "Delete"
+        text_del = iface_("Delete")
         if rig.data.use_mirror_x:
-            text_del = "Delete (Symmetrized)"
+            text_del = iface_("Delete (Symmetrized)")
         pie.operator(
             'pose.delete_selected',
             text=text_del,
@@ -149,9 +150,9 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
         )
 
         # 6) ^> Dissolve Bones.
-        text_dissolve = "Dissolve"
+        text_dissolve = iface_("Dissolve")
         if rig.data.use_mirror_x:
-            text_dissolve = "Dissolve (Symmetrized)"
+            text_dissolve = iface_("Dissolve (Symmetrized)")
         pie.operator(
             'pose.dissolve_selected',
             text=text_dissolve,

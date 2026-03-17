@@ -166,7 +166,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=ikfk_prop_name,
-            panel_name='FK/IK Switch',
+            panel_name=n_("FK/IK Switch"),
             slider_name='Spine',
             custom_prop_settings={
                 'default' : self.params.spine_toon.default_fkik,
@@ -236,7 +236,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=squash_prop_name,
-            panel_name='IK',
+            panel_name=n_("IK"),
             slider_name=f'{self.base_name} Squash',
             custom_prop_settings={
                 'default' : self.params.spine_toon.default_stretch,

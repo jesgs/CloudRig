@@ -17,6 +17,7 @@ from typing import Any
 
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -187,7 +188,7 @@ def get_deforming_armature(meshob: Object, filter_func=lambda o: True):
 
 def poll_cloudrig_operator(operator, context, modes={}, **kwargs):
     if modes and context.mode not in modes:
-        operator.poll_message_set(f"Must be in mode: {modes}")
+        operator.poll_message_set("Must be in mode: {modes}".format(modes=modes))
         return False
     rig = find_cloudrig(context, **kwargs)
     if not rig:
@@ -2307,7 +2308,7 @@ class CLOUDRIG_MT_collections_specials(Menu):
         local = "Local " if rig.override_library else ""
         layout.operator(
             POSE_OT_cloudrig_collection_delete.bl_idname,
-            text="Delete All {local}Collections".format(local=local),
+            text=iface_("Delete All {local}Collections").format(local=local),
             icon='TRASH',
         ).mode = 'ALL'
         layout.separator()
@@ -2326,7 +2327,7 @@ class CLOUDRIG_MT_collections_specials(Menu):
 class CLOUDRIG_MT_collections_quick_select(Menu):
     """Quick select menu, so favourite bone collections can be selected quickly with a hotkey"""
 
-    bl_label = "Quick Select"
+    bl_label = iface_("Quick Select")
     bl_idname = 'CLOUDRIG_MT_collections_quick_select'
 
     @classmethod

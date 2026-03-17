@@ -4,6 +4,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import Panel
 
@@ -13,7 +14,7 @@ from ..utils.rig import get_component_in_ui, get_pbone_of_active
 
 
 class CLOUDRIG_PT_rig_component(Panel):
-    bl_label = "CloudRig Component"
+    bl_label = iface_("CloudRig Component")
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'bone'
@@ -141,13 +142,13 @@ class BoneSetPanel(CloudRigPanel):
 PANEL_DATAS = OrderedDict(
     (data.ui_name, data) for data in
     [
-        CloudRigPanel(iface_("Parenting"), "draw_parenting_params"),
-        CloudRigPanel(iface_("Controls"), "draw_control_params"),
-        AnimPanel(iface_("Test Animation"), "draw_anim_params"),
-        CloudRigPanel(iface_("Bendy Bones"), "draw_bendy_params"),
-        CloudRigPanel(iface_("Appearance"), "draw_appearance_params"),
-        CloudRigPanel(iface_("Custom Properties"), "draw_custom_prop_params", True),
-        BoneSetPanel(iface_("Bone Organization"), "draw_bone_set_params", True),
+        CloudRigPanel(n_("Parenting"), "draw_parenting_params"),
+        CloudRigPanel(n_("Controls"), "draw_control_params"),
+        AnimPanel(n_("Test Animation"), "draw_anim_params"),
+        CloudRigPanel(n_("Bendy Bones"), "draw_bendy_params"),
+        CloudRigPanel(n_("Appearance"), "draw_appearance_params"),
+        CloudRigPanel(n_("Custom Properties"), "draw_custom_prop_params", True),
+        BoneSetPanel(n_("Bone Organization"), "draw_bone_set_params", True),
     ]
 )
 

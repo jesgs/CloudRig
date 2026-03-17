@@ -2,6 +2,7 @@
 
 from math import radians
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
@@ -25,7 +26,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
     """IK chain with stretchy IK, IK/FK snapping, squash and stretch controls, and optional IK pole control."""
 
     ui_name = "Chain: IK"
-    parent_switch_behaviour = "The active parent will own the IK and POLE controls."
+    parent_switch_behaviour = n_("The active parent will own the IK and POLE controls.")
     parent_switch_overwrites_root_parent = False
     always_use_custom_props = True
 
@@ -65,9 +66,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
         child_bone=None,
         prop_bone=None,
         prop_name="",
-        panel_name="IK",
+        panel_name=n_("IK"),
         row_name="",
-        label_name="Parent Switching",
+        label_name=n_("Parent Switching"),
         entry_name="",
     ):
         ik_parents_prop_name = "ik_parents_" + self.limb_name_props
@@ -408,8 +409,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.ik_stretch_name,
-            panel_name="IK",
-            label_name="IK Stretch",
+            panel_name=n_("IK"),
+            label_name=n_("IK Stretch"),
             row_name=self.base_name,
             slider_name=self.limb_ui_name,
             custom_prop_settings={
@@ -520,7 +521,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         return {
             "prop_bone": self.properties_bone,
             "prop_id": self.ikfk_name,
-            "panel_name": "FK/IK Switch",
+            "panel_name": n_("FK/IK Switch"),
             "row_name": self.base_name,
             "slider_name": self.limb_ui_name,
             "custom_prop_settings": {
@@ -591,8 +592,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=ik_pole_follow_name,
-            panel_name="IK",
-            label_name="IK Pole Follow",
+            panel_name=n_("IK"),
+            label_name=n_("IK Pole Follow"),
             row_name=self.base_name,
             slider_name=self.limb_ui_name,
             custom_prop_settings={
@@ -638,7 +639,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         params = component.params
 
         layout.separator()
-        cls.draw_control_label(layout, "IK")
+        cls.draw_control_label(layout, iface_("IK"))
 
         cls.draw_prop(context, layout, params.ik_chain, "use_pole")
         if params.ik_chain.use_pole and params.parenting.parent_switching:

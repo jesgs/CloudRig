@@ -3,6 +3,7 @@
 import json
 from collections import OrderedDict
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.types import UILayout
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -22,7 +23,7 @@ class CloudUIMixin:
         prop_bone: BoneInfo,
         prop_id: str,
         *,
-        panel_name="Settings",
+        panel_name=n_("Settings"),
         label_name="",
         row_name="",
         slider_name="",

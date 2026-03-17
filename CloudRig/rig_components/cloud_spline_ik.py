@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
@@ -302,7 +303,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         params = component.params
 
         layout.separator()
-        cls.draw_control_label(layout, "Spline IK")
+        cls.draw_control_label(layout, iface_("Spline IK"))
 
         if cls.is_advanced_mode(context):
             cls.draw_prop(context, layout, params.spline_ik, 'handle_length')

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
@@ -199,7 +200,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.squashy_name,
-            panel_name="FK/IK Switch",
+            panel_name=n_("FK/IK Switch"),
             row_name=self.base_name,
             slider_name=self.base_name,
             custom_prop_settings={
@@ -213,7 +214,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.squashy_volume_name,
-            panel_name="IK",
+            panel_name=n_("IK"),
             row_name=self.base_name,
             slider_name=self.base_name + " Squash & Stretch",
             custom_prop_settings={
@@ -261,7 +262,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         params = component.params
 
         layout.separator()
-        cls.draw_control_label(layout, "Spine")
+        cls.draw_control_label(layout, iface_("Spine"))
         cls.draw_prop(context, layout, params.spine_squashy, 'double')
         cls.draw_prop(context, layout, params.spine_squashy, 'world_align')
 

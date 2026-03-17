@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Bone, EditBone, Menu, Object, Operator, PoseBone
 from bpy.utils import flip_name
 
@@ -407,7 +408,7 @@ class POSE_OT_separate_selected_bones(Operator):
 
 
 class CLOUDRIG_MT_PIE_bone_parenting(Menu):
-    bl_label = "Bone Parenting"
+    bl_label = iface_("Bone Parenting")
 
     def draw(self, context):
         layout = self.layout

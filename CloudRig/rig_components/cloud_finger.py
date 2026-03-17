@@ -2,6 +2,7 @@
 
 from math import radians
 
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_tip as tip_
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -44,10 +45,10 @@ class Component_Finger(Component_Chain_IKFK):
     ):
         # TODO: This should be restructured, we shouldn't be overriding this function.
         if panel_name == "FK/IK Switch":
-            label_name = "FK/IK Switch"
+            label_name=n_("FK/IK Switch")
             custom_prop_settings['default'] = 0.0
 
-        panel_name = "Fingers"
+        panel_name=n_("Fingers")
         if label_name == "IK Pole Follow":
             return
 
@@ -201,8 +202,8 @@ class Component_Finger(Component_Chain_IKFK):
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
             prop_id=self.full_length_ik_name,
-            panel_name="IK",
-            label_name="Full IK",
+            panel_name=n_("IK"),
+            label_name=n_("Full IK"),
             row_name=self.base_name,
             slider_name=self.limb_ui_name,
             custom_prop_settings={

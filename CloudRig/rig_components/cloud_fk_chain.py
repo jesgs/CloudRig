@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
@@ -58,9 +59,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         child_bone=None,
         prop_bone=None,
         prop_name="",
-        panel_name="FK",
+        panel_name=n_("FK"),
         row_name="",
-        label_name="Parent Switching",
+        label_name=n_("Parent Switching"),
         entry_name="",
     ):
         super().base__apply_parent_switching(
@@ -211,8 +212,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         hng_name=None,
         limb_name=None,
         bone_set=None,
-        panel_name="FK",
-        label_name="Hinge",
+        panel_name=n_("FK"),
+        label_name=n_("Hinge"),
     ):
         """Create a hinge toggle for a bone.
         Bone is usually the first bone in an FK chain.
@@ -449,7 +450,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         generator = context.object.cloudrig.generator
 
         layout.separator()
-        cls.draw_control_label(layout, "FK")
+        cls.draw_control_label(layout, iface_("FK"))
 
         cls.draw_prop(context, layout, params.fk_chain, "root")
         row = cls.draw_prop(context, layout.row(), params.fk_chain, "hinge")

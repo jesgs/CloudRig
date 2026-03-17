@@ -53,7 +53,7 @@ class Component_Base(
     relink_default_prefix = ""
 
     # String displayed when Parent Switching is enabled.
-    parent_switch_behaviour = "The active parent will own the component's root bone."
+    parent_switch_behaviour = n_("The active parent will own the component's root bone.")
     # Whether enabling parent switching should be mutually exclusive with the Root Parent option.
     parent_switch_overwrites_root_parent = True
 

@@ -4,6 +4,7 @@ from math import sqrt
 
 import bmesh
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, PointerProperty
 from bpy.types import Object, PropertyGroup
@@ -221,7 +222,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         params = component.params
 
         layout.separator()
-        cls.draw_control_label(layout, "Physics")
+        cls.draw_control_label(layout, iface_("Physics"))
 
         cls.draw_prop(context, layout, params.physics_chain, 'phys_obj')
         cls.draw_prop(context, layout, params.physics_chain, 'force_regen')

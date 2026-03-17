@@ -3,6 +3,7 @@
 from copy import deepcopy
 from math import pow
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
@@ -54,9 +55,9 @@ class Component_Limb(Component_Chain_IKFK):
         child_bone=None,
         prop_bone=None,
         prop_name="",
-        panel_name="IK",
+        panel_name=n_("IK"),
         row_name="",
-        label_name="Parent Switching",
+        label_name=n_("Parent Switching"),
         entry_name="",
     ):
         if self.params.limb.double_ik:
@@ -232,7 +233,7 @@ class Component_Limb(Component_Chain_IKFK):
             self.rig_ui__add_bone_property(
                 prop_bone=self.properties_bone,
                 prop_id=prop_name,
-                panel_name="Auto Rubber Hose",
+                panel_name=n_("Auto Rubber Hose"),
                 custom_prop_settings={
                     'default': 0.0,
                     'description': tip_("Automatically smoothen the curvature of the limb "
@@ -480,7 +481,7 @@ class Component_Limb(Component_Chain_IKFK):
         cls.draw_prop(context, layout, params.limb, 'limit_elbow_axes')
 
         layout.separator()
-        cls.draw_control_label(layout, "Limb")
+        cls.draw_control_label(layout, iface_("Limb"))
 
         row = cls.draw_prop(context, layout, params.limb, 'auto_hose')
         row.enabled = params.chain.segments > 1 and params.chain.smooth_spline

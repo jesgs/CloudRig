@@ -109,8 +109,8 @@ class Component_Eyelid(Component_FaceChain):
         self.rig_ui__add_bone_property(
             prop_bone=eye_rig.properties_bone,
             prop_id=sticky_prop_name,
-            panel_name="Face",
-            label_name="Sticky Eyelids",
+            panel_name=n_("Face"),
+            label_name=n_("Sticky Eyelids"),
             row_name=eye_rig.params.aim.group,
             slider_name=self.parent_component.bones_org[0].name,
             custom_prop_settings={

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import EnumProperty, StringProperty
 from bpy.types import PropertyGroup
@@ -103,7 +104,7 @@ class CloudCustomPropertiesMixin:
             params.custom_props,
             'props_storage',
             expand=True,
-            text="Storage Bone",
+            text=iface_("Storage Bone"),
         )
         if params.custom_props.props_storage == 'CUSTOM':
             if rig:

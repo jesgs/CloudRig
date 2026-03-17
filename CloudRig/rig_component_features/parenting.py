@@ -3,6 +3,7 @@
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
 
@@ -124,7 +125,7 @@ def draw_parent_switch_list(layout, context, text=""):
 
 
 class CloudParentingMixin:
-    parent_switch_behaviour = "The active parent will own the component's root bone."
+    parent_switch_behaviour = n_("The active parent will own the component's root bone.")
     parent_switch_overwrites_root_parent = True
 
     """Class that provides parent switching parameters to Component_Base."""
@@ -150,7 +151,7 @@ class CloudParentingMixin:
         child_bone=None,
         prop_bone=None,
         prop_name="",
-        panel_name="Space Switch",
+        panel_name=n_("Space Switch"),
         label_name="",
         row_name="",
         entry_name="",
@@ -361,11 +362,11 @@ class CloudParentingMixin:
             return
         parent_bone = rig.pose.bones.get(params.parenting.root_parent)
         is_parent_bendy = parent_bone and parent_bone.bone.bbone_segments > 1
-        text = iface_("Root Parent (Bendy): ") if is_parent_bendy else iface_("Root Parent: ")
+        text = iface_("Root Parent (Bendy)") if is_parent_bendy else iface_("Root Parent")
 
         row = layout.row(align=True)
         cls.draw_prop_search(
-            context, row, params.parenting, "root_parent", rig.pose, "bones", text=text
+            context, row, params.parenting, "root_parent", rig.pose, "bones", text=text+": "
         )
         if is_parent_bendy:
             cls.draw_prop(

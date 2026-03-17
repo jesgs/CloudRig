@@ -1027,7 +1027,7 @@ def focus_select_obj(context, obj):
 
 class CLOUDRIG_OT_generate(Operator):
     bl_idname = "pose.cloudrig_generate"
-    bl_label = "Generate CloudRig"
+    bl_label = iface_("Generate CloudRig")
     bl_options = {'REGISTER', 'UNDO'}
     bl_description = "Generates the Target Rig based on the active Metarig"
 

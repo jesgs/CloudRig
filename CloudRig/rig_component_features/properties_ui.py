@@ -7,6 +7,7 @@ from collections import OrderedDict
 from typing import Any
 
 import bpy
+from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, CollectionProperty, StringProperty
 from bpy.types import (
     ID,
@@ -195,7 +196,7 @@ class CloudRigUIEditOpMixin:
             if self.slider_name in {"", "is_visible"}:
                 self.slider_name = prop_owner.name
             if self.panel_name == "Properties":
-                self.panel_name = "Bone Collections"
+                self.panel_name=n_("Bone Collections")
 
     prop_name: StringProperty(
         name="Property Name",

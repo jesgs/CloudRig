@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
@@ -13,7 +15,7 @@ class Component_TweakBone(Component_Base):
     """Tweak a single bone with the same name as this bone in the Target Rig."""
 
     ui_name = "Bone Tweak"
-    parent_switch_behaviour = "The active parent will own the tweaked bone."
+    parent_switch_behaviour = n_("The active parent will own the tweaked bone.")
 
     keep_original_bones = False
     keep_original_bones_collections = True
@@ -157,7 +159,7 @@ class Component_TweakBone(Component_Base):
     @classmethod
     def draw_control_params(cls, layout, context, component):
         params = component.params
-        cls.draw_control_label(layout, "Tweak")
+        cls.draw_control_label(layout, iface_("Tweak"))
         cls.draw_prop(context, layout, params.tweak, "constraints_additive")
         cls.draw_prop(context, layout, params.tweak, "ensure_free")
         cls.draw_prop(context, layout, params.tweak, "transforms")

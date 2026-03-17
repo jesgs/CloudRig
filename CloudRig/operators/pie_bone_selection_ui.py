@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Constraint, Menu, PoseBone, UILayout
 
 from ..bs_utils.hotkeys import register_hotkey
@@ -133,7 +134,7 @@ class POSE_MT_PIE_child_bones(Menu):
 
 
 class CLOUDRIG_MT_PIE_select_bone(Menu):
-    bl_label = "Select Bone"
+    bl_label = iface_("Select Bone")
 
     def draw(self, context):
         layout = self.layout

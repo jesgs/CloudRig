@@ -3,6 +3,7 @@
 from typing import Any
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import EditBone, Object, Operator, PoseBone, UILayout
 from bpy.utils import flip_name
@@ -16,7 +17,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
     """Rename active object or bone while accounting for symmetry when possible."""
 
     bl_idname = "object.rename_with_symmetry"
-    bl_label = "Smart Rename"
+    bl_label = iface_("Smart Rename")
     bl_options = {'REGISTER', 'UNDO'}
     bl_property = 'new_name'
 

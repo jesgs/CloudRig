@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, FloatProperty, IntProperty
@@ -861,7 +862,7 @@ class Component_ToonChain(Component_Base):
     def draw_control_params(cls, layout, context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
-        cls.draw_control_label(layout, "Stretch")
+        cls.draw_control_label(layout, iface_("Stretch"))
         cls.draw_prop(context, layout, params.chain, 'segments')
         cls.draw_prop(context, layout, params.chain, 'tip_control')
 
