@@ -1,10 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import json
 import os
 import sys
 from collections import OrderedDict
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..rig_component_features.bone_info import BoneInfo
 
 import bpy
 from bpy.app.translations import pgettext_n as n_
@@ -1052,6 +1057,8 @@ def add_property_to_ui(
     op_icon='BLANK1',
     op_kwargs={},
     ###
+    context_bones: list[str|BoneInfo] = [],
+    ###
     panels=None,
 ) -> OrderedDict:
     """Add a UI slider to the object's UI data."""
@@ -1103,6 +1110,9 @@ def add_property_to_ui(
         slider_dict['op_icon'] = op_icon
         op_kwargs = {str(key): str(value) for key, value in op_kwargs.items()}
         slider_dict['op_kwargs'] = op_kwargs
+
+    if context_bones:
+        slider_dict['context_bones'] = [b.name if hasattr(b, 'name') else b for b in context_bones if b]
 
     row[slider_name] = slider_dict
 

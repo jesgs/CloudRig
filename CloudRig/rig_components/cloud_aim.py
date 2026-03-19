@@ -217,6 +217,7 @@ class Component_Aim(Component_Base):
                 op_kwargs={
                     "bone_names": [highlight_ctr.name],
                 },
+                context_bones = [highlight_ctr, ctr_bone],
             )
 
             self.create_driven_armature_constraint(highlight_ctr, target_bones=[ctr_bone.parent, ctr_bone], prop_bone=highlight_ctr, prop_name=prop_name)

@@ -209,6 +209,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
                 "Instead of posing the spine from bottom to top, this lets you "
                 "control the two end points in an intuitive way"),
             },
+            context_bones=[self.mstr_chest, self.root_torso, self.mstr_hips],
         )
 
         self.rig_ui__add_bone_property(
@@ -222,6 +223,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
                 'description': tip_("Allow the spine to stretch beyond its normal "
                 "length while in IK mode, for a cartoony effect"),
             },
+            context_bones=[self.mstr_chest, self.root_torso, self.mstr_hips],
         )
 
     ##############################

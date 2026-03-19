@@ -794,7 +794,7 @@ def closest_point_on_line(
 
 
 class POSE_OT_cloudrig_keyframe_all_settings(Operator):
-    """Keyframe all properties shown in the UI below"""
+    """Keyframe all properties in the UI below. (Ignores Context Sensitive setting)"""
 
     bl_idname = 'pose.cloudrig_keyframe_all_settings'
     bl_label = "Keyframe CloudRig Settings"
@@ -811,7 +811,7 @@ class POSE_OT_cloudrig_keyframe_all_settings(Operator):
         return True
 
     def execute(self, context):
-        rig, ui_data = get_rig_and_ui(context)
+        rig, ui_data = get_rig_and_ui(context, allow_filter=False)
         if not rig:
             return
 
@@ -1059,6 +1059,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
         )
         layout.operator(POSE_OT_armature_reset.bl_idname, icon='LOOP_BACK')
         layout.prop(rig.cloudrig_prefs, 'hide_during_transform')
+        layout.prop(rig.cloudrig_prefs, 'context_sensitive')
         if hasattr(rig, 'cloudrig') and rig.cloudrig.enabled:
             # If CloudRig add-on is enabled, and this is a metarig.
             layout.separator()
@@ -1113,7 +1114,9 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
         if panel_data:
             """Panel data contains a list of tuples.
             The first entry of each tuple is a string telling us the type of UI element to draw.
-            The second entry is the for drawiong the element. Can be str, list, or dict, depending on the type.
+            The second entry is for drawing the element. Can be str, list, or dict, depending on the type.
+            TODO: ^ Is this even true? I think all UI elements are OrderedDicts, and flags are str.
+            And it's unclear what flags there are!
             """
             for label_name, label_data in panel_data.items():
                 if type(label_data) is str:
@@ -1143,7 +1146,10 @@ def read_rig_panels(obj) -> OrderedDict:
                     # especially because they might contain tuple-lists.
                     value = [(k, v) for k, v in value.items()]
                 if type(value) is list:
-                    value = tuples_to_dict(value)
+                    if value and type(value[0]) is str:
+                        pass
+                    else:
+                        value = tuples_to_dict(value)
 
             ordered_dict[key] = value
         return ordered_dict
@@ -1177,14 +1183,47 @@ def write_rig_panels(obj, panels: OrderedDict):
     obj.data['ui_data'] = panels
 
 
-def get_rig_and_ui(context) -> tuple[Object, OrderedDict] | tuple[None, None]:
+def get_rig_and_ui(context, *, allow_filter=True) -> tuple[Object, OrderedDict] | tuple[None, None]:
     """Find the most relevant CloudRig in the context, return it and its UI."""
     rig = find_cloudrig(context)
 
     if not rig:
         return None, None
 
-    return rig, read_rig_panels(rig)
+    ui_data = read_rig_panels(rig)
+    if rig.cloudrig_prefs.context_sensitive and allow_filter:
+        ui_data = context_filter_ui_data(context, ui_data)
+
+    return rig, ui_data
+
+
+def context_filter_ui_data(context, ui_data: OrderedDict) -> OrderedDict:
+    if not context.selected_pose_bones:
+        return ui_data
+
+    selected_pbone_names = {pb.name for pb in context.selected_pose_bones}
+
+    def is_leaf(node: dict) -> bool:
+        return 'context_bones' in node
+
+    def keep_leaf(node: dict) -> bool:
+        # Treat missing or empty context_bones as "always show".
+        return not node.get('context_bones') or bool(set(node['context_bones']) & selected_pbone_names)
+
+    def filter_node(node) -> OrderedDict | None:
+        if not isinstance(node, dict):
+            # This is not actually a UI element, but some flag.
+            return node
+        if is_leaf(node):
+            return node if keep_leaf(node) else None
+        filtered = OrderedDict(
+            (k, filtered_child)
+            for k in node
+            if (filtered_child := filter_node(node[k])) is not None
+    )
+        return filtered or None
+
+    return filter_node(ui_data) or OrderedDict()
 
 
 def draw_rig_settings_per_label(
@@ -1607,6 +1646,11 @@ class CloudRig_RigPreferences(PropertyGroup):
         name="Hide UI During Transformations",
         description="Drawing this UI can be expensive depending on rig complexity. This option can alleviate that by disabling drawing during transformations. However, this can cause the scrollbar to reset to the top due to transformations.",
         default=True,
+    )
+    context_sensitive: BoolProperty(
+        name="Context Sensitive Mode",
+        description="Hide rig properties with no relevant bones selected.",
+        default=False,
     )
     collection_ui_type: EnumProperty(
         name="Collections UI Type",

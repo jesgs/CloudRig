@@ -164,6 +164,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 prop_bone=self.properties_bone,
                 prop_name=self.fk_hinge_name,
                 limb_name=self.limb_ui_name,
+                fk_chain=fk_chain,
             )
 
         return fk_chain
@@ -214,6 +215,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         bone_set=None,
         panel_name=n_("FK"),
         label_name=n_("Hinge"),
+        fk_chain: list[BoneInfo]=[]
     ):
         """Create a hinge toggle for a bone.
         Bone is usually the first bone in an FK chain.
@@ -254,6 +256,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             op_kwargs={
                 "bone_names": [bone.name],
             },
+            context_bones=fk_chain + [self.root_bone]
         )
 
         self.create_driven_armature_constraint(

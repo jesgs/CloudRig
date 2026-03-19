@@ -34,6 +34,8 @@ class CloudUIMixin:
         operator="",
         op_icon='BLANK1',
         op_kwargs={},
+        ###
+        context_bones: list[str|BoneInfo]=[]
     ) -> OrderedDict:
         ensure_custom_property(prop_bone, prop_id, **custom_prop_settings)
 
@@ -60,6 +62,7 @@ class CloudUIMixin:
             operator=operator,
             op_icon=op_icon,
             op_kwargs=op_kwargs,
+            context_bones=context_bones,
         )
 
     @staticmethod

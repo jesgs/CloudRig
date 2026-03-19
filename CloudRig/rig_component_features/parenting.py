@@ -193,6 +193,7 @@ class CloudParentingMixin:
                     "parent_bones": parent_bone_names,
                     "bone_names": [child_bone.name],
                 },
+                context_bones = [child_bone],
             )
 
         # Create parent bone that will hold the Armature constraint.

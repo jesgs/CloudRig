@@ -210,6 +210,7 @@ class Component_Finger(Component_Chain_IKFK):
                 'default': 1.0,
                 'description': tip_('When enabled, the last bone in the chain is also considered part of the IK chain'),
             },
+            context_bones = [ik_mstr, pole_target]
         )
 
         for ik_bone in ik2_chain[:self.ik_chain_count]:

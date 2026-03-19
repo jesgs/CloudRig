@@ -136,6 +136,10 @@ class Component_Spine_Toon(Component_Chain_FK):
         hips_lower.roll_align_other(self.bones_org[0], axis='-Z')
         hips_lower.collections += self.bone_sets['FK Controls'].collections
 
+        # Enable anarchy variable access...
+        self.hips = hips
+        self.hips_lower = hips_lower
+
         # Hack the FK parenting a bit.
         self.fk_chain[0].parent = hips_lower
         self.fk_chain[1].parent = self.torso_ctr
@@ -160,7 +164,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         self,
         fk_chain: list[BoneInfo],
         chest: BoneInfo,
-        hips: BoneInfo,
+        hips_fwd: BoneInfo,
     ):
         ikfk_prop_name = f'{self.base_name}_ik'
         self.rig_ui__add_bone_property(
@@ -170,11 +174,12 @@ class Component_Spine_Toon(Component_Chain_FK):
             slider_name='Spine',
             custom_prop_settings={
                 'default' : self.params.spine_toon.default_fkik,
-            }
+            },
+            context_bones=fk_chain + [chest, self.torso_ctr, self.hips, self.hips_lower],
         )
-        ik_chain = self.__make_ik_chain(fk_chain, chest, hips)
+        ik_chain = self.__make_ik_chain(fk_chain, chest, hips_fwd)
 
-        self.__make_ik_str_chain(fk_chain, ik_chain, hips, ikfk_prop_name)
+        self.__make_ik_str_chain(fk_chain, ik_chain, hips_fwd, chest, ikfk_prop_name)
 
     @no_overlay
     def __make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
@@ -231,7 +236,14 @@ class Component_Spine_Toon(Component_Chain_FK):
         return ik_chain
 
     @no_overlay
-    def __make_ik_str_chain(self, fk_chain: list[BoneInfo], ik_chain: list[BoneInfo], hips: BoneInfo, ikfk_prop_name: str) -> list[BoneInfo]:
+    def __make_ik_str_chain(
+        self,
+        fk_chain: list[BoneInfo],
+        ik_chain: list[BoneInfo],
+        hips_fwd: BoneInfo,
+        chest: BoneInfo,
+        ikfk_prop_name: str
+    ) -> list[BoneInfo]:
         squash_prop_name = f"squash_{self.base_name}"
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
@@ -242,11 +254,12 @@ class Component_Spine_Toon(Component_Chain_FK):
                 'default' : self.params.spine_toon.default_stretch,
                 'soft_max' : 1.0,
                 'max': 2.0
-            }
+            },
+            context_bones=ik_chain + [chest, self.torso_ctr, self.hips, self.hips_lower],
         )
 
         ik_str_chain: list[BoneInfo] = []
-        next_parent = hips
+        next_parent = hips_fwd
         for i, fk_bone in enumerate(fk_chain):
             ik_str = self.bone_sets['Toon Spine Mechanism'].new(
                 name=self.naming.add_prefix(fk_bone.source, "IK-STR"),

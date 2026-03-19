@@ -419,6 +419,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 "precision": 1,
                 "step": 10,
             },
+            context_bones=ik_chain + [self.root_bone, self.ik_mstr, self.pole_ctrl],
         )
 
         # That property drives a Limit Distance constraint.
@@ -538,6 +539,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 "ik_first": ik_chain[0].name,
                 "fk_first": fk_chain[0].name,
             },
+            "context_bones": ik_chain + self.fk_chain + [self.root_bone, self.ik_mstr, self.pole_ctrl],
         }
 
     @no_overlay
@@ -606,6 +608,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             op_kwargs={
                 "bone_names": [ik_pole.name],
             },
+            context_bones=self.ik_chain + [self.root_bone, ik_mstr, ik_pole],
         )
 
     ##############################

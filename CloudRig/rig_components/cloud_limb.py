@@ -201,10 +201,10 @@ class Component_Limb(Component_Chain_IKFK):
 
         prop_name = "auto_rubber_hose_" + self.limb_name_props
 
-        control_bone = None
+        rubberhose_ctr = None
         if self.params.limb.auto_hose_control:
             # Create control bone
-            control_bone = self.__make_rubber_hose_control(org_lower)
+            rubberhose_ctr = self.__make_rubber_hose_control(org_lower)
             if self.painter:
                 return
             self.properties_bone.custom_props[prop_name] = {'default': 0.0}
@@ -217,7 +217,7 @@ class Component_Limb(Component_Chain_IKFK):
                             'type': 'TRANSFORMS',
                             'targets': [
                                 {
-                                    'bone_target': control_bone.name,
+                                    'bone_target': rubberhose_ctr.name,
                                     'transform_space': 'LOCAL_SPACE',
                                     'transform_type': 'SCALE_Y',
                                 }
@@ -241,6 +241,7 @@ class Component_Limb(Component_Chain_IKFK):
                 },
                 row_name=self.base_name,
                 slider_name=self.limb_ui_name,
+                context_bones=self.ik_chain + self.fk_chain + [rubberhose_ctr, self.root_bone, self.ik_mstr, self.pole_ctrl],
             )
 
         self.__make_rubber_hose_constraints(
