@@ -172,12 +172,17 @@ class Component_Limb_BipedLeg(Component_Limb):
         """Create display helper for the foot IK control."""
         knee, foot, toe = self.bones_org[-3:]
 
+        if self.params.leg.use_foot_roll and self.heel_pivot_bone:
+            head = intersect_point_line(knee.tail, toe.tail, self.heel_pivot_bone.center)[0]
+        else:
+            head = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
+
         dsp_bone = self.create_dsp_bone(
             bone,
-            head=intersect_point_line(toe.tail, knee.head, knee.tail)[0],
+            head=head,
             tail=toe.tail.copy(),
         )
-        dsp_bone.roll_align_vector(foot.head, axis='-Z')
+        dsp_bone.roll_align_vector(knee.head, axis='-Z')
 
         bone.custom_shape_along_length = 0.5
         bone.use_custom_shape_bone_size = False
@@ -233,7 +238,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             custom_shape_name=self.params.leg.shape_footroll.shape_name,
             use_custom_shape_bone_size=True,
         )
-        roll_ctrl.roll_align_vector(org_toe.head)
+        roll_ctrl.roll_align_vector(org_knee.head, axis='-Z')
         if self.params.custom_props.props_storage == "GENERATED":
             self.properties_bone.parent = roll_ctrl
         # Limit Rotation, lock other transforms.
@@ -254,7 +259,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         # Create bone to use as pivot point when rolling back.
         # This should be placed at the heel of the shoe, with the head and tail
         # defining the width of the foot/shoe.
-        heel_pvt_back = self.__get_heel_pivot_bone()
+        heel_pvt_back = self.heel_pivot_bone
         if heel_pvt_back:
             heel_pvt_back.parent = foot_ik
             heel_pvt_back.collections = self.bone_sets['IK Mechanism'].collections
@@ -405,15 +410,17 @@ class Component_Limb_BipedLeg(Component_Limb):
         if self.params.custom_props.props_storage == 'GENERATED':
             self.properties_bone.custom_shape_transform = roll_ctrl
 
-    def __get_heel_pivot_bone(self) -> BoneInfo | None:
-        heel_pivot_name = self.params.leg.heel_bone
-        heel_pivot = self.find_bone_info(heel_pivot_name)
-        if self.params.leg.heel_bone and not heel_pivot:
-            self.add_log(
-                rpt_("Heel Pivot Missing"),
-                description=rpt_('Could not find HeelPivot bone in the metarig: "{heel}".').format(heel=heel_pivot_name)
-            )
-        return heel_pivot
+    @property
+    def heel_pivot_bone(self) -> BoneInfo | None:
+        if not hasattr(self, '_heel_pivot_bone'):
+            heel_pivot_name = self.params.leg.heel_bone
+            heel_pivot = self._heel_pivot_bone = self.find_bone_info(heel_pivot_name)
+            if self.params.leg.heel_bone and not heel_pivot:
+                self.add_log(
+                    rpt_("Heel Pivot Missing"),
+                    description=rpt_('Could not find HeelPivot bone in the metarig: "{heel}".').format(heel=heel_pivot_name)
+                )
+        return self._heel_pivot_bone
 
     @no_overlay
     def __make_ik_toe(self):
