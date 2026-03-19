@@ -118,6 +118,7 @@ class CloudRigUIEditOpMixin:
                 self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
             else:
                 self.owner_path = ""
+                self.prop_name = ""
         elif self.owner_path != '' and not self.use_coll_selector:
             # If the use_bone_selector was just turned off, turn the bone name into a data path.
             self.owner_path = f'pose.bones["{self.owner_path}"]'
@@ -130,6 +131,7 @@ class CloudRigUIEditOpMixin:
                 self.owner_path = self.owner_path.split('["')[1].split('"]')[0]
             else:
                 self.owner_path = ""
+                self.prop_name = ""
         elif self.owner_path != '' and not self.use_bone_selector:
             # If the use_coll_selector was just turned off, turn the bone name into a data path.
             self.owner_path = f'data.collections_all["{self.owner_path}"]'
@@ -176,14 +178,12 @@ class CloudRigUIEditOpMixin:
     )
     use_coll_selector: BoolProperty(
         name="Use Collection Selector",
-        options={'SKIP_SAVE'},
         description="Display a collection selector. If disabled, you can manually type in a data path",
         default=False,
         update=update_use_coll_selector,
     )
     use_bone_selector: BoolProperty(
         name="Use Bone Selector",
-        options={'SKIP_SAVE'},
         description="Display a bone selector. If disabled, you can manually type in a data path",
         default=False,
         update=update_use_bone_selector,
