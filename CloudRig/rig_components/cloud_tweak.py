@@ -90,6 +90,8 @@ class Component_TweakBone(Component_Base):
             bone_to_tweak.custom_shape_translation = meta_pbone.custom_shape_translation
             bone_to_tweak.custom_shape_rotation_euler = meta_pbone.custom_shape_rotation_euler
             bone_to_tweak.display_type = meta_pbone.bone.display_type
+            bone_to_tweak.use_transform_at_custom_shape = meta_pbone.use_transform_at_custom_shape
+            bone_to_tweak.use_transform_around_custom_shape = meta_pbone.use_transform_around_custom_shape
             if meta_pbone.custom_shape:
                 self.add_to_widget_collection(context, meta_pbone.custom_shape)
 
