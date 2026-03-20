@@ -441,6 +441,15 @@ class BoneInfo:
         # will also move the child bone, which is quite unexpected.
         self.use_connect = False
 
+    def set_parent_safe(self, parent: BoneInfo):
+        """If there exists a parent_helper bone, change its armature constraint's
+        first target. Otherwise, simply set the parent."""
+        arm_con = self.parent_armature_constraint
+        if arm_con:
+            arm_con.subtarget = parent
+        else:
+            self.parent = parent
+
     @property
     def parent_armature_constraint(self) -> ConstraintInfo | None:
         """Return the Armature constraint of the parent helper, if both exist."""

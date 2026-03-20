@@ -149,12 +149,12 @@ class Component_Spine_Toon(Component_Chain_FK):
         self.__make_ik_setup(self.fk_chain, chest, hips_fwd)
 
         for fk_bone, str_bone in zip(self.fk_chain, self.main_str_bones[1:]):
-            str_bone.parent.constraint_infos[0].subtarget = fk_bone
+            str_bone.set_parent_safe(fk_bone)
             str_bone.roll_align_other(fk_bone)
         if self.params.chain.tip_control:
             self.main_str_bones[-1].parent = self.fk_chain[-1]
             self.main_str_bones[-1].roll_align_other(self.fk_chain[-1])
-        self.main_str_bones[0].parent.constraint_infos[0].subtarget = hips_lower
+        self.main_str_bones[0].set_parent_safe(hips_lower)
         self.main_str_bones[0].add_constraint('COPY_ROTATION', subtarget=hips_lower, influence=0.5, invert_xyz=[False, False, True])
 
     ##############################
