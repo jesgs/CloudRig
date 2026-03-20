@@ -532,33 +532,29 @@ class BoneInfo:
 
     def flatten(self, axis=""):
         if axis:
-            length = self.length
             if axis == 'X':
-                self.tail.y = self.head.y
-                self.tail.z = self.head.z
+                self.vector = Vector((self.length, 0, 0))
             elif axis == 'Y':
-                self.tail.x = self.head.x
-                self.tail.z = self.head.z
+                self.vector = Vector((0, self.length, 0))
             elif axis == 'Z':
-                self.tail.x = self.head.x
-                self.tail.y = self.head.y
-            self.length = length
+                self.vector = Vector((0, 0, self.length))
         else:
+            length = self.length
             self.vector = flat(self.vector)
-
-        from math import pi
-
-        deg = self.roll * 180 / pi
+            self.length = length
 
         # Round to nearest 90 degrees.
+        deg = self.roll * 180 / pi
         rounded = round(deg / 90) * 90
         self.roll = pi / 180 * rounded
 
     def world_align(self):
         """Orient this bone such that it exactly aligns with Blender's world axes."""
+        length = self.length
         self.tail.x = self.head.x
         self.tail.y = self.head.y + self.length
         self.tail.z = self.head.z
+        self.length = length
         self.roll = 0
 
     def roll_align_vector(self, vector: Vector, axis='+Z'):
