@@ -71,11 +71,12 @@ class Component_ToonChain(Component_Base):
         to_bone = self.base__relink_get_target(org_idx, con_info)
         org_bi = self.bones_org[org_idx]
 
-        parent_helpers = [str_bone.parent_helper for str_bone in self.main_str_bones]
+        parent_helpers = [str_bone.parent_helper for str_bone in self.main_str_bones if str_bone.parent_helper]
         if  con_info.type == 'ARMATURE':
             if to_bone in self.main_str_bones and 'NOHLP' not in con_info.name:
                 to_bone = to_bone.parent_helper
 
+        print(self, "To bone: ", to_bone)
         if to_bone in parent_helpers and con_info.type == 'ARMATURE':
             # If user is adding an Armature constraint to the parent helper (which will already have one),
             # their intent is probably to replace it.
