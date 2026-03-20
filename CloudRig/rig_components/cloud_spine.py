@@ -72,8 +72,11 @@ class Component_Spine_IKFK(Component_Chain_FK):
             custom_shape_name=self.params.spine.shape_torso.shape_name,
         )
         if self.params.spine.world_align:
+            self.create_dsp_bone(self.torso_ctr).flatten()
             self.torso_ctr.world_align()
-            self.torso_ctr.custom_shape_rotation_euler.x = pi/2
+        elif self.params.spine.flatten_controls:
+            # TODO DEPRECATED: flatten_controls to be removed in Blender 6.0
+            self.torso_ctr.flatten()
         return self.torso_ctr
 
     def fk_chain__make(self, org_chain) -> list[BoneInfo]:
@@ -99,15 +102,12 @@ class Component_Spine_IKFK(Component_Chain_FK):
         fk_chain[0].parent = self.mstr_hips
         fk_chain[0].collections = self.bones_mch.collections
 
-        # TODO: Flatten will be deprecated in 6.0
         spine_params = self.params.spine
         if spine_params.world_align:
-            self.root_bone.world_align()
+            self.create_dsp_bone(self.mstr_hips).flatten()
             self.mstr_hips.world_align()
-            self.mstr_hips.custom_shape_rotation_euler = (-pi/2, 0, pi/2)
-
         elif spine_params.flatten_controls:
-            self.root_bone.flatten()
+            # TODO DEPRECATED: flatten_controls to be removed in Blender 6.0
             self.mstr_hips.flatten()
 
         return fk_chain
@@ -157,6 +157,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             custom_shape_name=self.params.spine.shape_chest.shape_name,
         )
         if self.params.spine.world_align:
+            self.create_dsp_bone(chest).flatten()
             chest.world_align()
         elif self.params.spine.flatten_controls:
             chest.flatten()
