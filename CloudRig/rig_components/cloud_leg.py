@@ -84,13 +84,13 @@ class Component_Limb_BipedLeg(Component_Limb):
         fk_chain[-1].collections += self.bone_sets['IK Controls'].collections
         return fk_chain
 
-    def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo]):
-        super().ik_chain__make_ik_setup(org_chain)
+    def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo], ik_bone_set: BoneSet):
+        super().ik_chain__make_ik_setup(org_chain, ik_bone_set)
         if self.params.limb.double_ik:
             self.__create_foot_dsp(self.ik_mstr.parent)
         self.__create_foot_dsp(self.ik_mstr)
 
-        thigh, knee, foot, toe = org_chain
+        _thigh, knee, foot, toe = org_chain
 
         # Create forefoot control
         forefoot = None

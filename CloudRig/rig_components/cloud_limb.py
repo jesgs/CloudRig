@@ -11,6 +11,7 @@ from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.bone_set import BoneSet
 from ..rig_component_features.overlay_painter import no_overlay
 from .cloud_ik_chain import Component_Chain_IKFK
 
@@ -97,22 +98,22 @@ class Component_Limb(Component_Chain_IKFK):
             fk_elbow.lock_rotation = [False, True, True]
         return fk_chain
 
-    def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo]):
-        super().ik_chain__make_ik_setup(org_chain)
+    def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo], ik_bone_set: BoneSet):
+        ik_mstr_bone_set = ik_bone_set
+        if self.params.limb.double_ik:
+            ik_mstr_bone_set = self.bone_sets['IK Child Controls']
 
-        # Parent control
+        super().ik_chain__make_ik_setup(org_chain, ik_mstr_bone_set)
+
+        # Create Duplicate IK Master.
         if self.params.limb.double_ik:
             old_name = self.ik_mstr.name
             self.ik_mstr.name = self.naming.add_prefix(self.ik_mstr, "C")
             double_control = self.create_parent_bone(
-                self.ik_mstr, self.bone_sets['IK Child Controls']
+                self.ik_mstr, ik_bone_set
             )
             self.ik_controls.append(double_control)
             double_control.name = old_name
-            double_control.collections, self.ik_mstr.collections = (
-                self.ik_mstr.collections,
-                double_control.collections,
-            )
 
         self.__counter_rotate_first_str(self.str_chain[: self.params.chain.segments])
 
@@ -478,11 +479,11 @@ class Component_Limb(Component_Chain_IKFK):
         super().draw_control_params(layout, context, component)
         params = component.params
 
-        cls.draw_prop(context, layout, params.limb, 'double_ik')
-        cls.draw_prop(context, layout, params.limb, 'limit_elbow_axes')
-
         layout.separator()
         cls.draw_control_label(layout, iface_("Limb"))
+
+        cls.draw_prop(context, layout, params.limb, 'double_ik')
+        cls.draw_prop(context, layout, params.limb, 'limit_elbow_axes')
 
         row = cls.draw_prop(context, layout, params.limb, 'auto_hose')
         row.enabled = params.chain.segments > 1 and params.chain.smooth_spline

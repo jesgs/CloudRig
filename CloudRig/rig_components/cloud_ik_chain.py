@@ -158,7 +158,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 if arm_con:
                     arm_con.targets[0]['subtarget'] = self.extra_org.name
 
-        self.ik_chain__make_ik_setup(self.bones_org)
+        self.ik_chain__make_ik_setup(self.bones_org, self.bone_sets["IK Controls"])
 
         if self.params.ik_chain.world_align or self.params.ik_chain.flatten_controls:
             self.ik_chain__world_align_fk()
@@ -237,10 +237,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
             },
         )
 
-    def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo]):
+    def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo], ik_bone_set: BoneSet):
         # Create IK Master control
         self.ik_mstr = self.ik_chain__make_master_ctr(
-            self.bone_sets["IK Controls"],
+            ik_bone_set,
             self.bones_org[self.ik_chain_count],
         )
 

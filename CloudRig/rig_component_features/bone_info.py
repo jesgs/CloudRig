@@ -404,7 +404,7 @@ class BoneInfo:
 
     @custom_shape_scale.setter
     def custom_shape_scale(self, value):
-        self.custom_shape_scale_xyz *= Vector((value, value, value))
+        self.custom_shape_scale_xyz *= value
 
     @property
     def parent(self) -> BoneInfo | None:
@@ -616,16 +616,19 @@ class BoneInfo:
         self._custom_shape_name = value
 
     def copy_custom_shape(self, other: BoneInfo | PoseBone):
-        if not other.custom_shape:
+        if type(other) is PoseBone and not other.custom_shape:
             return
         if hasattr(other, 'custom_shape_name'):
             self.custom_shape_name = other.custom_shape_name
         self.custom_shape = other.custom_shape
-        self.custom_shape_translation = other.custom_shape_translation
-        self.custom_shape_rotation_euler = other.custom_shape_rotation_euler
-        self.custom_shape_scale_xyz = other.custom_shape_scale_xyz
+        self.custom_shape_translation = other.custom_shape_translation.copy()
+        self.custom_shape_rotation_euler = other.custom_shape_rotation_euler.copy()
+        self.custom_shape_scale_xyz = other.custom_shape_scale_xyz.copy()
         self.use_custom_shape_bone_size = other.use_custom_shape_bone_size
         self.custom_shape_wire_width = other.custom_shape_wire_width
+        self.use_transform_at_custom_shape = other.use_transform_at_custom_shape
+        self.use_transform_around_custom_shape = other.use_transform_around_custom_shape
+        self.custom_shape_transform = other.custom_shape_transform
 
     def get_constraint(self, name: str) -> ConstraintInfo | None:
         for ci in self.constraint_infos:

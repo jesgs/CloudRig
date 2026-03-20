@@ -189,13 +189,9 @@ def create_parent_bone(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
         name=add_prefix(child, "P"),
         source=child,
         parent=child.parent,
-        custom_shape_name=child.custom_shape_name,
-        custom_shape=child.custom_shape,
-        custom_shape_scale_xyz=Vector(child.custom_shape_scale_xyz) * 1.2,
-        custom_shape_translation=Vector(child.custom_shape_translation),
-        use_custom_shape_bone_size=child.use_custom_shape_bone_size,
-        custom_shape_rotation_euler=child.custom_shape_rotation_euler,
     )
+    parent_bone.copy_custom_shape(child)
+    parent_bone.custom_shape_scale = 1.2
 
     child.parent = parent_bone
     child.parent_helper = parent_bone
