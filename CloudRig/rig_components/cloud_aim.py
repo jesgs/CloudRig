@@ -21,9 +21,9 @@ class Component_Aim(Component_Base):
 
     relink_default_prefix = "CTR"
 
-    parent_switch_behaviour = n_("The active parent will own the Aim Target or "
-    "the Group Master Target if there are multiple eye components with a matching "
-    "string as their Eye Group parameter.")
+    parent_switch_behaviour = n_("The active parent will own the Aim Target.\n"
+    "If there are several Aim Components with matching Aim Group values, "
+    "this will affect the shared Group Master Target instead.")
     parent_switch_overwrites_root_parent = False
 
     ##############################
@@ -45,10 +45,6 @@ class Component_Aim(Component_Base):
         self.ctr_bone = self.__make_aim_control(aim_org, aim_bone)
         self.target_bone = self.__make_target_control(aim_bone)
 
-        self.group_master = None
-        if self.params.aim.group != "":
-            self.group_master = self.__ensure_group_master()
-
         aim_bone.add_constraint('DAMPED_TRACK', subtarget=self.target_bone.name)
 
         if self.params.aim.deform:
@@ -59,6 +55,11 @@ class Component_Aim(Component_Base):
         if self.params.aim.create_sub_control:
             self.__create_eye_highlight(self.ctr_bone)
 
+    def create_component_interactions(self, context):
+        if self.params.aim.group != "" and not hasattr(self, 'group_master'):
+            self.group_master = self.__ensure_group_master()
+        return super().create_component_interactions(context)
+
     @no_overlay
     def base__apply_parent_switching(
         self,
@@ -68,16 +69,12 @@ class Component_Aim(Component_Base):
         prop_name="",
         panel_name=n_("Face"),
         row_name="",
-        label_name="",
+        label_name="Aim Target Parent",
         entry_name=""
     ):
         """Apply the parent switching to the aim target or group master if it exists."""
-        if not self.__is_last_of_group():
-            return
-        target_bone = self.group_master or self.target_bone
-
         super().base__apply_parent_switching(
-            child_bone=child_bone or target_bone,
+            child_bone=child_bone or self.group_master or self.target_bone,
             prop_bone=prop_bone or self.properties_bone,
             prop_name=prop_name,
             panel_name=panel_name,
@@ -85,6 +82,7 @@ class Component_Aim(Component_Base):
             row_name=row_name,
             entry_name=entry_name or self.params.aim.group + " Parent",
         )
+        return
 
     ##############################
     # Aim Rig functions.
@@ -246,9 +244,6 @@ class Component_Aim(Component_Base):
         """
 
         # Check if a bone with the right name already exists and if it does, just return it.
-        if not self.__is_last_of_group():
-            return
-
         group_name = self.params.aim.group
         tgt_bones = self.__group_get_tgt_ctrls()
         org_bones = self.__group_get_org_bones()
@@ -316,6 +311,9 @@ class Component_Aim(Component_Base):
         group_master.add_constraint(
             'DAMPED_TRACK', subtarget=center_bone.name, track_axis='TRACK_NEGATIVE_Y'
         )
+
+        for comp in self.__group_get_components():
+            comp.group_master = group_master
 
         return group_master
 

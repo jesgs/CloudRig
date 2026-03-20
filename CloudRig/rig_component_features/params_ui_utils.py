@@ -159,7 +159,7 @@ def draw_label_with_linebreak(context, layout, text, alert=False, align_split=Fa
     if align_split:
         split = col.split(factor=0.2)
         split.row()
-        col = split.row().column()
+        col = split.row().column(align=True)
     paragraphs = text.split("\n")
 
     # Try to determine maximum allowed characters per line, based on pixel width of the area.

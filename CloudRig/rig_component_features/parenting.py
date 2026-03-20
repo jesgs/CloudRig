@@ -22,7 +22,7 @@ class CLOUDRIG_UL_parent_slots(UIList):
     def draw_item(
         self, context, layout, _data, item, icon_value, _active_data, _active_propname
     ):
-        metarig = context.object
+        metarig = item.id_data
         rig = metarig.cloudrig.generator.target_rig
         parent_slot = item
         if self.layout_type in {"DEFAULT", "COMPACT"}:
