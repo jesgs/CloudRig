@@ -498,7 +498,8 @@ class Component_Limb_BipedLeg(Component_Limb):
         layout.separator()
         if params.leg.use_foot_roll:
             cls.draw_prop_custom_shape(context, layout, params.leg, 'shape_footroll')
-
+        if params.leg.create_forefoot:
+            cls.draw_prop_custom_shape(context, layout, params.leg, 'shape_forefoot')
 
 class Params(PropertyGroup):
     use_foot_roll: BoolProperty(
