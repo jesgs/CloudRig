@@ -1646,11 +1646,15 @@ class CloudRig_RigPreferences(PropertyGroup):
         name="Hide UI During Transformations",
         description="Drawing this UI can be expensive depending on rig complexity. This option can alleviate that by disabling drawing during transformations. However, this can cause the scrollbar to reset to the top due to transformations.",
         default=True,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
     context_sensitive: BoolProperty(
         name="Context Sensitive Mode",
         description="Hide rig properties with no relevant bones selected.",
         default=False,
+        options={'LIBRARY_EDITABLE'},
+        override={'LIBRARY_OVERRIDABLE'},
     )
     collection_ui_type: EnumProperty(
         name="Collections UI Type",
