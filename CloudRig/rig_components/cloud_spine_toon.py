@@ -321,6 +321,10 @@ class Component_Spine_Toon(Component_Chain_FK):
         cls.draw_prop(context, layout, params.spine_toon, "flatten_controls", enabled=(not params.spine_toon.world_align))
 
     @classmethod
+    def draw_stretch_control_params(cls, layout, context, component):
+        return
+
+    @classmethod
     def draw_appearance_params(cls, layout, context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params

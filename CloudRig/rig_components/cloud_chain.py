@@ -76,7 +76,6 @@ class Component_ToonChain(Component_Base):
             if to_bone in self.main_str_bones and 'NOHLP' not in con_info.name:
                 to_bone = to_bone.parent_helper
 
-        print(self, "To bone: ", to_bone)
         if to_bone in parent_helpers and con_info.type == 'ARMATURE':
             # If user is adding an Armature constraint to the parent helper (which will already have one),
             # their intent is probably to replace it.
@@ -862,6 +861,10 @@ class Component_ToonChain(Component_Base):
     @classmethod
     def draw_control_params(cls, layout, context, component):
         super().draw_control_params(layout, context, component)
+        cls.draw_stretch_control_params(layout, context, component)
+
+    @classmethod
+    def draw_stretch_control_params(cls, layout, context, component):
         params = component.params
         cls.draw_control_label(layout, iface_("Stretch"))
         cls.draw_prop(context, layout, params.chain, 'segments')
