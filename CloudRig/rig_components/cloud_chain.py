@@ -344,8 +344,8 @@ class Component_ToonChain(Component_Base):
         for i, str_bone in enumerate(str_chain):
             str_bone.tangent_helper = self.__make_tangent_helper(  # TODO: remove satanic reference if at all possible (probably won't be possible in cloud_face_chain though)
                 str_bone=str_bone,
-                prev_str=str_bone.prev or str_bone,
-                next_str=str_bone.next or str_bone,
+                prev_str=str_bone.prev,
+                next_str=str_bone.next,
             )
             tangent_helpers.append(str_bone.tangent_helper)
 
@@ -367,9 +367,7 @@ class Component_ToonChain(Component_Base):
             bbone_width = str_bone.bbone_width * 1.5,
         )
 
-        assert (
-            prev_str and next_str
-        ), "Previous and next STR are required."
+        assert (prev_str or next_str), "Previous or next STR are required."
 
         handle_bone.add_constraint(
             'COPY_LOCATION',
@@ -377,20 +375,22 @@ class Component_ToonChain(Component_Base):
             subtarget=str_bone.name,
             space='WORLD',
         )
-        handle_bone.add_constraint(
-            'DAMPED_TRACK',
-            name="Damped Track Prev (Smooth Spline)",
-            subtarget=prev_str.name,
-            track_axis='TRACK_NEGATIVE_Y',
-            influence=1.0,
-        )
-        handle_bone.add_constraint(
-            'DAMPED_TRACK',
-            name="Damped Track Next (Smooth Spline)",
-            subtarget=next_str.name,
-            track_axis='TRACK_Y',
-            influence=0.5,
-        )
+        if prev_str:
+            handle_bone.add_constraint(
+                'DAMPED_TRACK',
+                name="Damped Track Prev (Smooth Spline)",
+                subtarget=prev_str.name,
+                track_axis='TRACK_NEGATIVE_Y',
+                influence=1.0,
+            )
+        if next_str:
+            handle_bone.add_constraint(
+                'DAMPED_TRACK',
+                name="Damped Track Next (Smooth Spline)",
+                subtarget=next_str.name,
+                track_axis='TRACK_Y',
+                influence=0.5 if prev_str else 1.0,
+            )
 
         handle_bone.add_constraint(
             'COPY_TRANSFORMS',
