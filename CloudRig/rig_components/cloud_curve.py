@@ -465,9 +465,6 @@ class Component_Curve_Hooked(Component_Base):
             self.raise_generation_error(rpt_("Curve object not found!"))
 
         for mod in curve_ob.modifiers[:]:
-            print(self.generator.params.target_rig)
-            print(mod.object)
-            print("")
             if mod.type == 'HOOK' and (not mod.object or mod.object == self.generator.params.target_rig):
                 curve_ob.modifiers.remove(mod)
 
