@@ -388,7 +388,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
                     ik_mstr.world_align()
                 elif self.params.ik_chain.flatten_controls:
                     ik_mstr.flatten()
-                ik_mstr.custom_shape_transform = ik_bone
 
         return ik_chain
 
