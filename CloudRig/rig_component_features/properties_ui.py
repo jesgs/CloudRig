@@ -48,9 +48,13 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
     if data_path and self.use_bone_selector:
         # If user wants to use the bone search selector,
         # we need to help them get the data path to the selected pose bone.
-        data_path = f'pose.bones["{data_path}"]'
+        pbone = obj.pose.bones.get(data_path)
+        if pbone:
+            data_path = f'pose.bones["{pbone.name}"]'
     elif data_path and self.use_coll_selector:
-        data_path = f'data.collections_all["{data_path}"]'
+        bone_coll = obj.data.collections_all.get(data_path)
+        if bone_coll:
+            data_path = f'data.collections_all["{bone_coll.name}"]'
 
     if data_path:
         prop_owner = path_resolve_safe(obj, data_path)
@@ -149,7 +153,7 @@ class CloudRigUIEditOpMixin:
             if self.prop_name == "" or self.prop_name not in prop_owner and not hasattr(prop_owner, self.prop_name):
                 self.prop_name = "is_visible"
 
-            if self.slider_name == "":
+            if self.slider_name == "" or self.slider_name in rig.data.collections_all:
                 self.slider_name = prop_owner.name
 
         if isinstance(prop_owner, PoseBone):
