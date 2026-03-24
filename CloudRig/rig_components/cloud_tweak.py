@@ -123,6 +123,17 @@ class Component_TweakBone(Component_Base):
             bone_to_tweak.bbone_segments = meta_pbone.bone.bbone_segments
             bone_to_tweak.bbone_x = meta_pbone.bone.bbone_x
             bone_to_tweak.bbone_z = meta_pbone.bone.bbone_z
+            bone_to_tweak.bbone_mapping_mode = meta_pbone.bone.bbone_mapping_mode
+            bone_to_tweak.bbone_curveinx = meta_pbone.bone.bbone_curveinx
+            bone_to_tweak.bbone_curveinz = meta_pbone.bone.bbone_curveinz
+            bone_to_tweak.bbone_curveoutx = meta_pbone.bone.bbone_curveoutx
+            bone_to_tweak.bbone_curveoutz = meta_pbone.bone.bbone_curveoutz
+            bone_to_tweak.bbone_rollin = meta_pbone.bone.bbone_rollin
+            bone_to_tweak.bbone_rollout = meta_pbone.bone.bbone_rollout
+            bone_to_tweak.use_endroll_as_inroll = meta_pbone.bone.use_endroll_as_inroll
+            bone_to_tweak.bbone_scalein = meta_pbone.bone.bbone_scalein.copy()
+            bone_to_tweak.bbone_scaleout = meta_pbone.bone.bbone_scaleout.copy()
+            bone_to_tweak.use_scale_easing = meta_pbone.bone.use_scale_easing
 
         if self.params.tweak.custom_props:
             for prop_name in meta_pbone.keys():
@@ -212,12 +223,12 @@ class Params(PropertyGroup):
         default=False,
     )
     ik_settings: BoolProperty(
-        name="IK Settings",
+        name="IK Properties",
         description="Copy IK settings from this bone to the generated bone",
         default=False,
     )
     bbone_props: BoolProperty(
-        name="B-Bone Settings",
+        name="B-Bone Properties",
         description="Copy B-Bone settings from this bone to the generated bone",
         default=False,
     )
