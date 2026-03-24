@@ -184,7 +184,7 @@ class Component_Base(
         if not skip_root_parenting and self.params.parenting.root_parent != "":
             self.base__apply_custom_root_parent()
         if self.params.parenting.parent_switching:
-            self.base__apply_parent_switching()
+            self.base__apply_parent_switching(entry_name=self.base_name)
         # self.gizmos__add_interactions()
 
     def create_helper_objects(self, context):
