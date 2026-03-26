@@ -99,21 +99,10 @@ class Component_Limb(Component_Chain_IKFK):
         return fk_chain
 
     def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo], ik_bone_set: BoneSet):
-        ik_mstr_bone_set = ik_bone_set
         if self.params.limb.double_ik:
-            ik_mstr_bone_set = self.bone_sets['IK Child Controls']
+            ik_bone_set = self.bone_sets['IK Child Controls']
 
-        super().ik_chain__make_ik_setup(org_chain, ik_mstr_bone_set)
-
-        # Create Duplicate IK Master.
-        if self.params.limb.double_ik:
-            old_name = self.ik_mstr.name
-            self.ik_mstr.name = self.naming.add_prefix(self.ik_mstr, "C")
-            double_control = self.create_parent_bone(
-                self.ik_mstr, ik_bone_set
-            )
-            self.ik_controls.append(double_control)
-            double_control.name = old_name
+        super().ik_chain__make_ik_setup(org_chain, ik_bone_set)
 
         self.__counter_rotate_first_str(self.str_chain[: self.params.chain.segments])
 
@@ -129,6 +118,19 @@ class Component_Limb(Component_Chain_IKFK):
                 )
             ik_elbow = self.ik_chain[1]
             ik_elbow.lock_ik_z = ik_elbow.lock_ik_y = True
+
+    def ik_chain__make_master_ctr(self, bone_set: BoneSet, source_bone: BoneInfo) -> BoneInfo:
+        ik_mstr = super().ik_chain__make_master_ctr(bone_set, source_bone)
+
+        # Create Duplicate IK Master.
+        if self.params.limb.double_ik:
+            old_name = ik_mstr.name
+            ik_mstr.name = self.naming.add_prefix(ik_mstr, "C")
+            double_control = self.create_parent_bone(ik_mstr, self.bone_sets['IK Controls'])
+            self.ik_controls.append(double_control)
+            double_control.name = old_name
+
+        return ik_mstr
 
     @no_overlay
     def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
@@ -148,9 +150,9 @@ class Component_Limb(Component_Chain_IKFK):
             ui_data['op_kwargs']['map_ik_to_fk'].insert(
                 0, (ik_mstr.parent.name, fk_chain[-1].name)
             )
+            ui_data['context_bones'] += [self.ik_mstr.parent]
 
         return ui_data
-
 
     ##############################
     # Limb functions.
@@ -242,7 +244,13 @@ class Component_Limb(Component_Chain_IKFK):
                 },
                 row_name=self.base_name,
                 slider_name=self.limb_ui_name,
-                context_bones=self.ik_chain + self.fk_chain + [rubberhose_ctr, self.root_bone, self.ik_mstr, self.pole_ctrl],
+                context_bones=(
+                    self.ik_chain +
+                    self.fk_chain +
+                    self.bone_sets['IK Controls'],
+                    self.bone_sets['IK Child Controls'],
+                    [rubberhose_ctr, self.root_bone],
+                ),
             )
 
         self.__make_rubber_hose_constraints(
@@ -471,7 +479,10 @@ class Component_Limb(Component_Chain_IKFK):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
-            n_("IK Child Controls"), color_palette='THEME09', collections=['IK Secondary'], wire_width=1.5,
+            n_("IK Child Controls"),
+            color_palette='THEME09',
+            collections=['IK Secondary'],
+            wire_width=1.5,
         )
 
     @classmethod

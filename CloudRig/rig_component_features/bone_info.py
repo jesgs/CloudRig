@@ -951,6 +951,8 @@ class BoneInfo:
     def __str__(self) -> str:
         return self.name
 
+    def __repr__(self) -> str:
+        return str(self)
 
 class ConstraintInfo(dict):
     """Abstracts away Blender's constraints, allowing less verbose ways to set properties,
