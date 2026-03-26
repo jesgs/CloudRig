@@ -22,6 +22,7 @@ from bpy.types import (
     ActionChannelbag,
     ActionSlot,
     Armature,
+    FCurve,
     Operator,
     PropertyGroup,
     UILayout,
@@ -122,9 +123,53 @@ class ActionConstraintSetup(PropertyGroup):
         default=True,
     )
 
+    def update_subtarget(self, context):
+        """Little UX sugar; We can take a pretty solid guess at the frame range,
+        transform channel, and range, based on fcurves of the chosen bone in
+        the chosen action slot.
+        """
+        channelbag = self.channelbag
+        if not (channelbag and channelbag.fcurves):
+            return
+        fcurves = [
+            fc for fc in channelbag.fcurves
+            if f'pose.bones["{self.subtarget}"]' in fc.data_path
+        ]
+        if not fcurves:
+            fcurves = channelbag.fcurves
+        min_frame = fcurves[0].keyframe_points[0].co.x
+        max_frame = fcurves[0].keyframe_points[0].co.x
+        max_value_range = (fcurves[0].data_path, 0, 0, 0)
+        for fc in fcurves:
+            value_min = fc.keyframe_points[0].co.y
+            value_max = fc.keyframe_points[0].co.y
+            for kf in fc.keyframe_points:
+                if kf.co.y < value_min:
+                    value_min = kf.co.y
+                if kf.co.y > value_max:
+                    value_max = kf.co.y
+                if kf.co.x < min_frame:
+                    min_frame = kf.co.x
+                if kf.co.x > max_frame:
+                    max_frame = kf.co.x
+            value_range = value_max - value_min
+            if value_range > max_value_range[1]:
+                max_value_range = (get_fcurve_transform_channel(fc), value_range, value_min, value_max)
+
+        self.frame_start = int(min_frame)
+        self.frame_end = int(max_frame)
+        self.transform_channel = max_value_range[0]
+        if abs(max_value_range[2]) < abs(max_value_range[3]):
+            self.trans_min = max_value_range[2]
+            self.trans_max = max_value_range[3]
+        else:
+            self.trans_min = max_value_range[3]
+            self.trans_max = max_value_range[2]
+
     subtarget: StringProperty(
         name="Control Bone",
         description="Select a bone on the Target Rig which will drive this action",
+        update=update_subtarget
     )
 
     transform_channel: EnumProperty(
@@ -482,6 +527,14 @@ class CLOUDRIG_UL_action_setups(UIList):
 
         layout.prop(action_setup, 'enabled', text="", icon=icon, emboss=False)
 
+
+def get_fcurve_transform_channel(fcurve: FCurve) -> str:
+    if fcurve.data_path.endswith("location"):
+        return "LOCATION_" + "XYZ"[fcurve.array_index]
+    if fcurve.data_path.endswith("rotation"):
+        return "ROTATION_" + "XYZ"[fcurve.array_index]
+    if fcurve.data_path.endswith("scale"):
+        return "SCALE_" + "XYZ"[fcurve.array_index]
 
 def draw_action_setup_list(context, layout):
     header, panel = layout.panel("CloudRig Actions", default_closed=True)
