@@ -79,7 +79,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             panel_name=panel_name,
             row_name=row_name or self.base_name,
             label_name=label_name,
-            entry_name=entry_name or self.ik_mstr.name,
+            entry_name=self.side_prefix + " " + (entry_name or self.ik_mstr.name),
         )
 
     @no_overlay
