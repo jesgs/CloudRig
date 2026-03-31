@@ -270,18 +270,16 @@ class Component_Chain_IKFK(Component_Chain_FK):
             name=self.naming.add_prefix(source_bone, "IK"),
             source=source_bone,
             custom_shape_name=self.params.ik_chain.shape_ik_master.shape_name,
-            parent=self.generator.params.ensure_root,
+            parent=self.__get_default_ik_parent(),
             use_transform_at_custom_shape=True,
         )
-
-        if not self.generator_params.ensure_root:
-            # If there's no rig root bone, parent the IK master to the component's root.
-            # Although ideally, components with IK chains in them should really have a root bone.
-            ik_master.parent = self.bones_org[0].parent
 
         self.ik_controls.append(ik_master)
 
         return ik_master
+
+    def __get_default_ik_parent(self):
+        return self.generator.params.ensure_root or self.bones_org[0].parent
 
     def __store_ik_info(self):
         """Calculate pole angle, pole control direction and distance."""
@@ -588,7 +586,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
         self.create_driven_armature_constraint(
             pole_parent_helper,
-            target_bones=[ik_mstr.parent, ik_mstr],
+            target_bones=[self.__get_default_ik_parent(), ik_mstr],
             prop_bone=self.properties_bone,
             prop_name=ik_pole_follow_name,
             preserve_volume=True,

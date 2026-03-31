@@ -158,6 +158,7 @@ class Component_Limb_BipedLeg(Component_Limb):
     @no_overlay
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, _default=0.0):
         """Let leg IK poles follow the IK master by default."""
+        # TODO: Expose this default value as a param, then  make this a soft default.
         super().ik_chain__make_pole_follow_switch(ik_pole, ik_mstr, default=1.0)
 
     @no_overlay
