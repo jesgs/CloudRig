@@ -139,7 +139,7 @@ class ActionConstraintSetup(PropertyGroup):
             fcurves = channelbag.fcurves
         min_frame = fcurves[0].keyframe_points[0].co.x
         max_frame = fcurves[0].keyframe_points[0].co.x
-        max_value_range = (fcurves[0].data_path, 0, 0, 0)
+        max_value_range = (get_fcurve_transform_channel(fcurves[0]), 0, 0, 0)
         for fc in fcurves:
             value_min = fc.keyframe_points[0].co.y
             value_max = fc.keyframe_points[0].co.y
