@@ -184,8 +184,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 self.base__apply_parent_switching(
                     child_bone=self.pole_ctrl,
                     prop_name="ik_pole_parents_" + self.limb_name_props,
-                    row_name=self.pole_ctrl.name,
-                    entry_name=self.pole_ctrl.name,
+                    row_name=self.base_name + " Pole",
+                    entry_name=self.base_name + " Pole",
                 )
 
     ##############################
