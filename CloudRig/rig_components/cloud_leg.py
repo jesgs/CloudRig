@@ -130,9 +130,13 @@ class Component_Limb_BipedLeg(Component_Limb):
     def ik_chain__make_master_ctr(self, bone_set: BoneSet, source_bone: BoneInfo) -> BoneInfo:
         """Tweak the foot shape."""
         ik_master = super().ik_chain__make_master_ctr(bone_set, source_bone)
-        ik_master.custom_shape_scale = 2.8
-        if self.naming.side_is_left(source_bone):
-            ik_master.custom_shape_scale_xyz.x *= -1
+        ik_controls = [ik_master]
+        if self.params.limb.double_ik:
+            ik_controls.append(ik_master.parent)
+        for ik_control in ik_controls:
+            ik_control.custom_shape_scale = 2.8
+            if self.naming.side_is_left(source_bone):
+                ik_control.custom_shape_scale_xyz.x *= -1
 
         return ik_master
 

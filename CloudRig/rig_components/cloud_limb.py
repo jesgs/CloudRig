@@ -127,8 +127,8 @@ class Component_Limb(Component_Chain_IKFK):
             old_name = ik_mstr.name
             ik_mstr.name = self.naming.add_prefix(ik_mstr, "C")
             double_control = self.create_parent_bone(ik_mstr, self.bone_sets['IK Controls'])
-            self.ik_controls.append(double_control)
             double_control.name = old_name
+            self.ik_controls.append(double_control)
 
         return ik_mstr
 
