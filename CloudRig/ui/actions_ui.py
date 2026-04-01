@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from math import degrees
 
 import bpy
 from bl_math import clamp
@@ -155,6 +156,9 @@ class ActionConstraintSetup(PropertyGroup):
                     min_frame = kf.co.x
                 if kf.co.x > max_frame:
                     max_frame = kf.co.x
+            if 'rotation_' in fc.data_path:
+                value_max = degrees(value_max)
+                value_min = degrees(value_min)
             value_range = value_max - value_min
             if value_range > max_value_range[1]:
                 max_value_range = (get_fcurve_transform_channel(fc), value_range, value_min, value_max)
