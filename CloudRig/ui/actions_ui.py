@@ -138,40 +138,22 @@ class ActionConstraintSetup(PropertyGroup):
         ]
         if not fcurves:
             fcurves = channelbag.fcurves
-        min_frame = fcurves[0].keyframe_points[0].co.x
-        max_frame = fcurves[0].keyframe_points[0].co.x
-        max_value_range = (get_fcurve_transform_channel(fcurves[0]), 0, 0, 0)
-        for fc in fcurves:
-            if fc.array_index > 2:
-                # We can't get anything useful out of W rotation of quats...
-                continue
-            value_min = fc.keyframe_points[0].co.y
-            value_max = fc.keyframe_points[0].co.y
-            for kf in fc.keyframe_points:
-                if kf.co.y < value_min:
-                    value_min = kf.co.y
-                if kf.co.y > value_max:
-                    value_max = kf.co.y
-                if kf.co.x < min_frame:
-                    min_frame = kf.co.x
-                if kf.co.x > max_frame:
-                    max_frame = kf.co.x
-            if 'rotation_' in fc.data_path:
-                value_max = degrees(value_max)
-                value_min = degrees(value_min)
-            value_range = value_max - value_min
-            if value_range > max_value_range[1]:
-                max_value_range = (get_fcurve_transform_channel(fc), value_range, value_min, value_max)
+        transform_channel, min_frame, max_frame, value_min, value_max = get_fcurves_ranges(fcurves)
+
+
+        if 'ROTATION' in transform_channel:
+            value_max = degrees(value_max)
+            value_min = degrees(value_min)
 
         self.frame_start = int(min_frame)
         self.frame_end = int(max_frame)
-        self.transform_channel = max_value_range[0] or 'LOCATION_X'
-        if abs(max_value_range[2]) < abs(max_value_range[3]):
-            self.trans_min = max_value_range[2]
-            self.trans_max = max_value_range[3]
+        self.transform_channel = transform_channel or 'LOCATION_X'
+        if abs(value_min) < abs(value_max):
+            self.trans_min = value_min
+            self.trans_max = value_max
         else:
-            self.trans_min = max_value_range[3]
-            self.trans_max = max_value_range[2]
+            self.trans_min = value_max
+            self.trans_max = value_min
 
     subtarget: StringProperty(
         name="Control Bone",
@@ -242,11 +224,20 @@ class ActionConstraintSetup(PropertyGroup):
         "to the last frame. Rotations are in degrees",
     )
 
+    def update_is_corrective(self, context):
+        channelbag = self.channelbag
+        if not (channelbag and channelbag.fcurves):
+            return
+        _chan, min_frame, max_frame, _vmin, _vmax = get_fcurves_ranges(channelbag.fcurves)
+        self.frame_start = min_frame
+        self.frame_end = max_frame
+
     is_corrective: BoolProperty(
         name="Corrective",
         description="Indicate that this is a corrective action. Corrective actions will activate "
         "based on the activation of two other actions"
         "are at their End Frame, and Start Frame if either is at Start Frame)",
+        update=update_is_corrective,
     )
 
     def setup_id_to_str(self, curr_value, _is_set):
@@ -278,6 +269,7 @@ class ActionConstraintSetup(PropertyGroup):
         get_transform=setup_id_to_str if bpy.app.version >= (5, 1, 0) else None,
         set_transform=setup_name_to_id if bpy.app.version >= (5, 1, 0) else None,
     )
+
     @property
     def trigger_a(self) -> ActionConstraintSetup | None:
         action_setups = self.id_data.cloudrig.generator.action_setups
@@ -547,6 +539,31 @@ def get_fcurve_transform_channel(fcurve: FCurve) -> str:
         return "SCALE_" + "XYZ"[fcurve.array_index]
     return ""
 
+def get_fcurves_ranges(fcurves: list[FCurve]) -> tuple[str, int, int, float, float]:
+    min_frame = fcurves[0].keyframe_points[0].co.x
+    max_frame = fcurves[0].keyframe_points[0].co.x
+    max_value_range = (get_fcurve_transform_channel(fcurves[0]), 0, 0, 0)
+    for fc in fcurves:
+        if fc.array_index > 2:
+            # We can't get anything useful out of W rotation of quats...
+            continue
+        min_value = fc.keyframe_points[0].co.y
+        max_value = fc.keyframe_points[0].co.y
+        for kf in fc.keyframe_points:
+            if kf.co.y < min_value:
+                min_value = kf.co.y
+            if kf.co.y > max_value:
+                max_value = kf.co.y
+            if kf.co.x < min_frame:
+                min_frame = kf.co.x
+            if kf.co.x > max_frame:
+                max_frame = kf.co.x
+        value_range = max_value - min_value
+        if value_range > max_value_range[1]:
+            max_value_range = (get_fcurve_transform_channel(fc), value_range, min_value, max_value)
+
+    return max_value_range[0], int(min_frame), int(max_frame), max_value_range[2], max_value_range[3]
+
 def draw_action_setup_list(context, layout):
     header, panel = layout.panel("CloudRig Actions", default_closed=True)
     header.label(text="Actions")
@@ -618,19 +635,13 @@ def draw_ui_trigger(context, layout: UILayout, action_setup: ActionConstraintSet
     if not trigger_setup:
         return
 
-    if not trigger_setup:
-        aligned_label(layout, text=iface_("Trigger Missing"), icon='ERROR', alert=True)
-        return
-
     show_prop_name = 'show_action_' + trigger_prop[-1]
     show = getattr(action_setup, show_prop_name)
     icon = 'HIDE_OFF' if show else 'HIDE_ON'
 
     row.prop(action_setup, show_prop_name, icon=icon, text="")
 
-    op = row.operator(
-        CLOUDRIG_OT_jump_to_action_setup.bl_idname, text="", icon='LOOP_FORWARDS'
-    )
+    op = row.operator(CLOUDRIG_OT_jump_to_action_setup.bl_idname, text="", icon='LOOP_FORWARDS')
     op.setup_id = trigger_setup.unique_id
 
     if show:

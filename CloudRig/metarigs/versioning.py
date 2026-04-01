@@ -256,17 +256,17 @@ def version_cloud_metarig(metarig):
             action_setup.trigger_select_b = action_setup.setup_id_to_str(action_setup.trigger_select_b, True)
 
 def fix_corrective_actions_51(metarig):
+    # Action set-ups saved in 5.0 may need fixing in 5.1.
     if bpy.app.version < (5, 1, 0):
         return
     cloudrig = metarig.cloudrig
-    # Action set-ups saved in 5.0 may need fixing in 5.1.
     action_setups = cloudrig.generator.action_setups
     for action_setup in action_setups:
         if not action_setup.is_corrective:
             continue
-        if action_setup['trigger_select_a'] and not action_setup.trigger_a:
+        if action_setup.get('trigger_select_a') and not action_setup.trigger_a:
             action_setup.trigger_a = next((acs for acs in action_setups if acs.name == action_setup['trigger_select_a']))
-        if action_setup['trigger_select_b'] and not action_setup.trigger_b:
+        if action_setup.get('trigger_select_b') and not action_setup.trigger_b:
             action_setup.trigger_b = next((acs for acs in action_setups if acs.name == action_setup['trigger_select_b']))
 
 @persistent
