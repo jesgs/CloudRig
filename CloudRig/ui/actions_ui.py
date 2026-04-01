@@ -141,6 +141,9 @@ class ActionConstraintSetup(PropertyGroup):
         max_frame = fcurves[0].keyframe_points[0].co.x
         max_value_range = (get_fcurve_transform_channel(fcurves[0]), 0, 0, 0)
         for fc in fcurves:
+            if fc.array_index > 2:
+                # We can't get anything useful out of W rotation of quats...
+                continue
             value_min = fc.keyframe_points[0].co.y
             value_max = fc.keyframe_points[0].co.y
             for kf in fc.keyframe_points:
@@ -158,7 +161,7 @@ class ActionConstraintSetup(PropertyGroup):
 
         self.frame_start = int(min_frame)
         self.frame_end = int(max_frame)
-        self.transform_channel = max_value_range[0]
+        self.transform_channel = max_value_range[0] or 'LOCATION_X'
         if abs(max_value_range[2]) < abs(max_value_range[3]):
             self.trans_min = max_value_range[2]
             self.trans_max = max_value_range[3]
@@ -531,10 +534,14 @@ class CLOUDRIG_UL_action_setups(UIList):
 def get_fcurve_transform_channel(fcurve: FCurve) -> str:
     if fcurve.data_path.endswith("location"):
         return "LOCATION_" + "XYZ"[fcurve.array_index]
-    if fcurve.data_path.endswith("rotation"):
-        return "ROTATION_" + "XYZ"[fcurve.array_index]
+    if (
+        fcurve.data_path.endswith("rotation_euler") or
+        fcurve.data_path.endswith("rotation_quaternion")
+    ) and fcurve.array_index < 2:
+            return "ROTATION_" + "XYZ"[fcurve.array_index]
     if fcurve.data_path.endswith("scale"):
         return "SCALE_" + "XYZ"[fcurve.array_index]
+    return ""
 
 def draw_action_setup_list(context, layout):
     header, panel = layout.panel("CloudRig Actions", default_closed=True)
