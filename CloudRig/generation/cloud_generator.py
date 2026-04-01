@@ -6,7 +6,7 @@ import traceback
 from collections import OrderedDict
 from datetime import datetime
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 
 if TYPE_CHECKING:
     from ..rig_components.cloud_base import Component_Base
@@ -42,6 +42,7 @@ from ..bs_utils.properties import (
     copy_property_group,
 )
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
+from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.mechanism import relink_real_driver
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.overlay_painter import no_overlay
@@ -100,7 +101,7 @@ class GeneratorProperties(PropertyGroup):
     )
     ensure_root: StringProperty(
         name="Root Bone",
-        description="Bones that would otherwise be orphaned will be parented to this bone. If the bone doesn't exist, it will be created",
+        description="Bones that would otherwise be orphaned will be parented to this bone. This bone is also considered the root for FK Hinge set-ups. If the this root bone doesn't exist, it will be created, also in the metarig. This root bone does not have to be the true root: It is allowed to have parents!",
         default='root',
     )
     properties_bone: StringProperty(
@@ -290,7 +291,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 yield bone_set
 
     @property
-    def bone_infos(self):
+    def bone_infos(self) -> Iterator[BoneInfo]:
         for bone_set in self.bone_sets:
             for bone_info in bone_set:
                 yield bone_info
@@ -517,16 +518,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         return comp_map
 
     def ensure_root_bone_component(self, context, metarig, root_name='root'):
+        # Note: The root bone MAY have a parent! It doesn't have to be the true root.
+        # It is merely the bone to which:
+        # - Orphan bones are automatically parented.
+        # - IK pole targets are parented to when "IK Pole Follow" set-ups are generated, but not currently in use.
+        # - FK Hinge bones are parented to when hinge is enabled.
         if root_name in metarig.data.bones:
-            bone = metarig.data.bones[root_name]
-            if bone.parent:
-                self.logger.log(
-                    rpt_("Root Bone has a parent!"),
-                    base_bone_name=bone.parent.name,
-                    description=rpt_(
-                        "If you've added an additional root parent, make sure to set " \
-                        "that as the Root Bone under the Generation panel"),
-                )
             return metarig.pose.bones[root_name]
 
         bpy.ops.object.mode_set(mode='EDIT')
@@ -627,7 +624,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
     def parent_orphan_bone_infos_to_root(self):
         for bone_info in self.bone_infos:
-            if bone_info == self.root_bone_info:
+            if bone_info == self.root_bone_info or self.root_bone_info in bone_info.children_recursive:
                 continue
             if bone_info.is_orphan:
                 bone_info.parent = self.root_bone_info
@@ -855,8 +852,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
 
 def parent_orphans(rig: Object, root_name: str):
+    root_pb = rig.pose.bones.get(root_name)
     def is_orphan(bone):
         pbone = rig.pose.bones[bone.name]
+        if root_pb in pbone.children_recursive:
+            # A bone that is the parent of the root bone is not considered orphaned.
+            return False
         if bone.parent:
             return False
         if any((con for con in pbone.constraints if con.type in ('ARMATURE', 'CHILD_OF'))):
