@@ -273,7 +273,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
             parent=self.__get_default_ik_parent(),
             use_transform_at_custom_shape=True,
         )
-
+        if self.params.ik_chain.world_align:
+            ik_master.world_align()
+        elif self.params.ik_chain.flatten_controls:
+            ik_master.flatten()
         self.ik_controls.append(ik_master)
 
         return ik_master
@@ -382,10 +385,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 )
                 # Parent this one to the IK master.
                 ik_bone.parent = ik_mstr
-                if self.params.ik_chain.world_align:
-                    ik_mstr.world_align()
-                elif self.params.ik_chain.flatten_controls:
-                    ik_mstr.flatten()
 
         return ik_chain
 
