@@ -18,6 +18,7 @@ from typing import Any
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -2630,7 +2631,7 @@ class POSE_OT_cloudrig_collection_delete(Operator):
 
         coll_name = coll.name
         rig.data.collections.remove(coll)
-        self.report({'INFO'}, "Deleted active collection: '{coll_name}'".format(coll_name=coll_name))
+        self.report({'INFO'}, rpt_("Deleted active collection: '{coll_name}'").format(coll_name=coll_name))
         return True
 
     def delete_hierarchy(self, rig):
@@ -2931,7 +2932,7 @@ class POSE_OT_cloudrig_collection_clipboard_copy(Operator):
 
         context.window_manager.clipboard = json.dumps(json_obj)
 
-        self.report({'INFO'}, "Copied {counter} collections to Blender clipboard.".format(counter=counter))
+        self.report({'INFO'}, rpt_("Copied {counter} collections to Blender clipboard.").format(counter=counter))
         return {'FINISHED'}
 
 
@@ -3003,7 +3004,7 @@ class POSE_OT_cloudrig_collection_clipboard_paste(Operator):
             self.report({'ERROR'}, "No collections in clipboard to be pasted.")
             return {'CANCELLED'}
 
-        self.report({'INFO'}, "Pasted {counter} collections from clipboard.".format(counter=counter))
+        self.report({'INFO'}, rpt_("Pasted {counter} collections from clipboard.").format(counter=counter))
         return {'FINISHED'}
 
 

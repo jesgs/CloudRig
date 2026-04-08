@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
 
@@ -51,7 +52,7 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
         if self.start_bone:
             start_pb = rig.pose.bones.get(self.start_bone)
         if not start_pb:
-            self.report({'ERROR'}, "Bone not found: {bone}".format(bone=self.start_bone))
+            self.report({'ERROR'}, rpt_("Bone not found: {bone}").format(bone=self.start_bone))
             return {'CANCELLED'}
 
         # Enter edit mode

@@ -2,6 +2,7 @@
 
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import Bone, EditBone, Menu, Object, Operator, PoseBone
 from bpy.utils import flip_name
 
@@ -103,7 +104,7 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
 
     def execute(self, context):
         affected = self.affect_bones(context)
-        self.report({'INFO'}, "Disconnected {num_bones}.".format(num_bones=len(affected)))
+        self.report({'INFO'}, rpt_("Disconnected {num_bones}.").format(num_bones=len(affected)))
         return {'FINISHED'}
 
 
@@ -134,7 +135,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
 
     def execute(self, context):
         affected = self.affect_bones(context)
-        self.report({'INFO'}, "Unparented {num_bones}.".format(num_bones=len(affected)))
+        self.report({'INFO'}, rpt_("Unparented {num_bones}.").format(num_bones=len(affected)))
         return {'FINISHED'}
 
 

@@ -250,7 +250,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         )
         base_bone_name = kwargs.get('base_bone_name', "")
         if base_bone_name:
-            errmsg = base_bone_name + ": " + errmsg
+            errmsg = base_bone_name + ": " + rpt_(errmsg)
         raise CloudGeneratorError(message=errmsg)
 
     def find_bone_info(self, name):
@@ -1155,7 +1155,7 @@ class CLOUDRIG_OT_generate(Operator):
             # This means an error has occurred. It was already handled in generate_rig().
             self.report(
                 {'ERROR'},
-                "Generation of {metarig} has failed. See the Generation Log for more info."
+                rpt_("Generation of {metarig} has failed. See the Generation Log for more info.")
                 .format(metarig=metarig.name),
             )
             return {'FINISHED'}
@@ -1175,13 +1175,13 @@ class CLOUDRIG_OT_generate(Operator):
         if len(metarig.cloudrig.generator.logs) > 0:
             self.report(
                 {'WARNING'},
-                "Generation of {new_rig} successful with {num_warnings} warnings. ({seconds}s)"
+                rpt_("Generation of {new_rig} successful with {num_warnings} warnings. ({seconds}s)")
                 .format(new_rig=new_rig.name, num_warnings=len(metarig.cloudrig.generator.logs), seconds=f"{duration:.2f}"),
             )
         else:
             self.report(
                 {'INFO'},
-                "Generation of {new_rig} successful. ({seconds}s)"
+                rpt_("Generation of {new_rig} successful. ({seconds}s)")
                 .format(new_rig=new_rig.name, seconds=f"{duration:.2f}")
             )
 

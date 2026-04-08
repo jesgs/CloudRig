@@ -1,5 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..generation.cloud_generator import CloudRig_Generator
+    from ..rig_component_features.overlay_painter import OverlayPainter
+
 import json
 import os
 import platform
@@ -224,25 +232,98 @@ def get_datablock_type_icon(datablock):
     return bpy.types.DriverTarget.bl_rna.properties['id_type'].enum_items[typ].icon
 
 
+class CloudRigLogEntry(PropertyGroup):
+    "Log Entry"
+    __longdoc__ = """Container for storing information about a single metarig warning/error.
+
+    A CollectionProperty of CloudRigLogEntries are added to the armature datablock
+    in cloud_generator.register().
+
+    This CollectionProperty is then populated by a CloudLogManager instance created by
+    CloudRig_Generator, which is created by the Generate operator.
+    """
+
+    icon: StringProperty(
+        name="Icon", description="Icon for this log entry", default='ERROR'
+    )
+    base_bone_name: StringProperty(
+        name="Rig Bone",
+        description="Name of the bone on the metarig which owns the rig that created this entry",
+        default="",
+    )
+    display_stack_trace: EnumProperty(
+        items=[
+            ('ADVANCED', "Advanced", "Display stack trace only if Advanced Mode is enabled"),
+            ('NEVER', "Never", "Never display stack trace"),
+            ('ALWAYS', "Always", "Always display stack trace")
+        ],
+        description="Whether the stack trace for this log entry should be displayed never, always, or only when Advanced Mode is enabled",
+    )
+    note: StringProperty(
+        name="Note",
+        description="Extra note that gets displayed in the UIList when there's no owner bone",
+        default="",
+    )
+    note_icon: StringProperty(
+        name="Note Icon", description="Icon for the extra note", default='NONE'
+    )
+    trouble_bone: StringProperty(
+        name="Problem Bone",
+        description="Name of the bone on the Target Rig which the entry relates to",
+        default="",
+    )
+    description_short: StringProperty(
+        name="Short Description", description="Something went wrong!", default=""
+    )
+    description: StringProperty(name="Description", description="", default="")
+    pretty_stack: StringProperty(
+        name="Pretty Stack",
+        description="Stack trace in the code of where this log entry was added. For internal use only",
+    )
+    operator: StringProperty(
+        name="Operator", description="Operator that can fix the issue", default=''
+    )
+    op_kwargs: StringProperty(
+        name="Operator Arguments",
+        description="Keyword arguments that will be passed to the operator. This should be a string that can be eval()'d into a python dict",
+        default='',
+    )
+    op_text: StringProperty(
+        name="Operator Text",
+        description="Text to display on quick fix button",
+        default='',
+    )
+    op_icon: StringProperty(
+        name="Operator Icon",
+        description="Icon to display on quick fix button",
+        default='BLANK1',
+    )
+    is_fatal: BoolProperty(
+        name="Is Fatal",
+        description="Display this log entry as a fatal error",
+        default=False,
+    )
+
+
 class CloudLogManager:
     """Class to manage CloudRigLogEntry CollectionProperty on metarigs.
 
     This class is instanced once per rig generation, by the CloudRig_Generator class.
     """
 
-    def __init__(self, generator):
+    def __init__(self, generator: CloudRig_Generator):
         self.generator = generator
 
     @property
-    def metarig(self):
+    def metarig(self) -> Object:
         return self.generator.metarig
 
     @property
-    def rig(self):
+    def rig(self) -> Object:
         return self.generator.target_rig
 
     @property
-    def painter(self):
+    def painter(self) -> OverlayPainter:
         return self.generator.painter
 
     def log(
@@ -260,9 +341,10 @@ class CloudLogManager:
         op_kwargs={},
         op_text="",
         op_icon='BLANK1',
-    ):
+        is_fatal=False,
+    ) -> CloudRigLogEntry:
         """Low-level function to add a log entry to the metarig object's data."""
-        entry = self.metarig.cloudrig.generator.logs.add()
+        entry: CloudRigLogEntry = self.metarig.cloudrig.generator.logs.add()
         entry.pretty_stack = get_pretty_stack()
         entry.base_bone_name = base_bone_name
         entry.trouble_bone = trouble_bone
@@ -284,13 +366,14 @@ class CloudLogManager:
         entry.op_kwargs = json.dumps(op_kwargs)
         entry.op_text = op_text
         entry.op_icon = op_icon
+        entry.is_fatal = is_fatal
 
         return entry
 
     @no_overlay
     def log_fatal_error(
         self, description_short: str, *, wipe_log=True, description="", **kwargs
-    ):
+    ) -> CloudRigLogEntry:
         """
         Wipe all other log entries, and create a log entry for an error that has caused
         generation to halt.
@@ -299,8 +382,9 @@ class CloudLogManager:
         if wipe_log:
             self.clear()
         entry = self.log(
-            rpt_("(Fatal) ") + description_short,
+            description_short,
             description=description or description_short,
+            is_fatal=True,
             **kwargs,
         )
 
@@ -667,74 +751,6 @@ class CloudLogManager:
             )
 
 
-class CloudRigLogEntry(PropertyGroup):
-    "Log Entry"
-    __longdoc__ = """Container for storing information about a single metarig warning/error.
-
-    A CollectionProperty of CloudRigLogEntries are added to the armature datablock
-    in cloud_generator.register().
-
-    This CollectionProperty is then populated by a CloudLogManager instance created by
-    CloudRig_Generator, which is created by the Generate operator.
-    """
-
-    icon: StringProperty(
-        name="Icon", description="Icon for this log entry", default='ERROR'
-    )
-    base_bone_name: StringProperty(
-        name="Rig Bone",
-        description="Name of the bone on the metarig which owns the rig that created this entry",
-        default="",
-    )
-    display_stack_trace: EnumProperty(
-        items=[
-            ('ADVANCED', "Advanced", "Display stack trace only if Advanced Mode is enabled"),
-            ('NEVER', "Never", "Never display stack trace"),
-            ('ALWAYS', "Always", "Always display stack trace")
-        ],
-        description="Whether the stack trace for this log entry should be displayed never, always, or only when Advanced Mode is enabled",
-    )
-    note: StringProperty(
-        name="Note",
-        description="Extra note that gets displayed in the UIList when there's no owner bone",
-        default="",
-    )
-    note_icon: StringProperty(
-        name="Note Icon", description="Icon for the extra note", default='NONE'
-    )
-    trouble_bone: StringProperty(
-        name="Problem Bone",
-        description="Name of the bone on the Target Rig which the entry relates to",
-        default="",
-    )
-    description_short: StringProperty(
-        name="Short Description", description="Something went wrong!", default=""
-    )
-    description: StringProperty(name="Description", description="", default="")
-    pretty_stack: StringProperty(
-        name="Pretty Stack",
-        description="Stack trace in the code of where this log entry was added. For internal use only",
-    )
-    operator: StringProperty(
-        name="Operator", description="Operator that can fix the issue", default=''
-    )
-    op_kwargs: StringProperty(
-        name="Operator Arguments",
-        description="Keyword arguments that will be passed to the operator. This should be a string that can be eval()'d into a python dict",
-        default='',
-    )
-    op_text: StringProperty(
-        name="Operator Text",
-        description="Text to display on quick fix button",
-        default='',
-    )
-    op_icon: StringProperty(
-        name="Operator Icon",
-        description="Icon to display on quick fix button",
-        default='BLANK1',
-    )
-
-
 class CLOUDRIG_UL_log_entry_slots(UIList):
     """CloudRigLogEntries are displayed under Properties->Armature->CloudRig->Generation Log,
     when the active object is a CloudRig Metarig.
@@ -744,20 +760,15 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
         self, _context, layout, _data, item, icon_value, _active_data, _active_propname
     ):
         log = item
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            row = layout.row()
-            row.prop(log, 'description_short', text="", icon=log.icon, emboss=False)
-            if log.note != "":
-                row.prop(
-                    log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE'
-                )
-            elif log.base_bone_name != "":
-                row.prop(log, 'base_bone_name', text="", emboss=False, icon='BONE_DATA')
-
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
-            layout.label(text="", icon_value=icon_value)
-
+        row = layout.row()
+        text = rpt_(log.description_short)
+        if log.is_fatal:
+            text = rpt_("(Fatal) ") + text
+        row.label(text=text, icon=log.icon)
+        if log.note != "":
+            row.prop(log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE')
+        elif log.base_bone_name != "":
+            row.prop(log, 'base_bone_name', text="", emboss=False, icon='BONE_DATA')
 
 def draw_log_panel(context, layout):
     metarig = context.object
@@ -886,7 +897,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
 
         bone = rig.data.bones.get(self.target_bone)
         if not bone:
-            self.report({'ERROR'}, 'Bone "{bone}" not in Armature "{rig}".'.format(bone=self.target_bone, rig=rig.name))
+            self.report({'ERROR'}, rpt_('Bone "{bone}" not in Armature "{rig}".').format(bone=self.target_bone, rig=rig.name))
             return {'CANCELLED'}
 
         reveal_and_select_bone(context, bone)
@@ -993,7 +1004,7 @@ class RenameThingOp:
             return {'CANCELLED'}
 
         if not thing:
-            self.report({'ERROR'}, 'Old name "{old_name}" not found or not provided.'.format(old_name=self.old_name))
+            self.report({'ERROR'}, rpt_('Old name "{old_name}" not found or not provided.').format(old_name=self.old_name))
             return {'CANCELLED'}
 
         self.set_name(thing, self.new_name)
@@ -1060,7 +1071,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         new_obj = bpy.data.objects.get((self.new_name, None))
 
         if not old_obj and new_obj:
-            self.report({'ERROR'}, 'One of "{old}" or "{new}" were not found.'.format())
+            self.report({'ERROR'}, rpt_('One of "{old}" or "{new}" were not found.').format(old=self.old_name, new=self.new_name))
             return {'CANCELLED'}
 
         rigs = [metarig]
@@ -1104,7 +1115,10 @@ class CLOUDRIG_OT_Delete_Object(Operator):
         metarig.cloudrig.generator.remove_active_log()
 
         if not ob:
-            self.report({'WARNING'}, '"{obj}" not found. It must have already been deleted.'.format(obj=self.ob_name),
+            self.report(
+                {'WARNING'},
+                rpt_('"{obj}" not found. It must have already been deleted.')
+                .format(obj=self.ob_name),
             )
             return {'FINISHED'}
 
@@ -1144,7 +1158,7 @@ class CLOUDRIG_OT_Unlink_Widget(Operator):
             if obj in set(coll.objects):
                 coll.objects.unlink(obj)
 
-        self.report({'INFO'}, "Unlinked Custom Shape: {object}".format(object=self.ob_name))
+        self.report({'INFO'}, rpt_("Unlinked Custom Shape: {object}").format(object=self.ob_name))
         return {'FINISHED'}
 
 
@@ -1167,7 +1181,7 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
         old_ref = getattr(pbone.cloudrig_component.params, param_split[1])
         setattr(param_category, param_split[1], None)
 
-        self.report({'INFO'}, 'Cleared reference to "{old_ref}" on "{bone}".'.format(old_ref=old_ref.name, bone=pbone.name))
+        self.report({'INFO'}, rpt_('Cleared reference to "{old_ref}" on "{bone}".').format(old_ref=old_ref.name, bone=pbone.name))
         metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
@@ -1242,9 +1256,9 @@ class CLOUDRIG_OT_delete_bone_collection(Operator):
         if self.coll_name in metarig.data.collections_all:
             coll = metarig.data.collections_all.get(self.coll_name)
             metarig.data.collections.remove(coll)
-            self.report({'INFO'}, "Deleted '{coll_name}' collection.".format(coll_name=self.coll_name))
+            self.report({'INFO'}, rpt_("Deleted '{coll_name}' collection.").format(coll_name=self.coll_name))
         else:
-            self.report({'INFO'}, "Collection '{coll_name}' not found.".format(coll_name=self.coll_name))
+            self.report({'INFO'}, rpt_("Collection '{coll_name}' not found.").format(coll_name=self.coll_name))
 
         metarig.cloudrig.generator.remove_active_log()
 
@@ -1273,7 +1287,7 @@ class CLOUDRIG_OT_edit_bone_transform(Operator):
         ebone = metarig.data.edit_bones.get(self.bone_name)
         if not ebone:
             metarig.cloudrig.generator.remove_active_log()
-            self.report({'ERROR'}, "Bone not found: {bone}".format(bone=self.bone_name))
+            self.report({'ERROR'}, rpt_("Bone not found: {bone}").format(bone=self.bone_name))
             return {'CANCELLED'}
 
         vectors = [ebone.head]
@@ -1288,7 +1302,7 @@ class CLOUDRIG_OT_edit_bone_transform(Operator):
         bpy.ops.object.mode_set(mode=org_mode)
 
         metarig.cloudrig.generator.remove_active_log()
-        self.report({'INFO'}, "Tweaked rest pose of {bone}.".format(bone=self.bone_name))
+        self.report({'INFO'}, rpt_("Tweaked rest pose of {bone}.").format(bone=self.bone_name))
         return {'FINISHED'}
 
 
@@ -1304,13 +1318,13 @@ class CLOUDRIG_OT_link_obj_to_scene(Operator):
     def execute(self, context):
         obj = bpy.data.objects.get(self.ob_name)
         if not obj:
-            self.report({'ERROR'}, "Couldn't find {object}.".format(object=self.ob_name))
+            self.report({'ERROR'}, rpt_("Couldn't find {object}.").format(object=self.ob_name))
         else:
             context.scene.collection.objects.link(obj)
 
         metarig = context.object
         metarig.cloudrig.generator.remove_active_log()
-        self.report({'INFO'}, "Linked {object} to {scene}.".format(object=obj.name, scene=context.scene.name))
+        self.report({'INFO'}, rpt_("Linked {object} to {scene}.").format(object=obj.name, scene=context.scene.name))
         return {'FINISHED'}
 
 
@@ -1359,7 +1373,7 @@ class CLOUDRIG_OT_reparent_metarig_children(Operator):
 
         metarig.cloudrig.generator.remove_active_log()
 
-        self.report({'INFO'}, "Parented {count} objects to generated rig.".format(count=count))
+        self.report({'INFO'}, rpt_("Parented {count} objects to generated rig.").format(count=count))
         return {'FINISHED'}
 
 
@@ -1405,7 +1419,7 @@ class CLOUDRIG_OT_remove_old_properties(Operator):
             except (ValueError, KeyError):
                 continue
 
-        self.report({'INFO'}, "Removed {count} properties.".format(count=counter))
+        self.report({'INFO'}, rpt_("Removed {count} properties.").format(count=counter))
 
         metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}

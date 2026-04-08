@@ -3,6 +3,7 @@
 import json
 from collections import OrderedDict
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.types import UILayout
 
@@ -154,6 +155,7 @@ def draw_label_with_linebreak(context, layout, text, alert=False, align_split=Fa
 
     if text == "":
         return
+    text = iface_(text)
     col = layout.column(align=True)
     col.alert = alert
     if align_split:

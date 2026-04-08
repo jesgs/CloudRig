@@ -2,6 +2,7 @@
 
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty
 from bpy.types import Bone, EditBone, Object, Operator, PoseBone
 
@@ -121,7 +122,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
 
         to_rig.hide_set(False)
         if not to_rig.visible_get():
-            self.report({'ERROR'}, 'Could not make "{rig}" visible. It must be enabled, and in an enabled collection.'.format(rig=to_rig.name))
+            self.report({'ERROR'}, rpt_('Could not make "{rig}" visible. It must be enabled, and in an enabled collection.').format(rig=to_rig.name))
             return {'CANCELLED'}
 
         if context.mode == 'EDIT':

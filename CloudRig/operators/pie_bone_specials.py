@@ -2,6 +2,7 @@
 
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import EditBone, Menu, Object, Operator, PoseBone
 
 from ..bs_utils.hotkeys import register_hotkey
@@ -24,7 +25,7 @@ class POSE_OT_delete_bones(GenericBoneOperator, Operator):
 
     def execute(self, context):
         affected = self.affect_bones(context)
-        self.report({'INFO'}, "Bones Deleted: {num_bones}.".format(num_bones=len(affected)))
+        self.report({'INFO'}, rpt_("Bones Deleted: {num_bones}.").format(num_bones=len(affected)))
         return {'FINISHED'}
 
 

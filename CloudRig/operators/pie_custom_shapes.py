@@ -3,6 +3,7 @@
 import bpy
 from bl_ui.properties_data_bone import BONE_PT_display
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import EnumProperty
 from bpy.types import Menu, Operator, PoseBone
 from mathutils import Matrix
@@ -44,7 +45,7 @@ class POSE_OT_unassign_custom_shape(Operator):
                 counter += 1
                 pb.custom_shape = None
 
-        self.report({'INFO'}, "Bone shapes unassigned: {num_bones}.".format(num_bones=counter))
+        self.report({'INFO'}, rpt_("Bone shapes unassigned: {num_bones}.").format(num_bones=counter))
 
         return {'FINISHED'}
 
@@ -99,7 +100,7 @@ class POSE_OT_assign_selected_custom_shape(Operator):
                 pb.custom_shape = widget
                 counter += 1
 
-        self.report({'INFO'}, "Shapes assigned to bones: {num_bones}.".format(num_bones=counter))
+        self.report({'INFO'}, rpt_("Shapes assigned to bones: {num_bones}.").format(num_bones=counter))
 
         return {'FINISHED'}
 
@@ -135,7 +136,7 @@ class POSE_OT_reload_selected_custom_shape(Operator):
         for i, pb in enumerate(self.get_bones_to_reload(context)):
             pb.custom_shape = ensure_widget(pb.custom_shape.name, overwrite=True)
 
-        self.report({'INFO'}, "Bone shapes reloaded: {count}.".format(count=i+1))
+        self.report({'INFO'}, rpt_("Bone shapes reloaded: {count}.").format(count=i+1))
 
         return {'FINISHED'}
 
@@ -169,7 +170,7 @@ class POSE_OT_copy_custom_shape_to_selected_bones(Operator):
             pb.bone.show_wire = active_pb.bone.show_wire
             pb.custom_shape_wire_width = active_pb.custom_shape_wire_width
 
-        self.report({'INFO'}, "Copied shape to bones: {num_bones}.".format(num_bones=i))
+        self.report({'INFO'}, rpt_("Copied shape to bones: {num_bones}.").format(num_bones=i))
 
         return {'FINISHED'}
 
@@ -392,7 +393,7 @@ class POSE_OT_assign_selected_object_as_custom_shape(Operator):
                 pb.custom_shape = shape
                 counter += 1
 
-        self.report({'INFO'}, "{object} assigned to bones: {num_bones}.".format(object=shape.name, num_bones=counter))
+        self.report({'INFO'}, rpt_("{object} assigned to bones: {num_bones}.").format(object=shape.name, num_bones=counter))
         return {'FINISHED'}
 
 

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import Operator
 from bpy.utils import flip_name
 
@@ -60,7 +61,7 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
             copy_property_group(from_pbone.cloudrig_component, to_pbone.cloudrig_component, x_mirror=True)
             num_mirrored += 1
 
-        self.report({'INFO'}, "Mirrored parameters of {num_mirrored} bones.".format(num_mirrored=num_mirrored))
+        self.report({'INFO'}, rpt_("Mirrored parameters of {num_mirrored} bones.").format(num_mirrored=num_mirrored))
 
         return {'FINISHED'}
 

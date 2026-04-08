@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty
 from bpy.types import Action, ActionSlot, Constraint, Operator
 
@@ -54,7 +55,7 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
                     c.mute = not self.enable
                     con_count += 1
 
-        self.report({'INFO'}, 'Affected constraints: {count}'.format(count=con_count))
+        self.report({'INFO'}, rpt_('Affected constraints: {count}').format(count=con_count))
 
         return {'FINISHED'}
 

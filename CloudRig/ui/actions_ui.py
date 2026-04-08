@@ -9,7 +9,6 @@ import bpy
 from bl_math import clamp
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
-from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -490,7 +489,7 @@ class CLOUDRIG_UL_action_setups(UIList):
                 # No trigger set -> no setup or invalid setup
                 if not trigger_setup or trigger_setup.is_corrective:
                     row.alert = True
-                    text = "Missing Trigger" if not trigger_setup else "Corrective Trigger (Unsupported)"
+                    text = iface_("Missing Trigger") if not trigger_setup else iface_("Corrective Trigger (Unsupported)")
                     icon = 'ERROR'
                     break
 
@@ -671,7 +670,7 @@ def draw_action_setup_ui(layout, action_setup, target_rig):
             if action_setup.subtarget:
                 aligned_label(
                     layout,
-                    text=rpt_("Bone not found: {bone}").format(bone=action_setup.subtarget),
+                    text=iface_("Bone not found: {bone}").format(bone=action_setup.subtarget),
                     icon='ERROR',
                     alert=True,
                 )
@@ -688,13 +687,13 @@ def draw_action_setup_ui(layout, action_setup, target_rig):
 
         row = layout.row()
         row.use_property_split = True
-        row.prop(action_setup, 'symmetrical', text=rpt_("Symmetrical ({bone})").format(bone=flipped_subtarget))
+        row.prop(action_setup, 'symmetrical', text="Symmetrical ({bone})".format(bone=flipped_subtarget))
 
         if action_setup.symmetrical and not flipped_subtarget_exists:
             row.alert = True
             aligned_label(
                 layout,
-                text=rpt_("Bone not found: {bone}").format(bone=flipped_subtarget),
+                text=iface_("Bone not found: {bone}").format(bone=flipped_subtarget),
                 icon='ERROR',
                 alert=True,
             )
@@ -719,24 +718,22 @@ def draw_status(layout, action_setup):
         col = split.column(align=True)
         col.alert = True
         col.label(text="Min and max value are the same!")
-        col.label(text=rpt_("Will be stuck reading frame {frame}!").format(frame=action_setup.frame_start))
+        col.label(text="Will be stuck reading frame {frame}!".format(frame=action_setup.frame_start))
         return
 
     if action_setup.frame_start == action_setup.frame_end:
         col = split.column(align=True)
         col.alert = True
         col.label(text="Start and end frame cannot be the same!")
+        return
 
     default_frame = action_setup.get_default_frame()
 
     if action_setup.is_default_frame_integer():
-        split.label(text=rpt_("Default Frame: {frame}").format(frame=round(default_frame)))
+        split.label(text=iface_("Default Frame: {frame}").format(frame=round(default_frame, 2)))
     else:
         split.alert = True
-        split.label(
-            text=rpt_("Default Frame: {frame} "
-            "(Should be a whole number!)").format(frame=round(default_frame, 2))
-        )
+        split.label(text=iface_("Default Frame: {frame} (Should be a whole number!)").format(frame=round(default_frame, 2)))
 
 
 registry = (

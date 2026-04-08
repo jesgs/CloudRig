@@ -142,9 +142,9 @@ def draw_general_panel(context, layout):
 
     # Test Animation Parameters
     if metarig_contains_fk_chain(metarig):
-        heading = "Generate Action"
+        heading = iface_("Generate Action")
         if generator.test_action:
-            heading = "Update Action"
+            heading = iface_("Update Action")
         act_row = layout.row(heading=heading)
         act_row.prop(generator, 'generate_test_action', text="")
         act_col = act_row.column()
