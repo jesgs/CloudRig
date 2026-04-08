@@ -2042,7 +2042,7 @@ class CLOUDRIG_UL_collections(UIList):
 
             if prefs.show_bone_count:
                 main_row.label(
-                    text=f"{len(indirect_selected_bones)}/{len(indirect_bones)}",
+                    text="{selected}/{total}".format(selected=len(indirect_selected_bones), total=len(indirect_bones)),
                     icon='BONE_DATA',
                 )
 
@@ -2895,10 +2895,17 @@ class POSE_OT_cloudrig_collection_assign(Operator):
 
         # Report pretty info; Assigned/Unassigned, to/from, number of bones and collections,
         # or use the name if just 1.
-        words = ("Assigned", "to") if self.assign else ("Unassigned", "from")
-        bones = f"{len(pbs)} bones" if len(pbs) > 0 else pbs[0].name
-        colls = f"{len(colls)} collections" if len(colls) > 0 else colls[0].name
-        self.report({'INFO'}, f"{words[0]} {bones} {words[1]} {colls}.")
+        if self.assign:
+            if len(colls) > 1:
+                message = rpt_("Assigned {num_bones} bones to {num_collections} collections.")
+            else:
+                message = rpt_("Assigned {num_bones} bones to {collection}.")
+        else:
+            if len(colls) > 1:
+                message = rpt_("Removed {num_bones} bones from {num_collections} collections.")
+            else:
+                message = rpt_("Removed {num_bones} bones from {collection}.")
+        self.report({'INFO'}, message.format(num_bones=len(pbs), num_collections=len(colls), collection=colls[0].name))
 
         return {'FINISHED'}
 

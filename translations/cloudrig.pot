@@ -807,7 +807,7 @@ msgid "Separate the selected bones into a new armature object"
 msgstr ""
 
 #. :src: bpy.types.POSE_OT_separate_selected_bones
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:433
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:438
 msgctxt "Operator"
 msgid "Separate Selected"
 msgstr ""
@@ -851,6 +851,11 @@ msgstr ""
 #. :src: bpy.types.SCENE_OT_link_object_by_name
 msgctxt "Operator"
 msgid "Link Object to Scene"
+msgstr ""
+
+#. :src: bpy.types.WINDOW_OT_restore_deleted_hotkeys
+msgctxt "Operator"
+msgid "Restore Deleted Hotkeys"
 msgstr ""
 
 #. :src: bpy.types.WM_OT_cloudrig_report_bug
@@ -1694,6 +1699,29 @@ msgstr ""
 
 #. :src: bpy.types.PREFERENCES_OT_set_bone_color_presets.preset:'BLENDER'
 msgid "Assign Blender's default bone color presets"
+msgstr ""
+
+#. :src: bpy.types.WINDOW_OT_restore_deleted_hotkeys
+msgid ""
+"Restore any missing built-in or add-on hotkeys.\n"
+"(These should be disabled instead of being deleted.)\n"
+"This operation cannot be undone!"
+msgstr ""
+
+#. :src: bpy.types.CollectionProperty
+msgid "Collection Definition"
+msgstr ""
+
+#. :src: bpy.types.CollectionProperty
+msgid "RNA collection property to define lists, arrays and mappings"
+msgstr ""
+
+#. :src: bpy.types.CollectionProperty.fixed_type
+msgid "Pointer Type"
+msgstr ""
+
+#. :src: bpy.types.CollectionProperty.fixed_type
+msgid "Fixed pointer type, empty if variable type"
 msgstr ""
 
 #. :src: bpy.types.ActionConstraintSetup.action
@@ -2923,107 +2951,193 @@ msgstr ""
 msgid "Collection dedicated to storing nothing but the custom shapes used by this rig. Additional objects will result in warnings, and missing custom shapes will be re-linked during generation"
 msgstr ""
 
-#. :src: bpy.types.Params.align_roll
-msgid "Align Roll"
+#. :src: bpy.types.Params.props_storage
+msgid "Custom Property Storage"
 msgstr ""
 
-#. :src: bpy.types.Params.align_roll
-msgid "Re-calculate the bone roll of STR controls based on the ORG bones"
+#. :src: bpy.types.Params.props_storage
+msgid "Where to store the custom properties needed for this rig component"
 msgstr ""
 
-#. :src: bpy.types.Params.bbone_density
-msgid "B-Bone Density"
+#. :src: bpy.types.Params.props_storage:'DEFAULT'
+msgid "Shared"
 msgstr ""
 
-#. :src: bpy.types.Params.bbone_density
-msgid "Average number of B-Bone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 B-Bone Segments unless this parameter is 0"
+#. :src: bpy.types.Params.props_storage:'DEFAULT'
+msgid "Use a shared bone called \"Properties\""
 msgstr ""
 
-#. :src: bpy.types.Params.preserve_volume
-msgid ""
-"The bone will become thinner and thicker depending on stretching length.\n"
-"\n"
-"NOTE: This will result in non-uniform scale inheritance when scaling root bones!"
+#. :src: bpy.types.Params.props_storage:'CUSTOM'
+msgid "Picked"
 msgstr ""
 
-#. :src: bpy.types.Params.segments
-msgid "Stretch Segments"
+#. :src: bpy.types.Params.props_storage:'CUSTOM'
+msgid "Select an existing bone"
 msgstr ""
 
-#. :src: bpy.types.Params.segments
-msgid "Number of bendy bones to create for each original bone"
+#. :src: bpy.types.Params.props_storage:'GENERATED'
+msgid "Generate a bone specifically for this rig component, prefixed \"PRP-\""
 msgstr ""
 
-#. :src: bpy.types.Params.shape_key_helpers
-msgid "Create Shape Key Helpers"
+#. :src: bpy.types.Params.props_storage_bone
+msgid "Store custom properties in the chosen bone. If empty, will fall back to a bone called \"Properties\""
 msgstr ""
 
-#. :src: bpy.types.Params.shape_key_helpers
-msgid "Create SKH bones that read the rotation between two deform bones, which can be used to drive corrective shape keys"
+#. :src: bpy.types.Params.at_tip
+msgid "IK At Tail"
+msgstr ""
+
+#. :src: bpy.types.Params.at_tip
+msgid "Put the IK control at the tail of the chain, rather than the head of the last bone"
+msgstr ""
+
+#. :src: bpy.types.Params.default_fkik
+msgid "Default FK/IK"
+msgstr ""
+
+#. :src: bpy.types.Params.default_stretch
+msgid "Default IK Stretch"
+msgstr ""
+
+#. :src: bpy.types.Params.flatten_controls
+msgid "Flatten Controls (Deprecated)"
+msgstr ""
+
+#. :src: bpy.types.Params.flatten_controls
+msgid "Align the last controls with the closest world axis. This option is deprecated and will be removed in Blender 6.0 in favor of 'World Align Controls'."
+msgstr ""
+
+#. :src: bpy.types.Params.pole_parent_switch
+msgid "Pole Parent Switching"
+msgstr ""
+
+#. :src: bpy.types.Params.pole_parent_switch
+msgid "How the IK Pole's parent switching options should be determined."
+msgstr ""
+
+#. :src: bpy.types.Params.pole_parent_switch:'FOLLOW'
+msgid "The IK Pole is parented always to the same bone as the IK master, or to the IK master itself, determined by a single slider."
+msgstr ""
+
+#. :src: bpy.types.Params.pole_parent_switch:'INDIVIDUAL'
+msgid "The IK Pole gets the same parenting options as the IK Master, plus the IK Master itself as a parent option."
+msgstr ""
+
+#. :src: bpy.types.Params.use_pole
+msgid "Create IK Pole"
+msgstr ""
+
+#. :src: bpy.types.Params.use_pole
+msgid "If disabled, you can control the rotation of the IK chain by simply rotating its first bone, rather than with an IK pole control"
+msgstr ""
+
+#. :src: bpy.types.Params.world_align
+msgid "World-Align Controls"
+msgstr ""
+
+#. :src: bpy.types.Params.world_align
+msgid "Align the last controls with the world axes"
+msgstr ""
+
+#. :src: bpy.types.Params.double
+msgid "Duplicate Controls"
+msgstr ""
+
+#. :src: bpy.types.Params.double
+msgid "Make duplicates of the main spine controls"
+msgstr ""
+
+#. :src: bpy.types.Params.flatten_controls
+msgid "Align torso and hip controls with the closest world axis. This option is deprecated and will be removed in Blender 6.0 in favor of 'World Align Controls'."
+msgstr ""
+
+#. :src: bpy.types.Params.use_ik
+msgid "Create IK Spine"
+msgstr ""
+
+#. :src: bpy.types.Params.use_ik
+msgid "If disabled, this spine rig will only have FK controls"
+msgstr ""
+
+#. :src: bpy.types.Params.world_align
+msgid "Align the torso and hip controls with the world axes"
+msgstr ""
+
+#. :src: bpy.types.Params.merge
+msgid "Merge Controls"
+msgstr ""
+
+#. :src: bpy.types.Params.merge
+msgid "If any controls of this rig intersect with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
+msgstr ""
+
+#. :src: bpy.types.Params.controls_for_handles
+msgid "Controls for Handles"
+msgstr ""
+
+#. :src: bpy.types.Params.controls_for_handles
+msgid "For every curve point control, create two children that control the handles of that curve point"
+msgstr ""
+
+#. :src: bpy.types.Params.create_root
+#. :src: bpy.types.Params.root
+msgid "Create Root"
+msgstr ""
+
+#. :src: bpy.types.Params.create_root
+msgid "Create a root bone for this rig component"
+msgstr ""
+
+#. :src: bpy.types.Params.hook_name
+msgid "Custom Name"
+msgstr ""
+
+#. :src: bpy.types.Params.hook_name
+msgid "Used in the naming of created bones and objects. If empty, use the base bone's name"
+msgstr ""
+
+#. :src: bpy.types.Params.inherit_scale
+msgid "Scale inheritance setting of the curve hook and spline root controls"
+msgstr ""
+
+#. :src: bpy.types.Params.root_per_spline
+msgid "Root Per Spline"
+msgstr ""
+
+#. :src: bpy.types.Params.root_per_spline
+msgid "This curve has more than one spline. Enable this option to create a root bone for each spline"
+msgstr ""
+
+#. :src: bpy.types.Params.rotatable_handles
+msgid "Rotatable Handles"
+msgstr ""
+
+#. :src: bpy.types.Params.rotatable_handles
+msgid "Use a setup which allows handles to be rotated and scaled - Will behave oddly when rotation is done after translation"
+msgstr ""
+
+#. :src: bpy.types.Params.separate_radius
+msgid "Separate Radius Control"
+msgstr ""
+
+#. :src: bpy.types.Params.separate_radius
+msgid "Create a separate control for controlling the curve points' radii, instead of using the hook control's scale"
 msgstr ""
 
 #. :src: bpy.types.Params.shape_size
 msgid "Custom Shape Size"
 msgstr ""
 
-#. :src: bpy.types.Params.sharp
-msgid "Sharp Sections"
+#. :src: bpy.types.Params.shape_size
+msgid "Size for curve custom shapes"
 msgstr ""
 
-#. :src: bpy.types.Params.sharp
-msgid "B-Bone EaseIn/Out is set to 0 for bones connecting two sections"
+#. :src: bpy.types.Params.x_axis_symmetry
+msgid "X Axis Symmetry"
 msgstr ""
 
-#. :src: bpy.types.Params.smooth_spline
-msgid "Smooth Spline"
-msgstr ""
-
-#. :src: bpy.types.Params.smooth_spline
-msgid "B-Bone Splines affect their neighbours for smoother curves"
-msgstr ""
-
-#. :src: bpy.types.Params.tip_control
-msgid "Tip Control"
-msgstr ""
-
-#. :src: bpy.types.Params.tip_control
-msgid "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one, or to make this chain loop into itself"
-msgstr ""
-
-#. :src: bpy.types.Params.unlock_deform
-msgid "Create Deform Controls"
-msgstr ""
-
-#. :src: bpy.types.Params.unlock_deform
-msgid "Create CTR-DEF controls that allow Deform bones to be controlled directly"
-msgstr ""
-
-#. :src: bpy.types.Params.volume_variation
-msgid "How exaggerated the squashing and stretching should be"
-msgstr ""
-
-#. :src: bpy.types.Params.create_forefoot
-msgid "Forefoot Control"
-msgstr ""
-
-#. :src: bpy.types.Params.create_forefoot
-msgid "Create a control at the ball of the foot to pivot from."
-msgstr ""
-
-#. :src: bpy.types.Params.heel_bone
-msgid "Heel Pivot Bone"
-msgstr ""
-
-#. :src: bpy.types.Params.heel_bone
-msgid "(Optional.) Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing from the center outward, with its length defining the width of the shoe."
-msgstr ""
-
-#. :src: bpy.types.Params.use_foot_roll
-msgid "Foot Roll"
-msgstr ""
-
-#. :src: bpy.types.Params.use_foot_roll
-msgid "Create a Foot Roll control. When rotated 90 degrees on the X axis, the foot will be fully vertical (ie. on tippy-toes). Rotate it an additional 45 degrees, and the toe will also be vertical (like a ballerina). The angles are calculated based on the rest pose"
+#. :src: bpy.types.Params.x_axis_symmetry
+msgid "Controls will be named with .L/.R suffixes based on their X position. A curve object that is symmetrical around its own X 0 point is expected, otherwise results may be unexpected. Useful for character mouths"
 msgstr ""
 
 #. :src: bpy.types.Params.bbone_segments
@@ -3098,445 +3212,28 @@ msgstr ""
 msgid "For each original bone, create this many deform bones in the spline chain (Bendy Bones don't take the curve into account, so it's best to use quite a few real bones) NOTE: Spline IK only supports 255 bones in the chain"
 msgstr ""
 
-#. :src: bpy.types.Params.props_storage
-msgid "Custom Property Storage"
+#. :src: bpy.types.Params.create_forefoot
+msgid "Forefoot Control"
 msgstr ""
 
-#. :src: bpy.types.Params.props_storage
-msgid "Where to store the custom properties needed for this rig component"
+#. :src: bpy.types.Params.create_forefoot
+msgid "Create a control at the ball of the foot to pivot from."
 msgstr ""
 
-#. :src: bpy.types.Params.props_storage:'DEFAULT'
-msgid "Shared"
+#. :src: bpy.types.Params.heel_bone
+msgid "Heel Pivot Bone"
 msgstr ""
 
-#. :src: bpy.types.Params.props_storage:'DEFAULT'
-msgid "Use a shared bone called \"Properties\""
+#. :src: bpy.types.Params.heel_bone
+msgid "(Optional.) Bone to use as the heel pivot. This bone should be placed at the heel of the shoe, pointing from the center outward, with its length defining the width of the shoe."
 msgstr ""
 
-#. :src: bpy.types.Params.props_storage:'CUSTOM'
-msgid "Picked"
+#. :src: bpy.types.Params.use_foot_roll
+msgid "Foot Roll"
 msgstr ""
 
-#. :src: bpy.types.Params.props_storage:'CUSTOM'
-msgid "Select an existing bone"
-msgstr ""
-
-#. :src: bpy.types.Params.props_storage:'GENERATED'
-msgid "Generate a bone specifically for this rig component, prefixed \"PRP-\""
-msgstr ""
-
-#. :src: bpy.types.Params.props_storage_bone
-msgid "Store custom properties in the chosen bone. If empty, will fall back to a bone called \"Properties\""
-msgstr ""
-
-#. :src: bpy.types.Params
-msgid "Defines the parameters to be registered in RNA. Must be exactly `Params`."
-msgstr ""
-
-#. :src: bpy.types.Params.default_fkik
-msgid "Default FK/IK"
-msgstr ""
-
-#. :src: bpy.types.Params.default_stretch
-msgid "Default IK Squash"
-msgstr ""
-
-#. :src: bpy.types.Params.flatten_controls
-msgid "Flatten Controls (Deprecated)"
-msgstr ""
-
-#. :src: bpy.types.Params.flatten_controls
-msgid "Align torso and hip controls with the closest world axis. This option is deprecated and will be removed in Blender 6.0 in favor of 'World Align Controls'."
-msgstr ""
-
-#. :src: bpy.types.Params.world_align
-msgid "World-Align Torso"
-msgstr ""
-
-#. :src: bpy.types.Params.world_align
-msgid "Align the torso control with the world axes"
-msgstr ""
-
-#. :src: bpy.types.Params.lattice
-msgid "Lattice Object that will be hooked up to this control. If not left empty, the already existing lattice will not be affected in any way, unless Regenerate Lattice is enabled"
-msgstr ""
-
-#. :src: bpy.types.Params.regenerate
-msgid "Regenerate"
-msgstr ""
-
-#. :src: bpy.types.Params.regenerate
-msgid "Whether to re-generate the lattice object on rig generation. Disable if you intend to modify the generated lattice object manually"
-msgstr ""
-
-#. :src: bpy.types.Params.at_tip
-msgid "IK At Tail"
-msgstr ""
-
-#. :src: bpy.types.Params.at_tip
-msgid "Put the IK control at the tail of the chain, rather than the head of the last bone"
-msgstr ""
-
-#. :src: bpy.types.Params.default_stretch
-msgid "Default IK Stretch"
-msgstr ""
-
-#. :src: bpy.types.Params.flatten_controls
-msgid "Align the last controls with the closest world axis. This option is deprecated and will be removed in Blender 6.0 in favor of 'World Align Controls'."
-msgstr ""
-
-#. :src: bpy.types.Params.pole_parent_switch
-msgid "Pole Parent Switching"
-msgstr ""
-
-#. :src: bpy.types.Params.pole_parent_switch
-msgid "How the IK Pole's parent switching options should be determined."
-msgstr ""
-
-#. :src: bpy.types.Params.pole_parent_switch:'FOLLOW'
-msgid "The IK Pole is parented always to the same bone as the IK master, or to the IK master itself, determined by a single slider."
-msgstr ""
-
-#. :src: bpy.types.Params.pole_parent_switch:'INDIVIDUAL'
-msgid "The IK Pole gets the same parenting options as the IK Master, plus the IK Master itself as a parent option."
-msgstr ""
-
-#. :src: bpy.types.Params.use_pole
-msgid "Create IK Pole"
-msgstr ""
-
-#. :src: bpy.types.Params.use_pole
-msgid "If disabled, you can control the rotation of the IK chain by simply rotating its first bone, rather than with an IK pole control"
-msgstr ""
-
-#. :src: bpy.types.Params.world_align
-msgid "World-Align Controls"
-msgstr ""
-
-#. :src: bpy.types.Params.world_align
-msgid "Align the last controls with the world axes"
-msgstr ""
-
-#. :src: bpy.types.Params.double
-msgid "Duplicate Controls"
-msgstr ""
-
-#. :src: bpy.types.Params.double
-msgid "Make duplicates of the main spine controls"
-msgstr ""
-
-#. :src: bpy.types.Params.world_align
-msgid "Flatten the torso and hips to align with the closest world axis"
-msgstr ""
-
-#. :src: bpy.types.Params.merge
-msgid "Merge Controls"
-msgstr ""
-
-#. :src: bpy.types.Params.merge
-msgid "If any controls of this rig intersect with another, create a parent control that owns all overlapping controls, and hide the overlapping controls on a different layer"
-msgstr ""
-
-#. :src: bpy.types.Params.use_ik
-msgid "Create IK Spine"
-msgstr ""
-
-#. :src: bpy.types.Params.use_ik
-msgid "If disabled, this spine rig will only have FK controls"
-msgstr ""
-
-#. :src: bpy.types.Params.world_align
-msgid "Align the torso and hip controls with the world axes"
-msgstr ""
-
-#. :src: bpy.types.Params.controls_for_handles
-msgid "Controls for Handles"
-msgstr ""
-
-#. :src: bpy.types.Params.controls_for_handles
-msgid "For every curve point control, create two children that control the handles of that curve point"
-msgstr ""
-
-#. :src: bpy.types.Params.create_root
-#. :src: bpy.types.Params.root
-msgid "Create Root"
-msgstr ""
-
-#. :src: bpy.types.Params.create_root
-msgid "Create a root bone for this rig component"
-msgstr ""
-
-#. :src: bpy.types.Params.hook_name
-msgid "Custom Name"
-msgstr ""
-
-#. :src: bpy.types.Params.hook_name
-msgid "Used in the naming of created bones and objects. If empty, use the base bone's name"
-msgstr ""
-
-#. :src: bpy.types.Params.inherit_scale
-msgid "Scale inheritance setting of the curve hook and spline root controls"
-msgstr ""
-
-#. :src: bpy.types.Params.root_per_spline
-msgid "Root Per Spline"
-msgstr ""
-
-#. :src: bpy.types.Params.root_per_spline
-msgid "This curve has more than one spline. Enable this option to create a root bone for each spline"
-msgstr ""
-
-#. :src: bpy.types.Params.rotatable_handles
-msgid "Rotatable Handles"
-msgstr ""
-
-#. :src: bpy.types.Params.rotatable_handles
-msgid "Use a setup which allows handles to be rotated and scaled - Will behave oddly when rotation is done after translation"
-msgstr ""
-
-#. :src: bpy.types.Params.separate_radius
-msgid "Separate Radius Control"
-msgstr ""
-
-#. :src: bpy.types.Params.separate_radius
-msgid "Create a separate control for controlling the curve points' radii, instead of using the hook control's scale"
-msgstr ""
-
-#. :src: bpy.types.Params.shape_size
-msgid "Size for curve custom shapes"
-msgstr ""
-
-#. :src: bpy.types.Params.x_axis_symmetry
-msgid "X Axis Symmetry"
-msgstr ""
-
-#. :src: bpy.types.Params.x_axis_symmetry
-msgid "Controls will be named with .L/.R suffixes based on their X position. A curve object that is symmetrical around its own X 0 point is expected, otherwise results may be unexpected. Useful for character mouths"
-msgstr ""
-
-#. :src: bpy.types.Params.parent_switching
-#: extensions/user_default/CloudRig/rig_components/cloud_fk_chain.py:64
-#: extensions/user_default/CloudRig/rig_components/cloud_ik_chain.py:71
-#: extensions/user_default/CloudRig/rig_components/cloud_limb.py:61
-msgid "Parent Switching"
-msgstr ""
-
-#. :src: bpy.types.Params.parent_switching
-msgid "Use parent switching for this rig. Different rig types may implement this differently. A rig-type-specific explanation is shown below when enabled"
-msgstr ""
-
-#. :src: bpy.types.Params.root_parent
-#: extensions/user_default/CloudRig/rig_component_features/parenting.py:366
-msgid "Root Parent"
-msgstr ""
-
-#. :src: bpy.types.Params.root_parent
-msgid "If specified, parent the root of this rig to the chosen bone. If a bendy bone is chosen, a parent helper bone with an Armature Constraint will be created to correctly inherit transforms from the curvature"
-msgstr ""
-
-#. :src: bpy.types.Params.use_armature_constraint
-msgid "Use Armature Constraint"
-msgstr ""
-
-#. :src: bpy.types.Params.use_armature_constraint
-msgid "Instead of directly parenting this bone to the parent, use an Armature constraint. This allows the bone to follow the parent's bendy bone curvature"
-msgstr ""
-
-#. :src: bpy.types.Params.use_helper_bone
-msgid "Create Parent Helper"
-msgstr ""
-
-#. :src: bpy.types.Params.use_helper_bone
-msgid "Instead of adding the Armature constraint directly to this bone, create a parent bone prefixed with 'P-' and add it to that one instead. This will keep the local transformations of this bone clear from any parenting-induced transformations, as would be the case with normal parenting"
-msgstr ""
-
-#. :src: bpy.types.Params.base_name
-#: extensions/user_default/CloudRig/rig_components/cloud_base.py:289
-msgid "Base Name"
-msgstr ""
-
-#. :src: bpy.types.Params.base_name
-msgid "Optional. If provided, use this as the base name for some generated bones and properties, rather than the bone name. This should not include a side indicator (\"Left\"/\"Right\"), as that willbe added automatically"
-msgstr ""
-
-#. :src: bpy.types.Params.create_sub_control
-msgid "Create Highlight"
-msgstr ""
-
-#. :src: bpy.types.Params.create_sub_control
-msgid "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights. The extent to which it follows the eye's rotation can be controlled in the Rig UI under the Face panel"
-msgstr ""
-
-#. :src: bpy.types.Params.deform
-#. :src: bpy.types.Params.create_deform
-msgid "Create Deform"
-msgstr ""
-
-#. :src: bpy.types.Params.deform
-msgid "Create a deform bone for this rig"
-msgstr ""
-
-#. :src: bpy.types.Params.flatten
-msgid "Flatten X"
-msgstr ""
-
-#. :src: bpy.types.Params.flatten
-msgid "Discard the X component of the eye vector when placing the target control. Useful for eyes that have significant default rotation. This can result in the eye becoming cross-eyed in the default pose, but it prevents the eye targets from crossing each other or being too far from each other"
-msgstr ""
-
-#. :src: bpy.types.Params.group
-msgid "Aim Group"
-msgstr ""
-
-#. :src: bpy.types.Params.group
-msgid "Aim components belonging to the same Aim Group will have a shared master control generated for them"
-msgstr ""
-
-#. :src: bpy.types.Params.root
-msgid "Create a root bone for this rig"
-msgstr ""
-
-#. :src: bpy.types.Params.target_distance
-msgid "Target Distance"
-msgstr ""
-
-#. :src: bpy.types.Params.target_distance
-msgid "Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig"
-msgstr ""
-
-#. :src: bpy.types.Params.target_size
-msgid "Target Size"
-msgstr ""
-
-#. :src: bpy.types.Params.target_size
-msgid "Size multiplier for the target control. This is for display purposes only, as sometimes the target can be too small, and there's no good automatic way to determine the desired size"
-msgstr ""
-
-#. :src: bpy.types.Params.counter_rotate_stretch_bones
-msgid "Counter-Rotate Stretch Controls"
-msgstr ""
-
-#. :src: bpy.types.Params.counter_rotate_stretch_bones
-msgid "Rotating FK bones will counter-rotate the child stretch bones. This can result in smoother chains"
-msgstr ""
-
-#. :src: bpy.types.Params.create_curl_control
-msgid "Curl Control"
-msgstr ""
-
-#. :src: bpy.types.Params.create_curl_control
-msgid "Create a control that lets you easily curl this FK chain. Can be useful for tails and fingers and such. Requires a root bone for space calculations"
-msgstr ""
-
-#. :src: bpy.types.Params.curl_each
-msgid "Curl Each"
-msgstr ""
-
-#. :src: bpy.types.Params.curl_each
-msgid "Each FK Control inherits local rotation from its parent, resulting in curling. This can be combined with the Curl Control, but it's not recommended."
-msgstr ""
-
-#. :src: bpy.types.Params.display_center
-msgid "Display Centered"
-msgstr ""
-
-#. :src: bpy.types.Params.display_center
-msgid "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
-msgstr ""
-
-#. :src: bpy.types.Params.double_first
-msgid "Duplicate First FK"
-msgstr ""
-
-#. :src: bpy.types.Params.double_first
-msgid "Create a parent control for the first FK control. This can be useful when the Rest Pose is far from the character's common pose, to avoid gimbal locking"
-msgstr ""
-
-#. :src: bpy.types.Params.hinge
-msgid "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. There must be a root bone name specified in generator settings for this"
-msgstr ""
-
-#. :src: bpy.types.Params.inherit_scale
-msgid "Scale inheritance type for FK controls"
-msgstr ""
-
-#. :src: bpy.types.Params.inherit_scale:'PROPAGATE'
-msgid "Propagate scale inheritance mode from each meta bone to its corresponding control"
-msgstr ""
-
-#. :src: bpy.types.Params.root
-msgid "Create a root control"
-msgstr ""
-
-#. :src: bpy.types.Params.rot_mode
-msgid "Set the rotation mode of the FK controls"
-msgstr ""
-
-#. :src: bpy.types.Params.rot_mode:'PROPAGATE'
-msgid "Propagate rotation mode from each meta bone to its corresponding control"
-msgstr ""
-
-#. :src: bpy.types.Params.test_animation_axes
-#: extensions/user_default/CloudRig/rig_components/cloud_fk_chain.py:493
-msgid "Rotation Axes"
-msgstr ""
-
-#. :src: bpy.types.Params.test_animation_axes
-msgid "Rotation axes to test in the test animation"
-msgstr ""
-
-#. :src: bpy.types.Params.test_animation_generate
-msgid "Generate Test Animation"
-msgstr ""
-
-#. :src: bpy.types.Params.test_animation_generate
-msgid "Include this rig component in the test animation"
-msgstr ""
-
-#. :src: bpy.types.Params.test_animation_rotation_range
-msgid "Rotation Range"
-msgstr ""
-
-#. :src: bpy.types.Params.test_animation_rotation_range
-msgid "Minimum and Maximum rotations for the test animation"
-msgstr ""
-
-#. :src: bpy.types.Params.create_deform
-msgid "Create a deforming child bone for this bone, prefixed with \"DEF-\""
-msgstr ""
-
-#. :src: bpy.types.Params.custom_pivot
-msgid "Create Custom Pivot"
-msgstr ""
-
-#. :src: bpy.types.Params.custom_pivot
-msgid "Create a parent control whose local translation is not propagated to the main control, but its rotation and scale are"
-msgstr ""
-
-#. :src: bpy.types.Params.ensure_free
-msgid "Ensure Free Transforms"
-msgstr ""
-
-#. :src: bpy.types.Params.ensure_free
-msgid "If this bone has any drivers on its transform properties or constraints, move them to a parent bone prefixed with \"CON\", except for constraints whose name starts with \"KEEP\""
-msgstr ""
-
-#. :src: bpy.types.Params.property_ui_label
-#: extensions/user_default/CloudRig/rig_component_features/parenting.py:107
-msgid "UI Label"
-msgstr ""
-
-#. :src: bpy.types.Params.property_ui_label
-msgid "Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel"
-msgstr ""
-
-#. :src: bpy.types.Params.property_ui_subpanel
-msgid "UI Sub-panel"
-msgstr ""
-
-#. :src: bpy.types.Params.property_ui_subpanel
-msgid "Choose which sub-panel the custom properties should be displayed in. If empty, the properties won't appear in the rig UI"
+#. :src: bpy.types.Params.use_foot_roll
+msgid "Create a Foot Roll control. When rotated 90 degrees on the X axis, the foot will be fully vertical (ie. on tippy-toes). Rotate it an additional 45 degrees, and the toe will also be vertical (like a ballerina). The angles are calculated based on the rest pose"
 msgstr ""
 
 #. :src: bpy.types.Params.shrinkwrap_mesh
@@ -3553,6 +3250,30 @@ msgstr ""
 
 #. :src: bpy.types.Params.sphere_bone
 msgid "Bone to use as the center of the sphere."
+msgstr ""
+
+#. :src: bpy.types.Params.up_axis
+msgid "Custom Shape Up Axis"
+msgstr ""
+
+#. :src: bpy.types.Params.up_axis
+msgid "Rotate the bone shape to align with this axis of the bone"
+msgstr ""
+
+#. :src: bpy.types.Params.up_axis:'0'
+msgid "Do not rotate the bone shape"
+msgstr ""
+
+#. :src: bpy.types.Params.up_axis:'1'
+msgid "Rotate bone shape by 90 degrees"
+msgstr ""
+
+#. :src: bpy.types.Params.up_axis:'2'
+msgid "Rotate bone shape by 180 degrees"
+msgstr ""
+
+#. :src: bpy.types.Params.up_axis:'3'
+msgid "Rotate bone shape by -90 degrees"
 msgstr ""
 
 #. :src: bpy.types.Params.bbone_props
@@ -3581,6 +3302,14 @@ msgstr ""
 
 #. :src: bpy.types.Params.custom_props
 msgid "Copy custom properties from this bone to the generated bone"
+msgstr ""
+
+#. :src: bpy.types.Params.ensure_free
+msgid "Ensure Free Transforms"
+msgstr ""
+
+#. :src: bpy.types.Params.ensure_free
+msgid "If this bone has any drivers on its transform properties or constraints, move them to a parent bone prefixed with \"CON\", except for constraints whose name starts with \"KEEP\""
 msgstr ""
 
 #. :src: bpy.types.Params.ik_settings
@@ -3613,30 +3342,6 @@ msgstr ""
 
 #. :src: bpy.types.Params.transforms
 msgid "Replace the matching generated bone's transforms with this bone's transforms"
-msgstr ""
-
-#. :src: bpy.types.Params.up_axis
-msgid "Custom Shape Up Axis"
-msgstr ""
-
-#. :src: bpy.types.Params.up_axis
-msgid "Rotate the bone shape to align with this axis of the bone"
-msgstr ""
-
-#. :src: bpy.types.Params.up_axis:'0'
-msgid "Do not rotate the bone shape"
-msgstr ""
-
-#. :src: bpy.types.Params.up_axis:'1'
-msgid "Rotate bone shape by 90 degrees"
-msgstr ""
-
-#. :src: bpy.types.Params.up_axis:'2'
-msgid "Rotate bone shape by 180 degrees"
-msgstr ""
-
-#. :src: bpy.types.Params.up_axis:'3'
-msgid "Rotate bone shape by -90 degrees"
 msgstr ""
 
 #. :src: bpy.types.Params.force_regen
@@ -3749,6 +3454,329 @@ msgstr ""
 
 #. :src: bpy.types.Params.limit_elbow_axes
 msgid "Lock the Y and Z rotation of the elbow/knee bone, only allowing realistic rotations. This is limiting for cartoony characters, but it's necessary for accurate FK->IK snapping. For realistic characters, this should be enabled. This also requires that the elbow bends along its local X axis"
+msgstr ""
+
+#. :src: bpy.types.Params.align_roll
+msgid "Align Roll"
+msgstr ""
+
+#. :src: bpy.types.Params.align_roll
+msgid "Re-calculate the bone roll of STR controls based on the ORG bones"
+msgstr ""
+
+#. :src: bpy.types.Params.bbone_density
+msgid "B-Bone Density"
+msgstr ""
+
+#. :src: bpy.types.Params.bbone_density
+msgid "Average number of B-Bone Segments per deform bone. Longer bones will have more, shorter ones fewer, to get an even distribution. There will be a minimum of 2 B-Bone Segments unless this parameter is 0"
+msgstr ""
+
+#. :src: bpy.types.Params.preserve_volume
+msgid ""
+"The bone will become thinner and thicker depending on stretching length.\n"
+"\n"
+"NOTE: This will result in non-uniform scale inheritance when scaling root bones!"
+msgstr ""
+
+#. :src: bpy.types.Params.segments
+msgid "Stretch Segments"
+msgstr ""
+
+#. :src: bpy.types.Params.segments
+msgid "Number of bendy bones to create for each original bone"
+msgstr ""
+
+#. :src: bpy.types.Params.shape_key_helpers
+msgid "Create Shape Key Helpers"
+msgstr ""
+
+#. :src: bpy.types.Params.shape_key_helpers
+msgid "Create SKH bones that read the rotation between two deform bones, which can be used to drive corrective shape keys"
+msgstr ""
+
+#. :src: bpy.types.Params.sharp
+msgid "Sharp Sections"
+msgstr ""
+
+#. :src: bpy.types.Params.sharp
+msgid "B-Bone EaseIn/Out is set to 0 for bones connecting two sections"
+msgstr ""
+
+#. :src: bpy.types.Params.smooth_spline
+msgid "Smooth Spline"
+msgstr ""
+
+#. :src: bpy.types.Params.smooth_spline
+msgid "B-Bone Splines affect their neighbours for smoother curves"
+msgstr ""
+
+#. :src: bpy.types.Params.tip_control
+msgid "Tip Control"
+msgstr ""
+
+#. :src: bpy.types.Params.tip_control
+msgid "Add the final control at the end of the chain. Disabling this allows you to connect another chain to this one, or to make this chain loop into itself"
+msgstr ""
+
+#. :src: bpy.types.Params.unlock_deform
+msgid "Create Deform Controls"
+msgstr ""
+
+#. :src: bpy.types.Params.unlock_deform
+msgid "Create CTR-DEF controls that allow Deform bones to be controlled directly"
+msgstr ""
+
+#. :src: bpy.types.Params.volume_variation
+msgid "How exaggerated the squashing and stretching should be"
+msgstr ""
+
+#. :src: bpy.types.Params.world_align
+msgid "Flatten the torso and hips to align with the closest world axis"
+msgstr ""
+
+#. :src: bpy.types.Params
+msgid "Defines the parameters to be registered in RNA. Must be exactly `Params`."
+msgstr ""
+
+#. :src: bpy.types.Params.default_stretch
+msgid "Default IK Squash"
+msgstr ""
+
+#. :src: bpy.types.Params.world_align
+msgid "World-Align Torso"
+msgstr ""
+
+#. :src: bpy.types.Params.world_align
+msgid "Align the torso control with the world axes"
+msgstr ""
+
+#. :src: bpy.types.Params.parent_switching
+#: extensions/user_default/CloudRig/rig_components/cloud_fk_chain.py:64
+#: extensions/user_default/CloudRig/rig_components/cloud_ik_chain.py:71
+#: extensions/user_default/CloudRig/rig_components/cloud_limb.py:61
+msgid "Parent Switching"
+msgstr ""
+
+#. :src: bpy.types.Params.parent_switching
+msgid "Use parent switching for this rig. Different rig types may implement this differently. A rig-type-specific explanation is shown below when enabled"
+msgstr ""
+
+#. :src: bpy.types.Params.root_parent
+#: extensions/user_default/CloudRig/rig_component_features/parenting.py:366
+msgid "Root Parent"
+msgstr ""
+
+#. :src: bpy.types.Params.root_parent
+msgid "If specified, parent the root of this rig to the chosen bone. If a bendy bone is chosen, a parent helper bone with an Armature Constraint will be created to correctly inherit transforms from the curvature"
+msgstr ""
+
+#. :src: bpy.types.Params.use_armature_constraint
+msgid "Use Armature Constraint"
+msgstr ""
+
+#. :src: bpy.types.Params.use_armature_constraint
+msgid "Instead of directly parenting this bone to the parent, use an Armature constraint. This allows the bone to follow the parent's bendy bone curvature"
+msgstr ""
+
+#. :src: bpy.types.Params.use_helper_bone
+msgid "Create Parent Helper"
+msgstr ""
+
+#. :src: bpy.types.Params.use_helper_bone
+msgid "Instead of adding the Armature constraint directly to this bone, create a parent bone prefixed with 'P-' and add it to that one instead. This will keep the local transformations of this bone clear from any parenting-induced transformations, as would be the case with normal parenting"
+msgstr ""
+
+#. :src: bpy.types.Params.create_deform
+#. :src: bpy.types.Params.deform
+msgid "Create Deform"
+msgstr ""
+
+#. :src: bpy.types.Params.create_deform
+msgid "Create a deforming child bone for this bone, prefixed with \"DEF-\""
+msgstr ""
+
+#. :src: bpy.types.Params.custom_pivot
+msgid "Create Custom Pivot"
+msgstr ""
+
+#. :src: bpy.types.Params.custom_pivot
+msgid "Create a parent control whose local translation is not propagated to the main control, but its rotation and scale are"
+msgstr ""
+
+#. :src: bpy.types.Params.property_ui_label
+#: extensions/user_default/CloudRig/rig_component_features/parenting.py:107
+msgid "UI Label"
+msgstr ""
+
+#. :src: bpy.types.Params.property_ui_label
+msgid "Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel"
+msgstr ""
+
+#. :src: bpy.types.Params.property_ui_subpanel
+msgid "UI Sub-panel"
+msgstr ""
+
+#. :src: bpy.types.Params.property_ui_subpanel
+msgid "Choose which sub-panel the custom properties should be displayed in. If empty, the properties won't appear in the rig UI"
+msgstr ""
+
+#. :src: bpy.types.Params.counter_rotate_stretch_bones
+msgid "Counter-Rotate Stretch Controls"
+msgstr ""
+
+#. :src: bpy.types.Params.counter_rotate_stretch_bones
+msgid "Rotating FK bones will counter-rotate the child stretch bones. This can result in smoother chains"
+msgstr ""
+
+#. :src: bpy.types.Params.create_curl_control
+msgid "Curl Control"
+msgstr ""
+
+#. :src: bpy.types.Params.create_curl_control
+msgid "Create a control that lets you easily curl this FK chain. Can be useful for tails and fingers and such. Requires a root bone for space calculations"
+msgstr ""
+
+#. :src: bpy.types.Params.curl_each
+msgid "Curl Each"
+msgstr ""
+
+#. :src: bpy.types.Params.curl_each
+msgid "Each FK Control inherits local rotation from its parent, resulting in curling. This can be combined with the Curl Control, but it's not recommended."
+msgstr ""
+
+#. :src: bpy.types.Params.display_center
+msgid "Display Centered"
+msgstr ""
+
+#. :src: bpy.types.Params.display_center
+msgid "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
+msgstr ""
+
+#. :src: bpy.types.Params.double_first
+msgid "Duplicate First FK"
+msgstr ""
+
+#. :src: bpy.types.Params.double_first
+msgid "Create a parent control for the first FK control. This can be useful when the Rest Pose is far from the character's common pose, to avoid gimbal locking"
+msgstr ""
+
+#. :src: bpy.types.Params.hinge
+msgid "Set up a hinge toggle which allows this FK chain to not inherit rotation from its parent, but still inherit rotation from the rig root. There must be a root bone name specified in generator settings for this"
+msgstr ""
+
+#. :src: bpy.types.Params.inherit_scale
+msgid "Scale inheritance type for FK controls"
+msgstr ""
+
+#. :src: bpy.types.Params.inherit_scale:'PROPAGATE'
+msgid "Propagate scale inheritance mode from each meta bone to its corresponding control"
+msgstr ""
+
+#. :src: bpy.types.Params.root
+msgid "Create a root control"
+msgstr ""
+
+#. :src: bpy.types.Params.rot_mode
+msgid "Set the rotation mode of the FK controls"
+msgstr ""
+
+#. :src: bpy.types.Params.rot_mode:'PROPAGATE'
+msgid "Propagate rotation mode from each meta bone to its corresponding control"
+msgstr ""
+
+#. :src: bpy.types.Params.test_animation_axes
+#: extensions/user_default/CloudRig/rig_components/cloud_fk_chain.py:493
+msgid "Rotation Axes"
+msgstr ""
+
+#. :src: bpy.types.Params.test_animation_axes
+msgid "Rotation axes to test in the test animation"
+msgstr ""
+
+#. :src: bpy.types.Params.test_animation_generate
+msgid "Generate Test Animation"
+msgstr ""
+
+#. :src: bpy.types.Params.test_animation_generate
+msgid "Include this rig component in the test animation"
+msgstr ""
+
+#. :src: bpy.types.Params.test_animation_rotation_range
+msgid "Rotation Range"
+msgstr ""
+
+#. :src: bpy.types.Params.test_animation_rotation_range
+msgid "Minimum and Maximum rotations for the test animation"
+msgstr ""
+
+#. :src: bpy.types.Params.lattice
+msgid "Lattice Object that will be hooked up to this control. If not left empty, the already existing lattice will not be affected in any way, unless Regenerate Lattice is enabled"
+msgstr ""
+
+#. :src: bpy.types.Params.regenerate
+msgid "Regenerate"
+msgstr ""
+
+#. :src: bpy.types.Params.regenerate
+msgid "Whether to re-generate the lattice object on rig generation. Disable if you intend to modify the generated lattice object manually"
+msgstr ""
+
+#. :src: bpy.types.Params.create_sub_control
+msgid "Create Highlight"
+msgstr ""
+
+#. :src: bpy.types.Params.create_sub_control
+msgid "Create a secondary control and deform bone attached to the aim control. Useful for eye highlights. The extent to which it follows the eye's rotation can be controlled in the Rig UI under the Face panel"
+msgstr ""
+
+#. :src: bpy.types.Params.deform
+msgid "Create a deform bone for this rig"
+msgstr ""
+
+#. :src: bpy.types.Params.flatten
+msgid "Flatten X"
+msgstr ""
+
+#. :src: bpy.types.Params.flatten
+msgid "Discard the X component of the eye vector when placing the target control. Useful for eyes that have significant default rotation. This can result in the eye becoming cross-eyed in the default pose, but it prevents the eye targets from crossing each other or being too far from each other"
+msgstr ""
+
+#. :src: bpy.types.Params.group
+msgid "Aim Group"
+msgstr ""
+
+#. :src: bpy.types.Params.group
+msgid "Aim components belonging to the same Aim Group will have a shared master control generated for them"
+msgstr ""
+
+#. :src: bpy.types.Params.root
+msgid "Create a root bone for this rig"
+msgstr ""
+
+#. :src: bpy.types.Params.target_distance
+msgid "Target Distance"
+msgstr ""
+
+#. :src: bpy.types.Params.target_distance
+msgid "Distance of the target from the aim bone. This value is not in blender units, but is a value relative to the scale of the rig"
+msgstr ""
+
+#. :src: bpy.types.Params.target_size
+msgid "Target Size"
+msgstr ""
+
+#. :src: bpy.types.Params.target_size
+msgid "Size multiplier for the target control. This is for display purposes only, as sometimes the target can be too small, and there's no good automatic way to determine the desired size"
+msgstr ""
+
+#. :src: bpy.types.Params.base_name
+#: extensions/user_default/CloudRig/rig_components/cloud_base.py:289
+msgid "Base Name"
+msgstr ""
+
+#. :src: bpy.types.Params.base_name
+msgid "Optional. If provided, use this as the base name for some generated bones and properties, rather than the bone name. This should not include a side indicator (\"Left\"/\"Right\"), as that willbe added automatically"
 msgstr ""
 
 #. :src: bpy.types.ParentSlot.bone
@@ -3932,7 +3960,7 @@ msgid "Only in Blender 5.0 and later."
 msgstr ""
 
 #: extensions/user_default/CloudRig/bs_utils/hotkeys.py:131
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:578
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:579
 msgid "Operator"
 msgstr ""
 
@@ -4191,11 +4219,11 @@ msgstr ""
 msgid "Deleted active collection: '{coll_name}'"
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/cloudrig.py:2935
+#: extensions/user_default/CloudRig/generation/cloudrig.py:2942
 msgid "Copied {counter} collections to Blender clipboard."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/cloudrig.py:3007
+#: extensions/user_default/CloudRig/generation/cloudrig.py:3014
 msgid "Pasted {counter} collections from clipboard."
 msgstr ""
 
@@ -4248,21 +4276,25 @@ msgstr ""
 msgid "No active collection."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/cloudrig.py:2930
+#: extensions/user_default/CloudRig/generation/cloudrig.py:2937
 msgid "No visible collections to copy."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/cloudrig.py:3004
+#: extensions/user_default/CloudRig/generation/cloudrig.py:3011
 msgid "No collections in clipboard to be pasted."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/cloudrig.py:3082
+#: extensions/user_default/CloudRig/generation/cloudrig.py:3089
 msgid "Available in Blender 5.0 with CloudRig installed."
 msgstr ""
 
 #: extensions/user_default/CloudRig/generation/cloudrig.py:415
 #: extensions/user_default/CloudRig/operators/rename_with_symmetry.py:106
 msgid "➜"
+msgstr ""
+
+#: extensions/user_default/CloudRig/generation/cloudrig.py:2045
+msgid "{selected}/{total}"
 msgstr ""
 
 #: extensions/user_default/CloudRig/generation/cloudrig.py:2214
@@ -4273,7 +4305,23 @@ msgstr ""
 msgid "Deleted editable bone collections of selected hierarchy."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/cloudrig.py:2999
+#: extensions/user_default/CloudRig/generation/cloudrig.py:2900
+msgid "Assigned {num_bones} bones to {num_collections} collections."
+msgstr ""
+
+#: extensions/user_default/CloudRig/generation/cloudrig.py:2902
+msgid "Assigned {num_bones} bones to {collection}."
+msgstr ""
+
+#: extensions/user_default/CloudRig/generation/cloudrig.py:2905
+msgid "Removed {num_bones} bones from {num_collections} collections."
+msgstr ""
+
+#: extensions/user_default/CloudRig/generation/cloudrig.py:2907
+msgid "Removed {num_bones} bones from {collection}."
+msgstr ""
+
+#: extensions/user_default/CloudRig/generation/cloudrig.py:3006
 msgid "The clipboard does not contain Bone Collections or Selection Sets."
 msgstr ""
 
@@ -4313,39 +4361,39 @@ msgstr ""
 msgid "Replaced all references of \"{old_name}\" to \"{new_name}\"."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1127
-msgid "Deleted \"\"."
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1128
+msgid "Deleted \"{object}\"."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1161
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1162
 msgid "Unlinked Custom Shape: {object}"
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1184
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1185
 msgid "Cleared reference to \"{old_ref}\" on \"{bone}\"."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1210
-msgid "Removed  curves."
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1213
+msgid "Removed {num_curves} curves."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1305
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1310
 msgid "Tweaked rest pose of {bone}."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1327
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1332
 msgid "Linked {object} to {scene}."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1376
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1381
 msgid "Parented {count} objects to generated rig."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1398
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1403
 msgid "Unset \"{property}\" property."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1422
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1427
 msgid "Removed {count} properties."
 msgstr ""
 
@@ -4373,38 +4421,38 @@ msgstr ""
 msgid "One of \"{old}\" or \"{new}\" were not found."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1120
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1121
 msgid "\"{obj}\" not found. It must have already been deleted."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1148
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1149
 msgid "Custom Shape Collection had been removed."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1154
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1155
 msgid "Object had already been removed."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1259
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1264
 msgid "Deleted '{coll_name}' collection."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1261
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1266
 msgid "Collection '{coll_name}' not found."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1290
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1295
 #: extensions/user_default/CloudRig/operators/flatten_chain.py:55
-#: extensions/user_default/CloudRig/ui/actions_ui.py:696
-#: extensions/user_default/CloudRig/ui/actions_ui.py:673
+#: extensions/user_default/CloudRig/ui/actions_ui.py:701
+#: extensions/user_default/CloudRig/ui/actions_ui.py:678
 msgid "Bone not found: {bone}"
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1321
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1326
 msgid "Couldn't find {object}."
 msgstr ""
 
-#: extensions/user_default/CloudRig/generation/troubleshooting.py:1359
+#: extensions/user_default/CloudRig/generation/troubleshooting.py:1364
 msgid "Target Rig has been removed. Generate the rig again."
 msgstr ""
 
@@ -4638,55 +4686,55 @@ msgstr ""
 msgid "Active Armature must be in edit mode."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:30
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:31
 msgid "No selected bones have a CloudRig Component assigned. Nothing to symmetrize."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:63
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:64
 msgid "Mirrored parameters of {num_mirrored} bones."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:110
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:111
 msgid "Copied {component_type} parameters to {num_copied} bones."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:125
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:126
 msgctxt "Operator"
 msgid "Copy Rig Component"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:130
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:131
 msgctxt "Operator"
 msgid "Symmetrize Rig Component"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:20
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:79
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:21
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:80
 #: extensions/user_default/CloudRig/operators/flatten_chain.py:45
 msgid "Active armature must be in pose mode."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:24
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:330
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:25
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:335
 msgid "At least one bone must be selected."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:84
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:85
 msgid "Active bone has no CloudRig Component assigned."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:89
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:157
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:216
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:90
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:161
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:221
 #: extensions/user_default/CloudRig/operators/pie_custom_shapes.py:157
 msgid "At least two bones must be selected."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:93
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:94
 msgid "Make sure the active bone is also selected."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:47
+#: extensions/user_default/CloudRig/operators/copy_mirror_components.py:48
 msgid "Bone {bone} selected on both sides, mirroring would be ambiguous, aborting. Only select the left or right side, not both!"
 msgstr ""
 
@@ -4698,7 +4746,7 @@ msgstr ""
 msgid "Bone chain was already perfect for IK."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:412
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:417
 msgid "Bone Parenting"
 msgstr ""
 
@@ -4714,51 +4762,51 @@ msgstr ""
 msgid "None of the selected bones have a parent."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:138
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:140
 msgid "Unparented {num_bones}."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:188
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:192
 msgid "Parented \"{bone}\" to {count} bones using Armature constraint."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:363
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:368
 msgid "Parented {num_objects} objects to {num_bones} bones."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:421
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:426
 msgctxt "Operator"
 msgid "Clear Parent"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:428
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:433
 msgctxt "Operator"
 msgid "Selected to Active"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:441
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:446
 msgctxt "Operator"
 msgid "Disconnect"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:448
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:453
 msgctxt "Operator"
 msgid "Active to All Selected"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:455
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:460
 msgctxt "Operator"
 msgid "Parent Object to All Selected"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:462
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:467
 msgctxt "Operator"
 msgid "Parent & Connect"
 msgstr ""
 
 #: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:19
 #: extensions/user_default/CloudRig/operators/pie_bone_selection_ops.py:158
-#: extensions/user_default/CloudRig/operators/symmetrize.py:29
+#: extensions/user_default/CloudRig/operators/symmetrize.py:30
 msgid "No active armature."
 msgstr ""
 
@@ -4766,36 +4814,36 @@ msgstr ""
 msgid "Must be in Pose / Edit / Weight Paint mode."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:154
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:158
 msgid "Must be in Pose mode"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:160
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:212
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:164
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:217
 msgid "There is no active bone."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:219
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:224
 msgid "All selected bones must be from the same armature."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:234
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:239
 msgid "Selected bones are already parented to the active one."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:308
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:313
 msgid "Selected bones are already parented and connected to the active one."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:333
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:338
 msgid "At least one object outside of the armature must be selected."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:379
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:384
 msgid "Only one selected armature is supported."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:382
+#: extensions/user_default/CloudRig/operators/pie_bone_parenting.py:387
 msgid "No bones are selected."
 msgstr ""
 
@@ -4817,15 +4865,15 @@ msgstr ""
 msgid "Bone name not found in rig: "
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_selection_ops.py:259
-msgid "Bone \"\" not found."
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ops.py:261
+msgid "Bone \"{bone_name}\" not found."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_selection_ops.py:266
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ops.py:270
 msgid "Bone \"{bone_name}\" could not be made visible."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:137
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:138
 msgid "Select Bone"
 msgstr ""
 
@@ -4834,27 +4882,32 @@ msgctxt "Operator"
 msgid ": "
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:160
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:103
+msgctxt "Operator"
+msgid "{start_text}{bone_name} ({con_name})"
+msgstr ""
+
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:161
 msgctxt "Operator"
 msgid "Parent: "
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:173
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:174
 msgctxt "Operator"
 msgid "Child: "
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:242
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:243
 msgctxt "Operator"
 msgid "Start Handle: "
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:249
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:250
 msgctxt "Operator"
 msgid "End Handle: "
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:256
+#: extensions/user_default/CloudRig/operators/pie_bone_selection_ui.py:257
 msgctxt "Operator"
 msgid "Deform Bone: "
 msgstr ""
@@ -5112,19 +5165,19 @@ msgstr ""
 msgid "No pose bones with custom shapes selected"
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/symmetrize.py:41
+#: extensions/user_default/CloudRig/operators/symmetrize.py:42
 msgid "No selected flippable bones."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/symmetrize.py:34
+#: extensions/user_default/CloudRig/operators/symmetrize.py:35
 msgid "No selected bones."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/symmetrize.py:56
+#: extensions/user_default/CloudRig/operators/symmetrize.py:57
 msgid "Bone selected on both sides: \"{bone}\". Select only one side to clarify symmetrizing direction."
 msgstr ""
 
-#: extensions/user_default/CloudRig/operators/symmetrize.py:62
+#: extensions/user_default/CloudRig/operators/symmetrize.py:64
 msgid "Bone name cannot be flipped: \"{bone}\". Symmetrize will have no effect."
 msgstr ""
 
@@ -5379,72 +5432,72 @@ msgstr ""
 msgid "Parent switch target not found: \"{bone}\". Specify a parent bone in the Parenting parameters."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:822
-msgid "Edited property  to the rig UI."
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:827
+msgid "Edited property {prop_path} in the rig UI."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:325
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:326
 msgid "No active CloudRig found in this context."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:394
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:395
 msgid "Property Bone"
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:411
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:412
 msgid "No property owner at '{data_path}' found."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:421
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:422
 msgid "Type \"{type}\" cannot have properties."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:446
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:447
 msgid "Data path failed to resolve on {rig}."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:455
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:456
 msgid "Add all {num_props} custom properties to the UI"
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:669
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:670
 msgid "Added {num_props} properties to the rig UI."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:678
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:679
 msgid "Added property {prop_name} to the rig UI."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:687
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:688
 msgid "You didn't specify a property."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:208
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:209
 msgid "Bone Collections"
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:398
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:399
 msgid "Bone Collection"
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:502
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:503
 msgid "This is a struct, not a property."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:505
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:506
 msgid "Property found."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:520
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:521
 msgid "Property will be created with a value of 1.0."
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:524
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:525
 msgid "Property not found: "
 msgstr ""
 
-#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:705
-msgid " does not support custom properties."
+#: extensions/user_default/CloudRig/rig_component_features/properties_ui.py:707
+msgid "{type} does not support custom properties."
 msgstr ""
 
 #: extensions/user_default/CloudRig/rig_component_features/widgets/widgets.py:293
@@ -5463,6 +5516,10 @@ msgstr ""
 #: extensions/user_default/CloudRig/rig_components/cloud_jaw.py:136
 #: extensions/user_default/CloudRig/rig_components/cloud_jaw.py:158
 msgid "Face"
+msgstr ""
+
+#: extensions/user_default/CloudRig/rig_components/cloud_aim.py:72
+msgid "Aim Target Parent"
 msgstr ""
 
 #: extensions/user_default/CloudRig/rig_components/cloud_aim.py:336
@@ -5971,69 +6028,69 @@ msgstr ""
 msgid "Could not find a bone called \"{bone}\" on the Target Rig. If it exists, ensure this Tweak component is generated AFTER the component you want to tweak."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:568
+#: extensions/user_default/CloudRig/ui/actions_ui.py:573
 msgid "Actions"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:616
-#: extensions/user_default/CloudRig/ui/actions_ui.py:701
+#: extensions/user_default/CloudRig/ui/actions_ui.py:621
+#: extensions/user_default/CloudRig/ui/actions_ui.py:706
 msgid "Frame Start"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:617
-#: extensions/user_default/CloudRig/ui/actions_ui.py:702
+#: extensions/user_default/CloudRig/ui/actions_ui.py:622
+#: extensions/user_default/CloudRig/ui/actions_ui.py:707
 msgid "End"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:704
+#: extensions/user_default/CloudRig/ui/actions_ui.py:709
 msgid "Target Space"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:705
+#: extensions/user_default/CloudRig/ui/actions_ui.py:710
 msgid "Transform Channel"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:439
-msgid "Set active action setup index to ."
+#: extensions/user_default/CloudRig/ui/actions_ui.py:442
+msgid "Set active action setup index to {index}."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:601
+#: extensions/user_default/CloudRig/ui/actions_ui.py:606
 msgid "No slots in this Action."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:657
+#: extensions/user_default/CloudRig/ui/actions_ui.py:662
 msgid "Cannot verify bone name without a Target Rig"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:690
+#: extensions/user_default/CloudRig/ui/actions_ui.py:695
 msgid "Symmetrical ({bone})"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:720
+#: extensions/user_default/CloudRig/ui/actions_ui.py:725
 msgid "Min and max value are the same!"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:721
+#: extensions/user_default/CloudRig/ui/actions_ui.py:726
 msgid "Will be stuck reading frame {frame}!"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:727
+#: extensions/user_default/CloudRig/ui/actions_ui.py:732
 msgid "Start and end frame cannot be the same!"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:733
+#: extensions/user_default/CloudRig/ui/actions_ui.py:738
 msgid "Default Frame: {frame}"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:736
+#: extensions/user_default/CloudRig/ui/actions_ui.py:741
 msgid "Default Frame: {frame} (Should be a whole number!)"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:492
+#: extensions/user_default/CloudRig/ui/actions_ui.py:497
 msgid "Missing Trigger"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/actions_ui.py:492
+#: extensions/user_default/CloudRig/ui/actions_ui.py:497
 msgid "Corrective Trigger (Unsupported)"
 msgstr ""
 
@@ -6073,52 +6130,52 @@ msgstr ""
 msgid "Update Action"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:302
+#: extensions/user_default/CloudRig/ui/component_list.py:305
 msgid "Components"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:181
+#: extensions/user_default/CloudRig/ui/component_list.py:182
 msgid "Added \"{comp_type}\" component to \"{bone}\"."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:216
+#: extensions/user_default/CloudRig/ui/component_list.py:218
 msgid "Removed \"{comp_type}\" component from \"{bone}\"."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:132
+#: extensions/user_default/CloudRig/ui/component_list.py:133
 msgid "This button should only be visible on CloudRig metarigs!"
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:167
+#: extensions/user_default/CloudRig/ui/component_list.py:168
 msgid "A bone must be selected."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:170
+#: extensions/user_default/CloudRig/ui/component_list.py:171
 msgid "A component type must be selected."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:173
+#: extensions/user_default/CloudRig/ui/component_list.py:174
 msgid "Bone not found in rig: "
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:206
-#: extensions/user_default/CloudRig/ui/component_list.py:252
+#: extensions/user_default/CloudRig/ui/component_list.py:208
+#: extensions/user_default/CloudRig/ui/component_list.py:255
 msgid "Select a component."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:248
+#: extensions/user_default/CloudRig/ui/component_list.py:251
 msgid "Must be a CloudRig metarig."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:255
+#: extensions/user_default/CloudRig/ui/component_list.py:258
 msgid "Active component has no siblings."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:268
+#: extensions/user_default/CloudRig/ui/component_list.py:271
 msgid "This component is already the first among its siblings. It cannot be moved higher in the generation order."
 msgstr ""
 
-#: extensions/user_default/CloudRig/ui/component_list.py:274
+#: extensions/user_default/CloudRig/ui/component_list.py:277
 msgid "This component is already the last among its siblings. It cannot be moved lower in the generation order."
 msgstr ""
 

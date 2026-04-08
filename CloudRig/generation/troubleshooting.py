@@ -1093,7 +1093,8 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         metarig.cloudrig.generator.remove_active_log()
         self.report(
             {'INFO'},
-            'Replaced all references of "{old_name}" to "{new_name}".'.format(old_name=self.old_name, new_name=self.new_name),
+            rpt_('Replaced all references of "{old_name}" to "{new_name}".')
+            .format(old_name=self.old_name, new_name=self.new_name),
         )
         return {'FINISHED'}
 
@@ -1124,7 +1125,7 @@ class CLOUDRIG_OT_Delete_Object(Operator):
 
         bpy.data.objects.remove(ob)
 
-        self.report({'INFO'}, f'Deleted "{self.ob_name}".')
+        self.report({'INFO'}, rpt_('Deleted "{object}".').format(object=self.ob_name))
         return {'FINISHED'}
 
 
@@ -1207,7 +1208,11 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
                 action_setup.channelbag.fcurves.remove(fcurve)
                 curves_removed += 1
 
-        self.report({'INFO'}, f'Removed {curves_removed} curves.')
+        self.report(
+            {'INFO'},
+            rpt_('Removed {num_curves} curves.')
+            .format(num_curves=curves_removed)
+        )
         metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 

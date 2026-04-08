@@ -9,6 +9,7 @@ import bpy
 from bl_math import clamp
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -436,7 +437,11 @@ class CLOUDRIG_OT_jump_to_action_setup(Operator):
             if action_setup.unique_id == self.setup_id:
                 context.object.cloudrig.generator.active_action_index = i
                 break
-        self.report({'INFO'}, f'Set active action setup index to {i}.')
+        self.report(
+            {'INFO'},
+            rpt_('Set active action setup index to {index}.')
+            .format(index=i)
+        )
         return {'FINISHED'}
 
 

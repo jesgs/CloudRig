@@ -100,7 +100,8 @@ class POSE_MT_PIE_constrained_bones(Menu):
         icon = get_constraint_icon(con)
         op = layout.operator(
             'pose.select_bone_by_name',
-            text=f"{start_text}{bone_name} ({con.name})",
+            text="{start_text}{bone_name} ({con_name})"
+            .format(start_text=start_text, bone_name=bone_name, con_name=con.name),
             icon=icon,
         )
         op.bone_name = bone_name

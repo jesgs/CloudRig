@@ -69,7 +69,7 @@ class Component_Aim(Component_Base):
         prop_name="",
         panel_name=n_("Face"),
         row_name="",
-        label_name="Aim Target Parent",
+        label_name=n_("Aim Target Parent"),
         entry_name=""
     ):
         """Apply the parent switching to the aim target or group master if it exists."""

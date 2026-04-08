@@ -135,7 +135,11 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
 
     def execute(self, context):
         affected = self.affect_bones(context)
-        self.report({'INFO'}, rpt_("Unparented {num_bones}.").format(num_bones=len(affected)))
+        self.report(
+            {'INFO'},
+            rpt_("Unparented {num_bones}.")
+            .format(num_bones=len(affected))
+        )
         return {'FINISHED'}
 
 
@@ -185,7 +189,8 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
 
         self.report(
             {'INFO'},
-            'Parented "{bone}" to {count} bones using Armature constraint.'.format(bone=pbone.name, count=len(arm_con.targets)),
+            rpt_('Parented "{bone}" to {count} bones using Armature constraint.')
+            .format(bone=pbone.name, count=len(arm_con.targets)),
         )
 
     def execute(self, context):

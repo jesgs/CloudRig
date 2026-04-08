@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bl_ui.generic_ui_list import draw_ui_list
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy.types import Operator, UI_UL_list, UIList
 
@@ -178,7 +179,8 @@ class CLOUDRIG_OT_add_rig_component(Operator):
         rig.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
         self.report(
             {'INFO'},
-            'Added "{comp_type}" component to "{bone}".'.format(comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name),
+            rpt_('Added "{comp_type}" component to "{bone}".')
+            .format(comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name),
         )
 
         if self.remove_active_log:
@@ -213,7 +215,8 @@ class CLOUDRIG_OT_remove_rig_component(Operator):
 
         self.report(
             {'INFO'},
-            'Removed "{comp_type}" component from "{bone}".'.format(comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name),
+            rpt_('Removed "{comp_type}" component from "{bone}".')
+            .format(comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name),
         )
         selected_pb.cloudrig_component.component_type = ""
 

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import Constraint, Object, Operator, PoseBone
 from bpy.utils import flip_name
 from rna_prop_ui import rna_idprop_value_item_type
@@ -53,13 +54,15 @@ class POSE_OT_symmetrize_rigging(Operator):
             if opp_pb in selected_pose_bones:
                 self.report(
                     {'ERROR'},
-                    'Bone selected on both sides: "{bone}". Select only one side to clarify symmetrizing direction.'.format(bone=pb.name),
+                    rpt_('Bone selected on both sides: "{bone}". Select only one side to clarify symmetrizing direction.')
+                    .format(bone=pb.name),
                 )
                 return {'CANCELLED'}
             if opp_pb == pb:
                 self.report(
                     {'WARNING'},
-                    'Bone name cannot be flipped: "{bone}". Symmetrize will have no effect.'.format(bone=pb.name),
+                    rpt_('Bone name cannot be flipped: "{bone}". Symmetrize will have no effect.')
+                    .format(bone=pb.name),
                 )
                 pb.select = False
                 continue

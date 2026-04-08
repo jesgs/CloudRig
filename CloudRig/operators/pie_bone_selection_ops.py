@@ -256,7 +256,11 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
             else:
                 target_bone = rig.data.bones.get(bone_name)
             if not target_bone:
-                self.report({'INFO'}, f'Bone "{bone_name}" not found.')
+                self.report(
+                    {'INFO'},
+                    rpt_('Bone "{bone_name}" not found.')
+                    .format(bone_name=bone_name)
+                )
                 continue
 
             if is_active_bone(context, bone):

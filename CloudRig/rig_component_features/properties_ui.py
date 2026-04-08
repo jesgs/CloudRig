@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 import bpy
 from bpy.app.translations import pgettext_n as n_
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, CollectionProperty, StringProperty
 from bpy.types import (
     ID,
@@ -702,7 +703,9 @@ class CloudRigUIEditOpMixin:
                 owner.property_overridable_library_set(brackets_prop_name, True)
             elif not issubclass(type(owner), Modifier):
                 self.report(
-                    {'ERROR'}, f'{type(owner)} does not support custom properties.'
+                    {'ERROR'},
+                    "{type} does not support custom properties."
+                    .format(type=type(owner))
                 )
                 return {'CANCELLED'}
 
@@ -819,7 +822,11 @@ class CLOUDRIG_OT_edit_property_in_ui(CloudRigUIEditOpMixin, Operator):
         write_rig_panels(rig, self.panels)
         redraw_viewport()
 
-        self.report({'INFO'}, f"Edited property {ui_path[-1]} to the rig UI.")
+        self.report(
+            {'INFO'},
+            rpt_("Edited property {prop_path} in the rig UI.")
+            .format(prop_path=ui_path[-1])
+        )
         return {'FINISHED'}
 
 
