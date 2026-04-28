@@ -294,7 +294,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         params = component.params
         if params.spline_ik.create_fk_chain:
             layout.separator()
-            cls.draw_prop_custom_shape(context, layout, params.spine, "shape_fk")
+            cls.draw_prop_custom_shape(context, layout, params.spline_ik, "shape_fk")
         return layout
 
     @classmethod
