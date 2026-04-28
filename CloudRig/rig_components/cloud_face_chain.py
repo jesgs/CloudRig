@@ -3,6 +3,7 @@
 from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty
 from bpy.types import PropertyGroup
+from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.overlay_painter import no_overlay
@@ -125,7 +126,7 @@ class Component_FaceChain(Component_ToonChain):
                 source=cluster[0].parent_helper or cluster[0],
                 parent=cluster[0].source,
                 custom_shape_name=self.params.face_chain.shape_intersection.shape_name,
-                custom_shape_scale_xyz=(1, 1, 1)
+                custom_shape_scale_xyz=Vector((1, 1, 1)),
             )
             intersection_control.roll_align_other(cluster[0])
 
@@ -281,12 +282,12 @@ def do_centered_cluster(
     # the center, and are expected to make a smooth curve.
     component = cluster[0].owner_component
     pos_sum = cluster[0].tail.copy()
-    shape_scale_sum = cluster[0].custom_shape_scale_xyz
+    shape_scale_sum = cluster[0].custom_shape_scale_xyz.copy()
     z_axis_sum = cluster[0].z_axis
     for bone in cluster[1:]:
         pos_sum += bone.tail
         z_axis_sum += bone.z_axis
-        shape_scale_sum += bone.custom_shape_scale_xyz
+        shape_scale_sum += Vector((abs(s) for s in bone.custom_shape_scale_xyz))
     avg_pos = pos_sum / len(cluster)
     direction = (avg_pos - intersection.head).normalized()
     avg_shape_scale = shape_scale_sum / len(cluster)
@@ -306,9 +307,10 @@ def do_centered_cluster(
         if not opposite_bone:
             continue
 
-        bone.flatten(axis='X')
+        x_axis = 'X' if bone.tail.x > 0 else '-X'
+        bone.flatten(axis=x_axis)
         if has_tangent_helpers(bone.owner_component):
-            bone.tangent_helper.flatten(axis='X')
+            bone.tangent_helper.flatten(axis=x_axis)
         if bone.owner_component.params.chain.smooth_spline:
             if has_tangent_helpers(opposite_bone.owner_component):
                 # Make the Damped Track constraint of the opposite TAN- bone aim

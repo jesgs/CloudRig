@@ -549,10 +549,16 @@ class BoneInfo:
         if axis:
             if axis == 'X':
                 self.vector = Vector((self.length, 0, 0))
+            elif axis == '-X':
+                self.vector = Vector((-self.length, 0, 0))
             elif axis == 'Y':
                 self.vector = Vector((0, self.length, 0))
+            elif axis == '-Y':
+                self.vector = Vector((0, -self.length, 0))
             elif axis == 'Z':
                 self.vector = Vector((0, 0, self.length))
+            elif axis == '-Z':
+                self.vector = Vector((0, 0, -self.length))
         else:
             length = self.length
             self.vector = flat(self.vector)
