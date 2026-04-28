@@ -528,6 +528,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         bpy.ops.object.mode_set(mode='EDIT')
         edit_bone = ensure_ebone(metarig, root_name)
+        edit_bone.use_deform = False
         name = edit_bone.name
         bpy.ops.object.mode_set(mode='OBJECT')
 
