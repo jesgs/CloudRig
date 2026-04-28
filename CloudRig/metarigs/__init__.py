@@ -161,7 +161,7 @@ def append_metarig_or_sample(context, full_name: str) -> Object | None:
             context.scene.collection.children.link(wgt_coll)
             layer_coll = find_layer_collection_by_collection(context.view_layer.layer_collection, wgt_coll)
             layer_coll.exclude = True
-        for wgt_ob in wgt_coll.all_objects:
+        for wgt_ob in list(wgt_coll.all_objects):
             if wgt_ob in set(context.scene.collection.objects):
                 context.scene.collection.objects.unlink(wgt_ob)
             if not get_blender_zeroes(wgt_ob):
