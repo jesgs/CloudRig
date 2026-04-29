@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from ..rig_component_features.bone_info import BoneInfo
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, CollectionProperty, StringProperty
@@ -333,9 +334,7 @@ class CloudRigUIEditOpMixin:
         # so we don't need to worry about making a mess there.
         rig, ui_data = get_rig_and_ui(context)
         self.panels = ui_data
-        self.temp_kmi = context.window_manager.keyconfigs.default.keymaps[
-            'Info'
-        ].keymap_items.new('', 'NUMPAD_5', 'PRESS')
+        self.temp_kmi = context.window_manager.keyconfigs.default.keymaps['Info'].keymap_items.new('', 'NUMPAD_5', 'PRESS')
         if self.operator:
             self.temp_kmi.idname = self.operator
             if self.op_kwargs:
@@ -367,12 +366,12 @@ class CloudRigUIEditOpMixin:
 
     def draw(self, context):
         layout = self.layout.column()
+        self.err_msg = ""
 
-        if not self.draw_owner_box(layout, context):
-            return
-        error = self.draw_prop_box(layout, context)
-        if error:
-            return
+        if self.draw_owner_box(layout, context):
+            return self.draw_error_msg()
+        if self.draw_prop_box(layout, context):
+            return self.draw_error_msg()
         self.draw_placement_box(layout, context)
         layout.separator()
 
@@ -381,46 +380,49 @@ class CloudRigUIEditOpMixin:
 
         # self.draw_debug_box(layout, context)
 
+    def draw_error_msg(self):
+        if not self.err_msg:
+            return
+        row = self.layout.row()
+        row.alert = True
+        row.label(text=self.err_msg, icon='ERROR')
+
     def draw_owner_box(self, layout, context) -> bool:
-        """Returns whether a valid property owner is currently specified in the input box."""
+        """Returns whether UI drawing should be interrupted after this."""
         rig = find_cloudrig(context)
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
-            get_data_paths(self, rig)
-        )
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (get_data_paths(self, rig))
 
         owner_box = layout.box()
         owner_row = owner_box.row(align=True)
         if self.use_bone_selector:
-            owner_row.prop_search(
-                self, 'owner_path', rig.pose, 'bones', text="Property Bone"
-            )
+            owner_row.prop_search(self, 'owner_path', rig.pose, 'bones', text="Property Bone")
         elif self.use_coll_selector:
-            owner_row.prop_search(
-                self, 'owner_path', rig.data, 'collections_all', text="Bone Collection"
-            )
+            owner_row.prop_search(self, 'owner_path', rig.data, 'collections_all', text="Bone Collection")
         else:
             owner_row.prop(self, 'owner_path')
         owner_row.prop(self, 'use_bone_selector', icon='BONE_DATA', text="")
         owner_row.prop(self, 'use_coll_selector', icon='OUTLINER_COLLECTION', text="")
 
+        if not self.owner_path:
+            # User hasn't specified a property owner yet. Don't overwhelm them with the rest of the UI.
+            return True
+
         if self.owner_path and not prop_owner:
             # User tried providing a data path, but it didn't path_resolve() to anything.
             owner_row.alert = True
-            alert_row = owner_box.row()
-            alert_row.alert = True
-            alert_row.label(
-                text="No property owner at '{data_path}' found.".format(data_path=self.owner_path),
-                icon='ERROR',
-            )
-            return False
+            if self.use_bone_selector:
+                self.err_msg = rpt_("Bone not found: {bone}").format(bone=self.owner_path)
+            elif self.use_coll_selector:
+                self.err_msg = rpt_("Collection not found: {collection}").format(collection=self.owner_path)
+            else:
+                self.err_msg = rpt_("No property owner at path: '{data_path}'").format(data_path=self.owner_path)
+            return True
         if self.owner_path and not hasattr(prop_owner, 'bl_rna'):
             # User tried providing a full data path to a property in the owner field,
             # as opposed to a path to a property owner, and then later a property name.
             owner_row.alert = True
-            alert_row = owner_box.row()
-            alert_row.alert=True
-            alert_row.label(text='Type "{type}" cannot have properties.'.format(type=type(prop_owner).__name__))
-            return False
+            self.err_msg = rpt_('Type "{type}" cannot have properties.').format(type=type(prop_owner).__name__)
+            return True
 
         text = f'{type(prop_owner).__name__}'
         if hasattr(prop_owner, 'name'):
@@ -433,18 +435,16 @@ class CloudRigUIEditOpMixin:
         except TypeError:
             owner_box.label(text=text, icon='INFO')
 
-        return True
+        return False
 
     def draw_prop_box(self, layout, context) -> bool:
         """Returns whether UI drawing should be interrupted after this."""
         rig = find_cloudrig(context)
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
-            get_data_paths(self, rig)
-        )
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (get_data_paths(self, rig))
 
         prop_box = layout.box().column()
         if not prop_owner:
-            prop_box.label(text='Data path failed to resolve on {rig}.'.format(rig=rig.name))
+            self.err_msg = rpt_("Data path failed to resolve on {rig}.").format(rig=rig.name)
             return True
 
         any_selectable_props = len(context.scene.cloudrig_property_name_selector) > 0
@@ -498,9 +498,7 @@ class CloudRigUIEditOpMixin:
             ):
                 # Checking for prop_value!=None again is deliberate,
                 # as modifier inputs are allowed to be None and still be drawn.
-                row = prop_box.row()
-                row.alert = True
-                row.label(text="This is a struct, not a property.", icon='ERROR')
+                self.err_msg = rpt_("This is a struct, not a property.")
                 return True
             else:
                 prop_box.label(text="Property found.", icon='CHECKMARK')
@@ -520,9 +518,7 @@ class CloudRigUIEditOpMixin:
         elif supports_custom_props(prop_owner) and self.use_manual_prop_name:
             prop_box.label(text="Property will be created with a value of 1.0.", icon='CHECKMARK')
         else:
-            row = prop_box.row()
-            row.alert = True
-            row.label(text="Property not found: " + brackets_prop_name, icon='ERROR')
+            self.err_msg = rpt_("Property not found: {prop_name}").format(prop_name=brackets_prop_name)
             return True
 
         return False
@@ -648,15 +644,17 @@ class CloudRigUIEditOpMixin:
         add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
 
     def execute(self, context):
+        if self.err_msg:
+            self.report({'ERROR'}, self.err_msg)
+            return {'CANCELLED'}
         rig = find_cloudrig(context)
-        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(
-            self, rig
-        )
+        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
+
+        self.op_kwargs_dict = {}
 
         if self.use_batch_add:
             self.temp_kmi.idname = ""
             self.op_icon = ""
-            self.op_kwargs_dict = {}
             self.texts = ""
             for key in get_drawable_custom_properties(owner):
                 self.row_name = ""
@@ -667,7 +665,7 @@ class CloudRigUIEditOpMixin:
                     return ret
             self.report(
                 {'INFO'},
-                "Added {num_props} properties to the rig UI."
+                iface_("Added {num_props} properties to the rig UI.")
                 .format(num_props=len(owner.keys()))
             )
         else:
@@ -676,7 +674,7 @@ class CloudRigUIEditOpMixin:
                 return ret
             self.report(
                 {'INFO'},
-                "Added property {prop_name} to the rig UI."
+                iface_("Added property {prop_name} to the rig UI.")
                 .format(prop_name=self.slider_name)
             )
 
@@ -689,9 +687,7 @@ class CloudRigUIEditOpMixin:
             return {'CANCELLED'}
 
         rig = find_cloudrig(context)
-        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(
-            self, rig
-        )
+        owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         if self.prop_name != brackets_prop_name:
             if issubclass(type(owner), ID) or type(owner) in {PoseBone, Bone}:
@@ -704,7 +700,7 @@ class CloudRigUIEditOpMixin:
             elif not issubclass(type(owner), Modifier):
                 self.report(
                     {'ERROR'},
-                    "{type} does not support custom properties."
+                    rpt_("{type} does not support custom properties.")
                     .format(type=type(owner))
                 )
                 return {'CANCELLED'}
@@ -794,9 +790,7 @@ class CLOUDRIG_OT_edit_property_in_ui(CloudRigUIEditOpMixin, Operator):
         rig = find_cloudrig(context)
         ui_path = json.loads(self.ui_path)
 
-        _ui_data, parents, index = remove_property_from_ui(
-            rig, ui_path=ui_path, panels=self.panels
-        )
+        _ui_data, parents, index = remove_property_from_ui(rig, ui_path=ui_path, panels=self.panels)
 
         if parents:
             parent, parent_name, child_name = parents.pop()
@@ -853,13 +847,11 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
 
     def execute(self, context):
         rig = find_cloudrig(context)
+        assert rig
         ui_path = json.loads(self.ui_path)
-        ui_data, _parents, _index = remove_property_from_ui(
-            rig,
-            ui_path=ui_path,
-        )
+        ui_data, _parents, _index = remove_property_from_ui(rig, ui_path=ui_path)
 
-        message = f'Removed "{ui_path[-1]}" from UI'
+        message = rpt_('Removed "{ui_element}" from UI').format(ui_element=ui_path[-1])
 
         if self.delete_actual_prop:
             owner_path = ui_data.get('owner_path')
@@ -871,9 +863,9 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
 
             if supports_custom_props(owner) and prop_name in owner:
                 del owner[prop_name]
-                message += f' and deleted "{prop_name}" property'
+                message += " " + rpt_('and deleted "{prop_name}" property').format(prop_name=prop_name)
             else:
-                message += f' but failed to delete "{prop_name}" property'
+                message += " " + rpt_('but failed to delete "{prop_name}" property').format(prop_name=prop_name)
 
         self.report({'INFO'}, message + ".")
 
@@ -1136,7 +1128,7 @@ def remove_property_from_ui(
     obj,
     ui_path: list[str],
     panels=None,
-) -> tuple[OrderedDict, OrderedDict, int, list[str]]:
+) -> tuple[OrderedDict, list[tuple[OrderedDict, str, str]], int]:
     """Remove an element of the rig UI, provided a list of names representing the path of
     nesting to follow in the UI data which is a nested OrderedDict.
 

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+from collections import defaultdict
 from pathlib import Path
 
 import bpy
@@ -8,11 +9,11 @@ import bpy.utils.previews  # Do not remove. Seems necessary for some python vers
 from bpy.types import ImagePreview
 
 EXTENSIONS = ("png", "svg")
-ICON_STORAGE = {}
+ICON_STORAGE = defaultdict()
 
 def get_cloudrig_icon_id(icon_name: str) -> int:
     icon_id = -1
-    icon = ICON_STORAGE["default"].get(icon_name)
+    icon = ICON_STORAGE.get("default").get(icon_name)
     if icon:
         icon_id = icon.icon_id
     return icon_id
