@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from math import pi
+from pathlib import Path
 
 import bpy
 from bpy.app.handlers import persistent
@@ -13,6 +14,7 @@ from ..generation.cloudrig import is_cloud_metarig, is_generated_cloudrig
 from ..operators.render_thumbnail import selection_state
 from ..rig_component_features.object import EnsureVisible
 from ..rig_components import ALL_COMPONENT_MODULES
+from ..utils.misc import load_script
 
 RIG_TYPE_MAP = {
     key: module.RIG_COMPONENT_CLASS.ui_name for key, module in ALL_COMPONENT_MODULES.items()
@@ -262,6 +264,26 @@ def version_cloud_metarig(metarig):
                 comp.params.fk_chain.shape_fk.name = "Shoulder"
 
 
+def update_generated_rig_ui_scripts():
+    """Replace local cloudrig.py UI scripts that don't match the current add-on version."""
+    generation_dir = Path(__file__).parent.parent / 'generation'
+    current_content = None
+
+    for text in bpy.data.texts:
+        if text.library or not text.use_module:
+            continue
+        if not any(
+            arm.get('cloudrig_ui') is text and arm.get('is_generated_cloudrig')
+            for arm in bpy.data.armatures
+        ):
+            continue
+        if current_content is None:
+            current_content = (generation_dir / 'cloudrig.py').read_text()
+        if text.as_string() == current_content:
+            continue
+        load_script(file_path=str(generation_dir), file_name='cloudrig.py', datablock=text)
+
+
 def fix_corrective_actions_51(metarig):
     # Action set-ups saved in 5.0 may need fixing in 5.1.
     if bpy.app.version < (5, 1, 0):
@@ -284,6 +306,7 @@ def update_all_metarigs(dummy=None):
         # add-on registration completes, using a timer.
         bpy.app.timers.register(update_all_metarigs)
         return
+    update_generated_rig_ui_scripts()
     context = bpy.context
     metarig_version = get_addon_prefs().cloud_metarig_version
 
