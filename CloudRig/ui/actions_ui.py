@@ -273,7 +273,7 @@ class ActionConstraintSetup(PropertyGroup):
     @property
     def trigger_a(self) -> ActionConstraintSetup | None:
         action_setups = self.id_data.cloudrig.generator.action_setups
-        return next((setup for setup in action_setups if setup.name == self.trigger_select_a), None)
+        return action_setups.get(self.trigger_select_a)
 
     @trigger_a.setter
     def trigger_a(self, action_setup: ActionConstraintSetup | None):
@@ -282,7 +282,7 @@ class ActionConstraintSetup(PropertyGroup):
     @property
     def trigger_b(self) -> ActionConstraintSetup | None:
         action_setups = self.id_data.cloudrig.generator.action_setups
-        return next((setup for setup in action_setups if setup.name == self.trigger_select_b), None)
+        return action_setups.get(self.trigger_select_b)
 
     @trigger_b.setter
     def trigger_b(self, action_setup: ActionConstraintSetup | None):
@@ -296,6 +296,8 @@ class ActionConstraintSetup(PropertyGroup):
     def corrective_slots(self) -> list[ActionConstraintSetup]:
         """Return all corrective action setups targetting this setup."""
         for action_setup in self.generator.action_setups:
+            if not action_setup.is_corrective:
+                continue
             if action_setup.trigger_a == self:
                 yield action_setup
             if action_setup.trigger_b == self:
@@ -734,7 +736,7 @@ def draw_status(layout, action_setup):
 
     default_frame = action_setup.get_default_frame()
 
-    if action_setup.is_default_frame_integer():
+    if abs(default_frame - round(default_frame)) < 0.001:
         split.label(text=iface_("Default Frame: {frame}").format(frame=round(default_frame, 2)))
     else:
         split.alert = True
