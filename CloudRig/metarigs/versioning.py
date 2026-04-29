@@ -255,6 +255,13 @@ def version_cloud_metarig(metarig):
             action_setup.trigger_select_a = action_setup.setup_id_to_str(action_setup.trigger_select_a, True)
             action_setup.trigger_select_b = action_setup.setup_id_to_str(action_setup.trigger_select_b, True)
 
+    if metarig_version < 15:
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component
+            if comp.component_type == 'Shoulder Bone':
+                comp.params.fk_chain.shape_fk.name = "Shoulder"
+
+
 def fix_corrective_actions_51(metarig):
     # Action set-ups saved in 5.0 may need fixing in 5.1.
     if bpy.app.version < (5, 1, 0):

@@ -35,7 +35,7 @@ class Component_Shoulder(Component_Chain_FK):
 
     def __make_shoulder(self):
         shoulder = self.bone_sets['FK Controls'][0]
-        shoulder.custom_shape_name = self.params.shoulder.shape_shoulder.shape_name
+        shoulder.custom_shape_name = self.params.fk_chain.shape_fk.shape_name
         up_axis = self.params.shoulder.up_axis
         shoulder_rot = radians(int(up_axis) * 90)
 
@@ -63,13 +63,11 @@ class Component_Shoulder(Component_Chain_FK):
 
         cls.draw_prop(context, layout, params.shoulder, 'up_axis', enabled=component.appearance_enabled)
 
+    @classmethod
+    def set_param_defaults(cls, component):
+        component.params.fk_chain.shape_fk.name = "Shoulder"
 
 class Params(PropertyGroup):
-    shape_shoulder: Component_Shoulder.make_custom_shape_params(
-        identifier="Shoulder",
-        default="Shoulder"
-    )
-
     up_axis: EnumProperty(
         name="Custom Shape Up Axis",
         description="Rotate the bone shape to align with this axis of the bone",
