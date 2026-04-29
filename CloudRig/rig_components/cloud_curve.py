@@ -726,12 +726,18 @@ class Component_Curve_Hooked(Component_Base):
         if not curve_ob:
             layout.label(text="Select a curve object in the Controls parameters.")
             return
+        if len(curve_ob.data.splines) == 0:
+            layout.label(text="Selected curve has no splines!")
+            return
         if params.curve.controls_for_handles:
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_bezier_center')
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_handle')
         else:
-            cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_bezier')
-            cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_point')
+            is_bezier = isinstance(get_spline_points(curve_ob.data.splines[0])[0], BezierSplinePoint)
+            if is_bezier:
+                cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_bezier')
+            else:
+                cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_point')
         if cls.creates_spline_roots(params):
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_spline_root')
         if any([spline.type == 'BEZIER' for spline in curve_ob.data.splines]) and params.curve.controls_for_handles and params.curve.separate_radius:
