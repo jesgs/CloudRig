@@ -77,7 +77,13 @@ def register():
     if __name__.startswith("rigify"):
         raise Exception("CloudRig is not a Rigify feature set!")
     recurive_register(modules, True)
-    bpy.app.translations.register(__name__, translations.translations_dict)
+    bpy.app.translations.unregister(__name__)
+    try:
+        bpy.app.translations.register(__name__, translations.translations_dict)
+    except ValueError:
+        # Can happen if the translations didn't unregister properly,
+        # which should of course never happen, but just in case...
+        pass
 
 
 def unregister():
