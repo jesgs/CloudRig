@@ -10,6 +10,7 @@ from . import (
     bs_utils,
     generation,
     icons,
+    link_handler,
     manual_mapping,
     metarigs,
     operators,
@@ -39,6 +40,7 @@ modules = [
     prefs,
     metarigs,
     translations,
+    link_handler,
 ]
 
 

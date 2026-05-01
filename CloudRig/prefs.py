@@ -182,6 +182,12 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default='BOTH',
     )
 
+    improve_link_append: BoolProperty(
+        name="Improve Link/Append",
+        description="When linking a collection, automatically create library overrides of its armatures, and execute any attached python scripts",
+        default=True,
+    )
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
@@ -191,6 +197,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         main_col.operator('wm.cloudrig_report_bug', icon='URL')
 
         main_col.row(align=True).prop(self, 'ui_mode', expand=True)
+        main_col.row(align=True).prop(self, 'improve_link_append', expand=True)
 
         header, panel = layout.panel("CloudRig Custom Shapes")
         header.label(text="Custom Shapes")
