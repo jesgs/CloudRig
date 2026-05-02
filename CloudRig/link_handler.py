@@ -17,7 +17,9 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
         if item.id.id_type == 'COLLECTION' and item.import_info == set()),
         None
     )
-    if is_link and root_coll:
+    if not root_coll:
+        return
+    if is_link:
         # Override the root collection and its contents.
         override_root_coll = root_coll.override_hierarchy_create(context.scene, context.view_layer)
         # Mark root collection as editable override, to enable visibility toggles.
@@ -26,21 +28,20 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
         bpy.data.objects.remove(context.active_object)
 
         armature_objs = [obj for obj in override_root_coll.all_objects if obj.type == 'ARMATURE']
-    elif not is_link:
+    else:
         armature_objs = [item.id for item in lapp_context.import_items if item.id.id_type == 'OBJECT' and item.id.type == 'ARMATURE']
         for obj in context.selected_objects:
             obj.select_set(False)
-    else:
-        return
 
-    select_armatures(armature_objs, scene)
+    select_armatures(context, armature_objs, scene)
     autorun_scripts_of_objects(context, armature_objs)
 
-def select_armatures(armature_objs: list[Object], scene: Scene, set_editable_override=True):
+def select_armatures(context: Context, armature_objs: list[Object], scene: Scene, set_editable_override=True):
     for arm_ob in armature_objs:
         if arm_ob.override_library:
             arm_ob.override_library.is_system_override = not set_editable_override
-        arm_ob.select_set(True)
+        if arm_ob in set(context.view_layer.objects):
+            arm_ob.select_set(True)
     if armature_objs and len(scene.view_layers) == 1:
         scene.view_layers[0].objects.active = armature_objs[-1]
 
