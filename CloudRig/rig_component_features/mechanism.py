@@ -110,6 +110,93 @@ class CloudMechanismMixin:
     def vector_along_bone_chain(self, chain, length=0, index=-1):
         return vector_along_bone_chain(chain, length, index)
 
+    def create_ik_pole_control(
+        self,
+        bone_set: 'BoneSet',
+        name: str,
+        pole_location: Vector,
+        pole_vector: Vector,
+        pole_tail_length: float,
+        elbow_bone: 'BoneInfo',
+        chain_root: 'BoneInfo',
+        custom_shape_name: str,
+        parent: 'BoneInfo | None' = None,
+    ) -> 'BoneInfo':
+        """Create an IK pole target control bone with an accompanying visual
+        line that stretches from the pole to the chain's elbow.
+
+        bone_set:         BoneSet to add the pole control + line into.
+        name:             desired name for the pole control bone.
+        pole_location:    rest position for the pole control's head, in world
+                          space. Typically the third return value of
+                          calculate_ik_pole_vector.
+        pole_vector:      direction the pole's tail should point from its head;
+                          typically the second return value of
+                          calculate_ik_pole_vector.
+        pole_tail_length: length of the pole control bone (sized for visibility).
+        elbow_bone:       bone representing the IK chain's elbow joint at runtime
+                          — the line's tail tracks this via STRETCH_TO.
+        chain_root:       first bone of the IK chain. The pole control's roll is
+                          aligned toward chain_root.head.
+        custom_shape_name: custom shape for the pole control.
+        parent:           optional parent for the pole control. When None, the
+                          caller is expected to set a parent via parent-switching
+                          after creation.
+
+        Returns the created pole control bone.
+        """
+        pole_ctrl = bone_set.new(
+            name=name,
+            source=None,
+            bbone_width=0.1,
+            head=pole_location,
+            tail=pole_location + pole_vector.normalized() * pole_tail_length,
+            parent=parent,
+            custom_shape_name=custom_shape_name,
+            inherit_scale='AVERAGE',
+            display_type='OCTAHEDRAL',
+            use_custom_shape_bone_size=True,
+        )
+        pole_ctrl.roll_align_vector(chain_root.head)
+        self.lock_transforms(pole_ctrl, loc=False)
+
+        pole_line = bone_set.new(
+            name=self.naming.add_prefix(pole_ctrl, "LINE"),
+            source=pole_ctrl,
+            tail=elbow_bone.head.copy(),
+            parent=pole_ctrl,
+            hide_select=True,
+            custom_shape_name='Line',
+            display_type='STICK',
+            use_custom_shape_bone_size=True,
+        )
+        pole_line.add_constraint('STRETCH_TO', subtarget=elbow_bone.name)
+        # Hide the line whenever the pole control is hidden.
+        pole_line.drivers.append(
+            {
+                "prop": "hide",
+                "variables": [
+                    {
+                        "type": "SINGLE_PROP",
+                        "targets": [
+                            {"data_path": f'pose.bones["{pole_ctrl.name}"].hide'}
+                        ],
+                    }
+                ],
+            }
+        )
+
+        # Create a display helper that aims the pole target at the IK chain
+        dsp_bone = self.create_dsp_bone(pole_ctrl)
+        dsp_bone.add_constraint(
+            "DAMPED_TRACK",
+            subtarget=pole_line,
+            head_tail=1.0,
+            track_axis="TRACK_NEGATIVE_Y",
+        )
+
+        return pole_ctrl
+
 
 def copy_relink_real_driver(
     src_id: ID, tgt_id: ID, fcurve: FCurve, data_path: str = None, index: int = None

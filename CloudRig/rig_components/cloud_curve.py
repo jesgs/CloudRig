@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import bpy
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProperty
@@ -7,6 +8,7 @@ from bpy.types import BezierSplinePoint, Curve, Object, PropertyGroup, Spline
 from mathutils import Matrix, Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+from ..rig_component_features.overlay_painter import no_overlay
 from ..utils.curve import (
     evaluate_point_tangents,
     find_opposite_point_on_curve,
@@ -94,6 +96,80 @@ class Component_Curve_Hooked(Component_Base):
         else:
             root_bone.custom_shape_name = self.params.curve.shape_root.shape_name
         return root_bone
+
+    @no_overlay
+    def curve__create_curve_object(self, context) -> Object:
+        """Create an empty curve object suitable for use as the component's
+        curve target. The object is named after the metarig + hook name,
+        linked into the scene, has its transforms locked, and is set to 3D.
+        Caller is responsible for populating its splines (e.g. via
+        curve__reset_to_default_spline) and assigning it to params.curve.target.
+        """
+        curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
+        curve_name += "_" + (
+            self.params.curve.hook_name or self.base_bone_name.replace("ORG-", "")
+        )
+
+        curve_data = bpy.data.curves.new(curve_name, 'CURVE')
+        curve_ob = bpy.data.objects.new(curve_name, curve_data)
+        context.scene.collection.objects.link(curve_ob)
+        self.lock_transforms(curve_ob)
+        curve_data.dimensions = '3D'
+        return curve_ob
+
+    @no_overlay
+    def curve__reset_to_default_spline(
+        self,
+        curve_ob: Object,
+        num_points: int,
+        handle_length: float = 0.4,
+        point_indices: list[int] | None = None,
+    ) -> Spline:
+        """Replace curve_ob's splines with a single bezier spline whose points
+        are distributed along the ORG bone chain.
+
+        num_points: number of bezier points on the new spline (>= 2).
+        handle_length: bezier handle length as a fraction of the per-segment
+                       distance between points.
+        point_indices: optional list of length num_points, one bone-chain
+                       index per point — used when the caller wants each
+                       curve point bound to a specific bone (e.g. Spline IK's
+                       match_hooks mode). When None, points are auto-distributed
+                       by length traveled along the chain.
+        """
+        curve_data = curve_ob.data
+        # Coerce to 3D in case a user-assigned curve was 2D — bezier handles
+        # in 3D space are required for the rig hooks to behave correctly.
+        curve_data.dimensions = '3D'
+        # Stale splines and hook modifiers from a previous generation prevent
+        # the new layout from taking effect. Wipe them.
+        for spline in curve_data.splines[:]:
+            curve_data.splines.remove(spline)
+        for m in curve_ob.modifiers[:]:
+            if m.type == 'HOOK':
+                curve_ob.modifiers.remove(m)
+
+        spline = curve_data.splines.new(type='BEZIER')
+        points = get_spline_points(spline)
+        # A fresh bezier spline starts with one point.
+        points.add(num_points - len(points))
+
+        sum_bone_length = sum(b.length for b in self.bones_org)
+        length_unit = sum_bone_length / (num_points - 1)
+        handle_dist = length_unit * handle_length
+
+        for i in range(num_points):
+            point_along_chain = i * length_unit
+            index = point_indices[i] if point_indices is not None else -1
+            loc, direction = self.vector_along_bone_chain(
+                self.bones_org, point_along_chain, index
+            )
+            p = points[i]
+            p.co = loc
+            p.handle_right = loc + handle_dist * direction
+            p.handle_left = loc - handle_dist * direction
+
+        return spline
 
     def curve__make_ctrls_for_points(self, curve_ob: Object) -> list[list[BoneInfo]]:
         hooks_of_splines: list[list[BoneInfo]] = []
@@ -558,7 +634,7 @@ class Component_Curve_Hooked(Component_Base):
             driver.expression = "var.to_scale().x"
 
             if self.params.curve.separate_radius and hasattr(hooks[point_i], 'radius_control'):
-                var_tgt.bone_target = hooks[point_i].radius_control.name
+                var_tgt.data_path = f'pose.bones["{hooks[point_i].radius_control.name}"].matrix'
 
             # Add Tilt driver
             data_path = f"splines[{hook_b.spline_idx}].{get_points_propname(spline)}[{point_i}].tilt"

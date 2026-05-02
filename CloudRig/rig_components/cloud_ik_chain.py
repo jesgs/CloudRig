@@ -253,15 +253,6 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # Create IK Chain
         self.ik_chain = self.ik_chain__make_ik_chain(org_chain, self.ik_mstr, self.pole_ctrl)
 
-        if self.pole_ctrl:
-            # Create a display helper that aims the pole target at the IK chain
-            dsp_bone = self.create_dsp_bone(self.pole_ctrl)
-            dsp_bone.add_constraint(
-                "DAMPED_TRACK",
-                subtarget=self.ik_chain[1].name,
-                track_axis="TRACK_NEGATIVE_Y",
-            )
-
         # Set up IK Stretch
         self.ik_chain__make_ik_stretch(self.bones_org, self.ik_chain)
 
@@ -301,47 +292,17 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # Create IK Pole Control
         prefix, base_name, suffix, blender_zeroes = self.naming.get_name_parts(self.bones_org[0])
         base_name = prefix+self.base_name+suffix+blender_zeroes
-        pole_ctrl = self.pole_ctrl = self.bone_sets["IK Controls"].new(
+        pole_ctrl = self.pole_ctrl = self.create_ik_pole_control(
+            bone_set=self.bone_sets["IK Controls"],
             name=self.naming.add_prefix(base_name, "POLE"),
-            source=None,
-            bbone_width=0.1,
-            head=self.pole_location,
-            tail=self.pole_location + self.pole_vector.normalized() * self.chain_length * 0.2,
+            pole_location=self.pole_location,
+            pole_vector=self.pole_vector,
+            pole_tail_length=self.chain_length * 0.2,
+            elbow_bone=self.bones_org[1],
+            chain_root=self.bones_org[0],
             custom_shape_name=self.params.ik_chain.shape_pole.shape_name,
-            inherit_scale="AVERAGE",
-            display_type='OCTAHEDRAL',
-            use_custom_shape_bone_size=True,
         )
-        pole_ctrl.roll_align_vector(self.bones_org[0].head)
         self.ik_controls.append(pole_ctrl)
-        self.lock_transforms(pole_ctrl, loc=False)
-
-        pole_line = self.bone_sets["IK Controls"].new(
-            name=self.naming.add_prefix(pole_ctrl, "LINE"),
-            source=pole_ctrl,
-            tail=self.bones_org[0].tail.copy(),
-            parent=pole_ctrl,
-            hide_select=True,
-            custom_shape_name='Line',
-            display_type='STICK',
-            use_custom_shape_bone_size=True,
-        )
-        pole_line.add_constraint("STRETCH_TO", subtarget=self.bones_org[1].name)
-        # Add a driver to the Line's hide property so it's hidden exactly when the pole target is hidden.
-        pole_line.drivers.append(
-            {
-                "prop": "hide",
-                "variables": [
-                    {
-                        "type": "SINGLE_PROP",
-                        "targets": [
-                            {"data_path": f'pose.bones["{pole_ctrl.name}"].hide'}
-                        ],
-                    }
-                ],
-            }
-        )
-
         return pole_ctrl
 
     def ik_chain__make_ik_chain(

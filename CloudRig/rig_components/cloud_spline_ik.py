@@ -5,11 +5,11 @@ from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
-from bpy.types import Object, PropertyGroup
+from bpy.types import PropertyGroup
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.overlay_painter import no_overlay
-from ..utils.curve import evaluate_point_tangents, get_spline_points
+from ..utils.curve import evaluate_point_tangents
 from .cloud_curve import Component_Curve_Hooked
 
 
@@ -72,8 +72,19 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     def create_bone_infos(self, context):
         curve_ob = self.params.curve.target
         if not curve_ob:
-            curve_ob = self.__ensure_curve_obj(context)
-        self.__reset_curve_obj(curve_ob)
+            curve_ob = self.curve__create_curve_object(context)
+            self.params.curve.target = curve_ob
+        point_indices = (
+            list(range(self.num_controls))
+            if self.params.spline_ik.match_hooks
+            else None
+        )
+        self.curve__reset_to_default_spline(
+            curve_ob,
+            num_points=self.num_controls,
+            handle_length=self.params.spline_ik.handle_length,
+            point_indices=point_indices,
+        )
         self.check_object_in_scene(context, curve_ob)
         self.point_tangents = evaluate_point_tangents(curve_ob)
         # Skip the parent class's create_bone_infos() function, but call the grandparent's.
@@ -103,66 +114,6 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
     ################################
     # Spline IK functions.
-
-    @no_overlay
-    def __ensure_curve_obj(self, context) -> Object:
-        """Find or create the Bezier Curve that will be used by the rig."""
-
-        curve_ob = self.params.curve.target
-        if curve_ob:
-            return curve_ob
-
-        # Create and name curve object.
-        curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
-        curve_name += "_" + (self.params.curve.hook_name or self.base_bone_name.replace("ORG-", ""))
-
-        curve = bpy.data.curves.new(curve_name, 'CURVE')
-        curve_ob = bpy.data.objects.new(curve_name, curve)
-        context.scene.collection.objects.link(curve_ob)
-        self.lock_transforms(curve_ob)
-
-        return curve_ob
-
-    @no_overlay
-    def __reset_curve_obj(self, curve_ob):
-        # Remove all splines, then add a new one.
-        for spline in curve_ob.data.splines[:]:
-            curve_ob.data.splines.remove(spline)
-        spline = curve_ob.data.splines.new(type='BEZIER')
-        # Remove all Hook modifiers. They seem to cause an issue where deform bones get created at 0,0,0...
-        # Blows my mind, don't ask me.
-        for m in curve_ob.modifiers[:]:
-            if m.type == 'HOOK':
-                curve_ob.modifiers.remove(m)
-
-        curve_ob.data.dimensions = '3D'
-        sum_bone_length = sum([b.length for b in self.bones_org])
-        length_unit = sum_bone_length / (self.num_controls - 1)
-        handle_length = length_unit * self.params.spline_ik.handle_length
-
-        self.params.curve.target = curve_ob
-
-        # Add the necessary number of curve points to the spline
-        points = get_spline_points(spline)
-        assert len(points) == 1
-        points.add(self.num_controls - len(points))
-        num_points = len(points)
-
-        # Configure control points...
-        for i in range(0, num_points):
-            point_along_chain = i * length_unit
-            p = points[i]
-
-            # Place control points
-            index = i if self.params.spline_ik.match_hooks else -1
-            loc, direction = self.vector_along_bone_chain(
-                self.bones_org, point_along_chain, index
-            )
-            p.co = loc
-            p.handle_right = loc + handle_length * direction
-            p.handle_left = loc - handle_length * direction
-
-        return curve_ob
 
     def __make_fk_chain(self):
         for spline_idx, hooks_of_spline in enumerate(self.hooks_of_splines):
