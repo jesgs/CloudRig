@@ -177,7 +177,7 @@ def project_point_to_plane(
         plane_normal: Vector
     ) -> Vector:
     if plane_normal.length == 0:
-        raise ValueError(f"This normal vector cannot define a plane! ({normal})")
+        raise ValueError(f"This normal vector cannot define a plane! ({plane_normal})")
     return point - plane_normal * (point - plane_point).dot(plane_normal)
 
 
