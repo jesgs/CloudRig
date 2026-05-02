@@ -285,7 +285,6 @@ class RigComponent(PropertyGroup):
             return True
         return self.enabled_toggle and self.enabled_with_parents
 
-
     @property
     def base_bone_name(self) -> str:
         return self.owner_pose_bone.name
