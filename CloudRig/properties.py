@@ -452,8 +452,11 @@ class RigComponent(PropertyGroup):
         parent = pb.parent if pb.bone and pb.bone.use_connect else None
         while parent:
             if parent.cloudrig_component.component_type:
-                return parent
-            parent = parent.parent if parent.bone.use_connect else None
+                if pb in parent.cloudrig_component.component_pbone_chain:
+                    return parent
+                else:
+                    return
+            parent = parent.parent if parent.bone and parent.bone.use_connect else None
 
     @property
     def inherited_component(self) -> RigComponent | None:
@@ -527,7 +530,11 @@ class RigComponent(PropertyGroup):
         if max_length != -1:
             chain = chain[:max_length]
 
-        self.last_bone_name = chain[-1].name
+        try:
+            self.last_bone_name = chain[-1].name
+        except AttributeError:
+            # Drawing code can't set the cache, only generation.
+            pass
         return chain
 
     def instantiate(self, generator, parent_component: RigComponent=None) -> RigComponent | None:

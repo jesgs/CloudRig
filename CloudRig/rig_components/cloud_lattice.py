@@ -21,6 +21,8 @@ class Component_Lattice(Component_Base):
 
     keep_original_bones = False
 
+    max_bones_in_chain = 1
+
     ##############################
     # Inherited functions.
 

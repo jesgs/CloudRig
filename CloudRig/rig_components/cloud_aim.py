@@ -26,6 +26,8 @@ class Component_Aim(Component_Base):
     "this will affect the shared Group Master Target instead.")
     parent_switch_overwrites_root_parent = False
 
+    max_bones_in_chain = 1
+
     ##############################
     # Inherited functions.
 

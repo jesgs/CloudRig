@@ -16,11 +16,7 @@ class Component_Feather(Component_Chain_FK):
         'fk_chain.display_center': False,
     }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.bone_count != 1:
-            self.raise_generation_error(rpt_("Feather component must consist of exactly 1 bone."))
+    max_bones_in_chain = 1
 
     def create_bone_infos(self, context):
         super().create_bone_infos(context)

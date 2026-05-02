@@ -27,6 +27,8 @@ class Component_CopyBone(Component_Base):
     keep_original_bones_collections = True
     keep_original_bones_colors = False
 
+    max_bones_in_chain = 1
+
     ##############################
     # Inherited functions.
 
