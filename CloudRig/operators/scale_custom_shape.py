@@ -1,6 +1,6 @@
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
-from bpy.types import Object, Operator
+from bpy.types import Object, Operator, PoseBone
 from bpy.utils import flip_name
 from mathutils import Vector
 
@@ -23,10 +23,18 @@ class POSE_OT_scale_custom_shape(Operator):
 
     @classmethod
     def poll(cls, context):
-        rig = cls.get_rig(context)
+        def poll_bone(pbone: PoseBone) -> bool:
+            if pbone.id_data.mode == 'POSE' and pbone.custom_shape:
+                return True
+
+            if is_cloud_metarig(pbone.id_data) and pbone.cloudrig_component.component_pbone:
+                return not bool(pbone.custom_shape)
+
+            return False
+
         bones = [
             pb for pb in get_pbones_of_selected(context, whole_ebone=True)
-            if (pb.custom_shape or is_cloud_metarig(rig))
+            if poll_bone(pb)
         ]
         if not bones:
             cls.poll_message_set("No pose bones with custom shapes selected")
