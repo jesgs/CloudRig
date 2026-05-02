@@ -96,8 +96,11 @@ class Component_ToonChain(Component_Base):
                     ).format(constraint=con_info.name, bone=org_bone.name)
                 )
             return self.main_str_bones[org_i + 1]
+
+        # These elifs are necessary because the main STR bones have an _1 suffix, so the name matching in the super() function fails.
+        elif con_info.name.startswith("STR-P-"):
+            return self.main_str_bones[org_i].parent_helper
         elif (type(self).relink_default_prefix=="STR" and "-" not in con_info.name) or con_info.name.startswith("STR-"):
-            # This is necessary because the main STR bones have an _1 suffix, so the name matching in the super() function fails.
             return self.main_str_bones[org_i]
         else:
             return super().base__relink_get_target(org_i, con_info)

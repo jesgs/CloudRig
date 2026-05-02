@@ -217,7 +217,7 @@ class Component_Base(
             to_binfo.constraint_infos.append(con_info)
             org_bi.constraint_infos.remove(con_info)
         elif "-" in base_name and (('KEEP-' not in base_name and 'ORG-' not in base_name) or not org_bi.preserve):
-            target_name = con_info.name.split("-")[0] + "-" + org_bi.name
+            target_name = con_info.name.rsplit("-", 1)[0] + "-" + org_bi.name
             self.raise_generation_error(
                 description=rpt_('Relinking Failed for constraint "{constraint}".\n' \
                     'The dash (-) in the constraint name tells CloudRig to move the constraint to a ' \
