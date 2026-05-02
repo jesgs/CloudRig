@@ -36,6 +36,7 @@ from ..bs_utils.prefs import get_addon_prefs
 from ..generation import naming
 from ..generation.cloudrig import is_cloud_metarig
 from ..operators.pie_bone_selection_ops import reveal_and_select_bone
+from ..operators.toggle_metarig import metarig_context_switch
 from ..rig_component_features.overlay_painter import no_overlay
 from ..rig_component_features.params_ui_utils import (
     draw_label_with_linebreak,
@@ -891,7 +892,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
 
         if self.use_target_rig and rig.cloudrig.generator.target_rig:
             rig = rig.cloudrig.generator.target_rig
-            bpy.ops.object.cloudrig_metarig_toggle()
+            metarig_context_switch(context)
 
         bpy.ops.object.mode_set(mode='POSE')
 
