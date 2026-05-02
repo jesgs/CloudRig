@@ -55,6 +55,9 @@ def version_cloud_metarig(metarig):
     print(
         f"CloudRig Versioning: {metarig.name} bumping version {metarig_version} -> {addon_metarig_version}"
     )
+
+    fix_corrective_actions_51(metarig)
+
     if metarig_version < 3:
         # Generated rigs used to keep the metarig data, which confuses some poll functions.
         if (
@@ -68,14 +71,8 @@ def version_cloud_metarig(metarig):
 
     if metarig_version < 4:
         # Action Slots were renamed to Action Set-ups, and now support Blender's Action Slots.
-        def find_first_setup_using_action(action: bpy.types.Action) -> ActionConstraintSetup | None:
-            if not action:
-                return
-            for action_setup in cloudrig.generator.action_setups:
-                if action_setup.action == action:
-                    return action_setup
-
         generator_properties = cloudrig.generator.bl_system_properties_get()
+        new_actions_data = cloudrig.generator.action_setups
         old_actions_data = [a.to_dict() for a in generator_properties.get('action_slots', [])]
         for old_setup in old_actions_data:
             new_setup = cloudrig.generator.action_setups.add()
@@ -83,7 +80,14 @@ def version_cloud_metarig(metarig):
                 if hasattr(new_setup, key):
                     setattr_safe(new_setup, key, value)
 
-        for old_setup, new_setup in zip(old_actions_data, cloudrig.generator.action_setups):
+        def find_first_setup_using_action(action: bpy.types.Action) -> ActionConstraintSetup | None:
+            if not action:
+                return
+            for action_setup in cloudrig.generator.action_setups:
+                if action_setup.action == action:
+                    return action_setup
+
+        for old_setup, new_setup in zip(old_actions_data, new_actions_data):
             if old_setup.get('is_corrective', False):
                 new_setup.trigger_a = find_first_setup_using_action(old_setup.get('trigger_action_a', None))
                 new_setup.trigger_b = find_first_setup_using_action(old_setup.get('trigger_action_b', None))
@@ -293,10 +297,10 @@ def fix_corrective_actions_51(metarig):
     for action_setup in action_setups:
         if not action_setup.is_corrective:
             continue
-        if action_setup.get('trigger_select_a') and not action_setup.trigger_a:
-            action_setup.trigger_a = next((acs for acs in action_setups if acs.name == action_setup['trigger_select_a']))
-        if action_setup.get('trigger_select_b') and not action_setup.trigger_b:
-            action_setup.trigger_b = next((acs for acs in action_setups if acs.name == action_setup['trigger_select_b']))
+        if not str.isdecimal(action_setup['trigger_select_a']):
+            action_setup.trigger_select_a = action_setup['trigger_select_a']
+        if not str.isdecimal(action_setup['trigger_select_b']):
+            action_setup.trigger_select_b = action_setup['trigger_select_b']
 
 @persistent
 def update_all_metarigs(dummy=None):
@@ -320,7 +324,6 @@ def update_all_metarigs(dummy=None):
             # Also, metarigs shouldn't get linked and overridden in the first place.
             continue
 
-        fix_corrective_actions_51(metarig)
         # Trigger component type update callbacks to update_ui_bone_sets().
         # https://projects.blender.org/Mets/CloudRig/issues/164
         for pb in metarig.pose.bones:

@@ -26,5 +26,5 @@ def generate_without_errors(context, metarig):
     metarig = context.active_object
     metarig.cloudrig.generator.generate_test_action = True
     assert bpy.ops.pose.cloudrig_generate() == {'FINISHED'}
-    num_logs = len(metarig.cloudrig.generator.logs)
-    assert num_logs == 0, f"Metarig '{metarig.name}' has {num_logs} generator warnings."
+    logs = metarig.cloudrig.generator.logs
+    assert len(logs) == 0, f"Metarig '{metarig.name}' has {len(logs)} generator warnings:\n\t" + "\n\t".join((log.description_short for log in logs))
