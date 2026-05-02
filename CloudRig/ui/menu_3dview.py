@@ -12,14 +12,17 @@ class VIEW3D_MT_cloudrig(Menu):
 
     def draw(self, context):
         layout = self.layout
-        obj = context.active_object
-        target_rig = obj.cloudrig.generator.target_rig
+        active_obj = context.active_object
+        is_active_generated = is_generated_cloudrig(active_obj)
+        target_rig = active_obj.cloudrig.generator.target_rig
 
-        text = "Re-Generate Rig" if target_rig or is_generated_cloudrig(obj) else "Generate Rig"
+        text = "Re-Generate Rig" if target_rig or is_active_generated else "Generate Rig"
         layout.operator('pose.cloudrig_generate', text=text, icon='FILE_REFRESH')
         layout.operator('object.cloudrig_metarig_toggle', icon='EVENT_TAB')
 
-        if context.mode in {'POSE', 'EDIT_ARMATURE'}:
+        if is_active_generated:
+            layout.operator('object.cloudrig_push_to_metarig', icon='IMPORT')
+        elif context.mode in {'POSE', 'EDIT_ARMATURE'}:
             layout.separator()
             layout.operator(
                 'pose.cloudrig_copy_component', icon='DUPLICATE', text="Copy Component"

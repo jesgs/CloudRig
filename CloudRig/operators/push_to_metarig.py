@@ -9,8 +9,10 @@ from bpy.types import Context, Operator
 
 from ..bs_utils.properties import copy_property_group
 from ..generation.cloudrig import find_metarig_of_rig, is_active_cloudrig, object_mode
+from ..rig_component_features.mechanism import copy_driver
 from ..utils.rig import get_selected_bone_tuples
 from .render_thumbnail import temporary_setattr
+from .toggle_metarig import metarig_context_switch
 
 
 class OBJECT_OT_cloudrig_push_to_metarig(Operator):
@@ -31,12 +33,19 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
     @classmethod
     def poll(cls, context):
         rig = is_active_cloudrig(context)
-        return all((
-            rig,
-            bpy.ops.pose.separate_selected_bones.poll(),
-            context.mode in ('EDIT_ARMATURE', 'POSE'),
-            find_metarig_of_rig(context, rig),
-        ))
+        if not rig:
+            cls.poll_message_set("No active armature.")
+            return False
+        if context.mode not in ('EDIT_ARMATURE', 'POSE'):
+            cls.poll_message_set("Must be in Pose/Edit mode.")
+            return False
+        if not find_metarig_of_rig(context, rig):
+            cls.poll_message_set("MetaRig not found!")
+            return False
+        if not bpy.ops.pose.separate_selected_bones.poll():
+            cls.poll_message_set("Must have selected pose/edit bones.")
+            return False
+        return True
 
     def invoke(self, context: Context, _event):
         return context.window_manager.invoke_props_dialog(self, width=400)
@@ -47,21 +56,26 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
         self.layout.prop(self, 'push_component_type', expand=True)
 
     def execute(self, context: Context):
+        # TODO: This function could be significantly less nightmarish if it used BoneInfo read/write, although that could also get complicated...
         generated_rig = context.active_object
 
         org_mode = generated_rig.mode
 
         # Switch to metarig just to make sure we are able to.
-        res = bpy.ops.object.cloudrig_metarig_toggle(match_selection=False)
-        if res == {'CANCELLED'}:
-            self.report({'ERROR'}, "Failed to make metarig visible.")
+        # This may error and interrupt this operator, which is fine.
+        ret = metarig_context_switch(context, match_selection=False)
+        if ret:
+            self.report({'ERROR'}, ret)
+            return {'CANCELLED'}
 
-        # Switch back.
-        bpy.ops.object.cloudrig_metarig_toggle(match_selection=False)
+        # Snatch a reference, then switch back.
+        metarig = context.view_layer.objects.active
+        metarig_context_switch(context, match_selection=False)
 
         # Duplicate the selected bones (Without symmetry)
         # This removes their drivers, keeps their constraints,
         # and puts .00x at the end of their names.
+        bonenames = {}
         for bone in generated_rig.data.bones:
             bone.hide = False
         with temporary_setattr(
@@ -71,12 +85,16 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
                 generated_rig,
                 mode='EDIT',
             ):
-            # Store the original bone names...
+            # Store the original bone names and parents.
             for ebone in generated_rig.data.edit_bones:
                 if ebone.select:
                     ebone['name'] = ebone.name
+                    if ebone.parent:
+                        bonenames[ebone.name] = ebone.parent.name
+                    else:
+                        bonenames[ebone.name] = ""
             bpy.ops.armature.duplicate()
-            # Mangle the new bone names...
+            # Mangle the new bone names to be extra sure of avoiding conflicts when joining the two armatures.
             for ebone in generated_rig.data.edit_bones:
                 if ebone.select:
                     ebone.name += "___"
@@ -85,12 +103,13 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
         bpy.ops.pose.separate_selected_bones()
         separated_arm_obj = context.active_object
 
-        # Nuke all drivers in the separated armature.
+        # Nuke drivers.
         separated_arm_obj.animation_data_clear()
+        separated_arm_obj.data.animation_data_clear()
 
         # Switch back to metarig.
         context.view_layer.objects.active = generated_rig
-        bpy.ops.object.cloudrig_metarig_toggle(match_selection=False)
+        metarig_context_switch(context, match_selection=False)
         metarig = context.view_layer.objects.active
 
         # Merge that armature object into the metarig.
@@ -126,6 +145,27 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
             new_ebone.name = new_ebone['name']
             del new_ebone['name']
         bpy.ops.object.mode_set(mode=org_mode)
+
+        # Achieve parenting with an Armature constraint.
+        for bone_name, parent_name in bonenames.items():
+            if not parent_name:
+                continue
+            pbone = metarig.pose.bones.get(bone_name)
+            if not pbone:
+                continue
+            arm_con = pbone.constraints.new(type='ARMATURE')
+            pbone.constraints.move(len(pbone.constraints)-1, 0)
+            arm_con.name = "NOHLP_Armature@"+parent_name
+            arm_con.targets.new()
+
+        # Copy drivers.
+        ids = [(generated_rig, metarig), (generated_rig.data, metarig.data)]
+        for src_id, tgt_id in ids:
+            if not src_id.animation_data:
+                continue
+            for fcurve in src_id.animation_data.drivers:
+                if any((f'bones["{bone}"]' in fcurve.data_path for bone in bonenames)):
+                    copy_driver(fcurve, tgt_id)
 
         return {'FINISHED'}
 
