@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bpy.app.translations import pgettext_data as data_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 
@@ -104,10 +105,10 @@ class Component_Base(
         is_left = self.naming.side_is_left(self.base_bone_name)
         if is_left:
             self.side_suffix = "L"
-            self.side_prefix = "Left"
+            self.side_prefix = data_("Left")
         elif is_left is False:
             self.side_suffix = "R"
-            self.side_prefix = "Right"
+            self.side_prefix = data_("Right")
         self.suffixes = [self.side_suffix]
         blender_zeroes = self.naming.get_blender_zeroes(self.base_bone_name)
         if blender_zeroes:
