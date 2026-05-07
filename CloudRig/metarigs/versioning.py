@@ -154,7 +154,7 @@ def version_cloud_metarig(metarig):
         # The conversion is easy enough to do.
         for pbone in metarig.pose.bones:
             comp = pbone.cloudrig_component.inherited_component or pbone.cloudrig_component
-            if comp.component_type in ('Bone Copy', 'Bone Tweak', 'Raw Copy'):
+            if comp.component_type in ('Single Control', 'Bone Copy', 'Bone Tweak', 'Raw Copy'):
                 continue
             elif comp.component_class.__name__ == 'Component_RawCopy':
                 continue
@@ -177,7 +177,6 @@ def version_cloud_metarig(metarig):
     if metarig_version < 9:
         # We changed some bone shapes.
         rotated_shapes = {
-            'WGT-Root': Euler((-pi/2, 0, 0)),
             'WGT-Root 2': Euler((-pi/2, 0, 0)),
             'WGT-Root 3': Euler((-pi/2, 0, 0)),
             'WGT-Root 4': Euler((-pi/2, 0, 0)),
