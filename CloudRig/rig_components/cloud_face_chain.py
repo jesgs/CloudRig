@@ -282,7 +282,7 @@ def do_centered_cluster(
     # the center, and are expected to make a smooth curve.
     component = cluster[0].owner_component
     pos_sum = cluster[0].tail.copy()
-    shape_scale_sum = cluster[0].custom_shape_scale_xyz.copy()
+    shape_scale_sum = Vector((abs(s) for s in cluster[0].custom_shape_scale_xyz))
     z_axis_sum = cluster[0].z_axis
     for bone in cluster[1:]:
         pos_sum += bone.tail
