@@ -288,8 +288,7 @@ def do_centered_cluster(
         pos_sum += bone.tail
         z_axis_sum += bone.z_axis
         shape_scale_sum += Vector((abs(s) for s in bone.custom_shape_scale_xyz))
-    avg_pos = pos_sum / len(cluster)
-    direction = (avg_pos - intersection.head).normalized()
+    direction = z_axis_sum.normalized()
     avg_shape_scale = shape_scale_sum / len(cluster)
     avg_z_axis = z_axis_sum / len(cluster)
 
@@ -309,8 +308,10 @@ def do_centered_cluster(
 
         x_axis = 'X' if bone.tail.x > 0 else '-X'
         bone.flatten(axis=x_axis)
+        bone.roll_align_vector(bone.head + z_axis_sum)
         if has_tangent_helpers(bone.owner_component):
             bone.tangent_helper.flatten(axis=x_axis)
+            bone.tangent_helper.roll_align_vector(bone.head + z_axis_sum)
         if bone.owner_component.params.chain.smooth_spline:
             if has_tangent_helpers(opposite_bone.owner_component):
                 # Make the Damped Track constraint of the opposite TAN- bone aim
