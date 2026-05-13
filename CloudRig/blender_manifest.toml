@@ -6,7 +6,7 @@ name = "CloudRig"
 tagline = "Rig Generation & Rigging Workflow Tools"
 maintainer = "Demeter Dzadik <demeter@blender.org>"
 type = "add-on"
-website = "https://projects.blender.org/Mets/CloudRig"
+website = "https://studio.blender.org/tools/addons/cloudrig/introduction"
 tags = ["Rigging"]
 
 blender_version_min = "5.0.0"
