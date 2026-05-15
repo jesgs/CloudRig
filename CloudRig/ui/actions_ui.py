@@ -132,21 +132,24 @@ class ActionConstraintSetup(PropertyGroup):
         channelbag = self.channelbag
         if not (channelbag and channelbag.fcurves):
             return
-        fcurves = [
+
+        fcurves_of_subtarget = [
             fc for fc in channelbag.fcurves
             if f'pose.bones["{self.subtarget}"]' in fc.data_path
         ]
-        if not fcurves:
-            fcurves = channelbag.fcurves
-        transform_channel, min_frame, max_frame, value_min, value_max = get_fcurves_ranges(fcurves)
+        transform_channel, min_frame, max_frame, value_min, value_max = get_fcurves_ranges(fcurves_of_subtarget or channelbag.fcurves)
 
+        self.frame_start = int(min_frame)
+        self.frame_end = int(max_frame)
+
+        if not fcurves_of_subtarget:
+            # If the use didn't key the control bone, then we can't deduce the transform limits.
+            return
 
         if 'ROTATION' in transform_channel:
             value_max = degrees(value_max)
             value_min = degrees(value_min)
 
-        self.frame_start = int(min_frame)
-        self.frame_end = int(max_frame)
         self.transform_channel = transform_channel or 'LOCATION_X'
         if abs(value_min) < abs(value_max):
             self.trans_min = value_min
