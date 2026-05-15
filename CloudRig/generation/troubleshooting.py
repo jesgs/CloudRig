@@ -553,7 +553,7 @@ class CloudLogManager:
             if action_setup.trans_min == action_setup.trans_max:
                 self.log(
                     rpt_("Action has no transform range"),
-                    note=action_setup.action.name,
+                    note=action_setup.name,
                     icon='ACTION',
                     description=rpt_('Action Setup "{action_setup}" has no transformation range. '
                                 'This will cause the action to always be in the same state!')
@@ -564,7 +564,7 @@ class CloudLogManager:
             if action_setup.frame_start == action_setup.frame_end:
                 self.log(
                     rpt_("Action has no frame range"),
-                    note=action_setup.action.name,
+                    note=action_setup.name,
                     icon='ACTION',
                     description=rpt_('Action Setup "{action_setup}" has no frame range. ' \
                                 'This will cause the action to always be in the same state!')
@@ -618,18 +618,18 @@ class CloudLogManager:
             if single_point_curves:
                 self.log(
                     rpt_("Action with 1-key curves"),
-                    note=action_setup.action.name,
+                    note=action_setup.name,
                     icon='ACTION',
-                    description=rpt_('Action slot "{action}" has {num_curves} '\
+                    description=rpt_('Action setup "{action}" has {num_curves} '\
                                 'curves with only a single keyframe. These curves will be ignored by the action setup!')
-                                .format(action=action_setup.action.name, num_curves=len(single_point_curves)),
+                                .format(action=action_setup.name, num_curves=len(single_point_curves)),
                     operator=CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
             if wrong_curves:
                 self.log(
                     rpt_("Action affects rest pose"),
-                    note=action_setup.action.name,
+                    note=action_setup.name,
                     icon='ACTION',
                     description=rpt_('Action setup "{action}" has {num_curves} curves that are ' \
                                 'not keyframed to their default values on the default frame ({default_frame}).')

@@ -43,7 +43,7 @@ class ActionConstraintSide(LoggerMixin):
             if not (action_setup.trigger_a and action_setup.trigger_b):
                 self.add_log(
                     rpt_("Missing trigger Action Setup"),
-                    description=rpt_('Action Setup "{action}" references missing trigger setup').format(action=action_setup.action.name)
+                    description=rpt_('Action Setup "{action}" references missing trigger setup').format(action=action_setup.name)
                 )
                 return
             trigger_a = self.owner.action_setup_side_map[action_setup.trigger_a]
@@ -122,7 +122,7 @@ class ActionConstraintSide(LoggerMixin):
         if self.action_setup.is_corrective and self.used_as_trigger:
             self.add_log(
                 rpt_("Corrective cannot be trigger"),
-                description=rpt_('Corrective action "{action}" used as trigger. This is not currently supported.').format(action=self.action_setup.action.name)
+                description=rpt_('Corrective action "{action}" used as trigger. This is not currently supported.').format(action=self.action_setup.name)
             )
             # TODO: Why isn't this supported? Should be fine imo.
             return
@@ -132,7 +132,7 @@ class ActionConstraintSide(LoggerMixin):
                 rpt_("Missing Action Control"),
                 note=self.control_name,
                 note_icon='BONE_DATA',
-                description=rpt_("Control bone '{bone}' for action '{action}' not found").format(bone=self.control_name, action=self.action_setup.action.name),
+                description=rpt_("Control bone '{bone}' for action '{action}' not found").format(bone=self.control_name, action=self.action_setup.name),
             )
             return
 
@@ -152,7 +152,7 @@ class ActionConstraintSide(LoggerMixin):
             self.generator.logger.log(
                 rpt_("Action constraint failed"),
                 trouble_bone=bone_name,
-                description=rpt_('Bone "{bone}" was not found, so it cannot get an Action constraint for `{action}`.').format(bone=bone_name, action=self.action_setup.action.name),
+                description=rpt_('Bone "{bone}" was not found, so it cannot get an Action constraint for `{action}`.').format(bone=bone_name, action=self.action_setup.name),
             )
             return
 

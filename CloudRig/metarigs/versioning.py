@@ -70,7 +70,7 @@ def version_cloud_metarig(metarig):
             return
 
     if metarig_version < 4:
-        # Action Slots were renamed to Action Set-ups, and now support Blender's Action Slots.
+        # Action Slots were renamed to Action Setups, and now support Blender's Action Slots.
         generator_properties = cloudrig.generator.bl_system_properties_get()
         new_actions_data = cloudrig.generator.action_setups
         old_actions_data = [a.to_dict() for a in generator_properties.get('action_slots', [])]
@@ -288,7 +288,7 @@ def update_generated_rig_ui_scripts():
 
 
 def fix_corrective_actions_51(metarig):
-    # Action set-ups saved in 5.0 may need fixing in 5.1.
+    # Action setups saved in 5.0 may need fixing in 5.1.
     if bpy.app.version < (5, 1, 0):
         return
     cloudrig = metarig.cloudrig
