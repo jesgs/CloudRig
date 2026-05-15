@@ -8,7 +8,7 @@ from bpy.types import FCurve, Object, Operator
 from ..bs_utils.hotkeys import register_hotkey
 from ..generation.naming import uniqify
 from ..utils.rig import get_current_rigs
-
+from ..generation.cloudrig import is_cloud_metarig
 
 class BoneDuplicateOpMixin:
     increment_names: BoolProperty(
@@ -91,7 +91,9 @@ class BoneDuplicateOpMixin:
             bpy.ops.object.mode_set(mode='POSE')
             bpy.ops.object.mode_set(mode='EDIT')
             for rig in rigs:
-                rig.cloudrig.refresh_generation_order()
+                if is_cloud_metarig(rig):
+                    # Refresh the overlay drawing.
+                    rig.cloudrig.refresh_generation_order()
             for fc in new_drivers:
                 fc.driver.expression = fc.driver.expression
         except RuntimeError:
