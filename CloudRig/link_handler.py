@@ -42,8 +42,8 @@ def select_armatures(context: Context, armature_objs: list[Object], scene: Scene
             arm_ob.override_library.is_system_override = not set_editable_override
         if arm_ob in set(context.view_layer.objects):
             arm_ob.select_set(True)
-    if armature_objs and len(scene.view_layers) == 1:
-        scene.view_layers[0].objects.active = armature_objs[-1]
+    if armature_objs and armature_objs[-1] in set(context.view_layer.objects):
+        context.view_layer.objects.active = armature_objs[-1]
 
 def autorun_scripts_of_objects(context: Context, objects: list[Object]):
     if not context.preferences.filepaths.use_scripts_auto_execute:
