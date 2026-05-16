@@ -247,9 +247,9 @@ class Component_Limb(Component_Chain_IKFK):
                 context_bones=(
                     self.ik_chain +
                     self.fk_chain +
-                    self.bone_sets['IK Controls'],
-                    self.bone_sets['IK Child Controls'],
-                    [rubberhose_ctr, self.root_bone],
+                    self.bone_sets['IK Controls'] +
+                    self.bone_sets['IK Child Controls'] +
+                    [rubberhose_ctr, self.root_bone]
                 ),
             )
 

@@ -1181,7 +1181,12 @@ def write_rig_panels(obj, panels: OrderedDict):
     # So, just put it in a dictionary with a single 'panels' key.
     # Then it can easily be converted back to python, see read_rig_panels().
     panels = {'panels': dict_to_tuples(panels)}
-    obj.data['ui_data'] = panels
+    try:
+        obj.data['ui_data'] = panels
+    except TypeError:
+        # This can happen when we pass some type of data that can't be stored in a Blender custom property,
+        # see issue #341.
+        print("CloudRig Error: Failed to set UI data! Please report this as a bug!")
 
 
 def get_rig_and_ui(context, *, allow_filter=True) -> tuple[Object, OrderedDict] | tuple[None, None]:
