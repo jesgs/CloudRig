@@ -20,6 +20,7 @@ RIG_TYPE_MAP = {
     key: module.RIG_COMPONENT_CLASS.ui_name for key, module in ALL_COMPONENT_MODULES.items()
 }
 
+
 def setattr_safe(thing, key, value):
     if (
         hasattr(thing, 'bl_rna')
@@ -31,32 +32,52 @@ def setattr_safe(thing, key, value):
     else:
         setattr(thing, key, value)
 
+
 def preserve_old_default(
     metarig: Object, param_name: str, old_default: float | int | bool | str
 ):
     for pb in metarig.pose.bones:
         if param_name not in pb.cloudrig_component.params:
             setattr(pb.cloudrig_component.params, param_name, old_default)
-            print(
-                f"Preserve old default value: {pb.name} -> {param_name} = {old_default}"
-            )
+            print(f"Preserve old default value: {pb.name} -> {param_name} = {old_default}")
+
+
+def version_cloud_metarig_editmode(context, metarig):
+    visibility = EnsureVisible(context, metarig)
+
+    fix_corrective_actions_51(metarig)
+
+    cloudrig = metarig.cloudrig
+    addon_metarig_version = get_addon_prefs().cloud_metarig_version
+    metarig_version = cloudrig.metarig_version
+
+    if metarig_version >= addon_metarig_version:
+        return
+
+    with selection_state(context, active_obj=metarig, selected_obs=[metarig]):
+        bpy.ops.object.mode_set(mode='EDIT')
+        version_cloud_metarig(metarig)
+        bpy.ops.object.mode_set(mode='OBJECT')
+    visibility.restore(context)
+
 
 def version_cloud_metarig(metarig):
     """Convert older CloudRig metarigs to work with the current version of
-    CloudRig as well as possible. They will still need some manual cleanup!!!"""
-    cloudrig = metarig.cloudrig
-    # NOTE on limitations:
-    # The old value is not stored in the file at all if it was left as default, so
+    CloudRig as well as possible. They will still need some manual cleanup!!!
+
+    # NOTE on default values:
+    # Old values left on their default are NOT STORED in the .blend, so
     # there's no way to guarantee correct versioning when changing the default value of a parameter.
     # So, make really damn sure that default values are correct when first implementing them!
+    """
+    cloudrig = metarig.cloudrig
     addon_metarig_version = get_addon_prefs().cloud_metarig_version
     metarig_version = cloudrig.metarig_version
-    cloudrig.metarig_version = addon_metarig_version
-    print(
-        f"CloudRig Versioning: {metarig.name} bumping version {metarig_version} -> {addon_metarig_version}"
-    )
 
-    fix_corrective_actions_51(metarig)
+    if metarig_version >= addon_metarig_version:
+        return
+    cloudrig.metarig_version = addon_metarig_version
+    print(f"CloudRig Versioning: {metarig.name} bumping version {metarig_version} -> {addon_metarig_version}")
 
     if metarig_version < 3:
         # Generated rigs used to keep the metarig data, which confuses some poll functions.
@@ -328,23 +349,12 @@ def update_all_metarigs(dummy=None):
         for pb in metarig.pose.bones:
             pb.cloudrig_component.update_ui_bone_sets()
 
-        if metarig.cloudrig.metarig_version == metarig_version:
-            continue
         if metarig.cloudrig.metarig_version > metarig_version:
-            print(
-                f"\tFound a metarig with a higher metarig version than the current: {metarig.name}"
-            )
-            print(
-                "\tIt must have been created with a newer version of CloudRig, and won't behave as expected."
-            )
+            print(f"\tFound a metarig with a higher metarig version than the current: {metarig.name}")
+            print("\tIt must have been created with a newer version of CloudRig, and won't behave as expected.")
             print("\tYou should update CloudRig!")
             continue
-        visibility = EnsureVisible(context, metarig)
-        with selection_state(context, active_obj=metarig, selected_obs=[metarig]):
-            bpy.ops.object.mode_set(mode='EDIT')
-            version_cloud_metarig(metarig)
-            bpy.ops.object.mode_set(mode='OBJECT')
-        visibility.restore(context)
+        version_cloud_metarig_editmode(context, metarig)
 
 
 def register():

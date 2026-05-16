@@ -20,7 +20,7 @@ from bpy.types import ID, BoneColor, Object, PoseBone, PropertyGroup
 from . import rig_component_features, rig_components
 from .bs_utils.prefs import get_addon_prefs
 from .generation.cloud_generator import GeneratorProperties
-from .metarigs.versioning import version_cloud_metarig
+from .metarigs.versioning import version_cloud_metarig_editmode
 from .rig_components.cloud_raw_copy import Component_RawCopy
 
 
@@ -680,7 +680,7 @@ class Properties_CloudRig(PropertyGroup):
             if metarig.cloudrig.metarig_version == 0:
                 metarig.cloudrig.metarig_version = get_addon_prefs(context).cloud_metarig_version
             else:
-                version_cloud_metarig(metarig)
+                version_cloud_metarig_editmode(context, metarig)
         self.refresh_generator_data()
         self.active_component_update_callback()
 

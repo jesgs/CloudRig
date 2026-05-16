@@ -173,7 +173,7 @@ def append_metarig_or_sample(context, full_name: str) -> Object | None:
 
     # Version the metarig, so we don't have to update metarigs.blend every time
     # (though doing so does reduce console messages)
-    versioning.version_cloud_metarig(obj)
+    versioning.version_cloud_metarig_editmode(context, obj)
 
     return obj
 
