@@ -3,117 +3,144 @@
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import BoolProperty
-from bpy.types import FCurve, Object, Operator
+from bpy.types import Context, Event, FCurve, Object, Operator, Macro
 
 from ..bs_utils.hotkeys import register_hotkey
+from ..generation.cloudrig import is_cloud_metarig
 from ..generation.naming import uniqify
 from ..utils.rig import get_current_rigs
-from ..generation.cloudrig import is_cloud_metarig
 
-class BoneDuplicateOpMixin:
-    increment_names: BoolProperty(
-        name="Increment Names",
-        description="Whether to increment numbers in bone names. If False, use Blender's .001 naming instead",
-        default=True,
-        options={'SKIP_SAVE'},
-    )
 
-    def bone_operation(self):
-        raise NotImplementedError
+class ARMATURE_OT_post_process_new_bones(Operator):
+    bl_idname = "armature.post_process_new_bones"
+    bl_label = "Post-Process New Bones"
+    bl_options = {'REGISTER', 'INTERNAL'}
 
-    def invoke(self, context, event):
-        self.original_ebones = {}
-        self.original_active = {}
+    is_extrude: BoolProperty(default=False)
 
-        rigs = list(get_current_rigs(context))
-        for rig in rigs:
-            self.original_ebones[rig] = set(rig.data.edit_bones[:])
-            self.original_active[rig] = rig.data.edit_bones.active
-
-        self.bone_operation()
-        if hasattr(self, 'is_executing'):
-            bpy.ops.transform.translate()
+    def invoke(self, context: Context, event: Event) -> set[str]:
+        if event.shift:
             return {'FINISHED'}
-        else:
-            bpy.ops.transform.translate('INVOKE_DEFAULT', False)
+        return self.execute(context)
 
-        self.translate_done = False
+    def execute(self, context: Context) -> set[str]:
+        rigs = list(get_current_rigs(context))
+        driver_renames = {}
 
-        context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
+        for rig in rigs:
+            driver_renames[rig] = {}
+            bones_to_rename = set()
 
-    def modal(self, context, event):
-        self.increment_name = not event.shift
+            for ebone in rig.data.edit_bones:
+                if not (ebone.select or ebone.select_head or ebone.select_tail):
+                    continue
+                # Driver duplication is only unambiguous when this is the first duplicate of a bone.
+                # Otherwise we can't tell which bone is the original that got duplicated.
+                if not ebone.name.endswith('.001'):
+                    continue
+                if ebone.name[:-4] not in rig.data.edit_bones:
+                    continue
+                bones_to_rename.add(ebone)
+                if self.is_extrude:
+                    # Weird Blender behaviour workaround:
+                    # When mirror is enabled and a bone body is selected, the opposite bone is also considered selected,
+                    # even if it isn't actually.
+                    # But during extrude, the body is not selected, so we can't rely on that.
+                    flipped = bpy.utils.flip_name(ebone.name)
+                    if (flipped != ebone.name
+                            and flipped in rig.data.edit_bones
+                            and flipped.endswith('.001')
+                            and flipped[:-4] in rig.data.edit_bones):
+                        bones_to_rename.add(rig.data.edit_bones[flipped])
 
-        if event.type in {'LEFTMOUSE', 'NUMPAD_ENTER', 'RET', 'RIGHTMOUSE', 'ESC'}:
-            if not self.translate_done:
-                self.translate_done = True
-                return {'PASS_THROUGH'}
-            elif self.increment_name:
-                return self.execute(context)
-            else:
-                return {'FINISHED'}
+            for ebone in bones_to_rename:
+                old_name = ebone.name[:-4]
+                new_name = uniqify(ebone, strip_first=True)
+                if bone_has_drivers(rig, old_name):
+                    driver_renames[rig][old_name] = new_name
+                if self.is_extrude:
+                    ebone.select_head = False
+                    ebone.select = False
+                    if ebone.parent and ebone.use_connect:
+                        ebone.parent.select_tail = False
+                ebone.name = new_name
 
-        return {'PASS_THROUGH'}
+        # Weird Blender behaviour workaround:
+        # On extrude with mirror, the active bone flips for no reason. So we unflip it.
+        if self.is_extrude:
+            arm = context.active_object.data
+            if arm.use_mirror_x and arm.edit_bones.active:
+                flipped = bpy.utils.flip_name(arm.edit_bones.active.name)
+                if flipped != arm.edit_bones.active.name and flipped in arm.edit_bones:
+                    flipped_bone = arm.edit_bones[flipped]
+                    sel = flipped_bone.select, flipped_bone.select_head, flipped_bone.select_tail
+                    arm.edit_bones.active = flipped_bone
+                    # For some reason, setting active state affects selection state, so, to fix that...
+                    flipped_bone.select, flipped_bone.select_head, flipped_bone.select_tail = sel
 
-    def execute(self, context):
+        if not any(driver_renames.values()):
+            return {'FINISHED'}
+
         new_drivers = []
-        if not hasattr(self, 'original_ebones'):
-            # This code path lets this operator run when called via Python.
-            # Useful for testing.
-            self.is_executing = True
-            self.invoke(context, None)
-
-        rigs = list(get_current_rigs(context))
-        new_bones_names = []
+        bpy.ops.object.mode_set(mode='POSE')
         for rig in rigs:
-            new_ebones = set(rig.data.edit_bones[:]) - self.original_ebones[rig]
-            original_active = self.original_active[rig]
-            for new_ebone in sorted(new_ebones, key=lambda b: b.name):
-                new_name = new_ebone.name
-                if self.increment_names:
-                    new_name = uniqify(new_ebone, strip_first=True)
-                if new_ebone.name.endswith(".001"):
-                    # Driver duplication is only unambiguous when this is the first duplicate of a bone.
-                    # Otherwise we can't tell which bone is the original that got duplicated.
-                    old_ebone = rig.data.edit_bones[new_ebone.name[:-4]]
-                    if old_ebone == original_active:
-                        rig.data.edit_bones.active = new_ebone
-                    new_drivers.extend(
-                        copy_drivers_of_bone(rig, old_ebone.name, new_name)
-                    )
-                # Fix the name!
-                new_ebone.name = new_name
-                new_bones_names.append(new_ebone.name)
-
-        # Refresh PoseBones &  copied drivers
-        try:
-            bpy.ops.object.mode_set(mode='POSE')
-            bpy.ops.object.mode_set(mode='EDIT')
-            for rig in rigs:
-                if is_cloud_metarig(rig):
-                    # Refresh the overlay drawing.
-                    rig.cloudrig.refresh_generation_order()
-            for fc in new_drivers:
-                fc.driver.expression = fc.driver.expression
-        except RuntimeError:
-            # This can happen when user keeps the mouse button held while pressing E again.
-            # Easiest to get by trying to spam-extrude.
-            # I'm just gonna ignore it, this is a silly edge case, and it's only the driver copying that fails.
-            return {'FINISHED'}
-
-        new_ebones = [rig.data.edit_bones[bone_name] for bone_name in new_bones_names]
-        self.post_execute(new_ebones)
+            for old_name, new_name in driver_renames[rig].items():
+                new_drivers.extend(copy_drivers_of_bone(rig, old_name, new_name))
+        bpy.ops.object.mode_set(mode='EDIT')
+        for rig in rigs:
+            if is_cloud_metarig(rig):
+                # Refresh for sake of overlay drawing.
+                rig.cloudrig.refresh_generation_order()
+        for fc in new_drivers:
+            fc.driver.expression = fc.driver.expression
 
         return {'FINISHED'}
 
-    def post_execute(self, new_ebones):
-        pass
+
+class ARMATURE_OT_better_bone_extrude(Macro):
+    bl_idname = "armature.better_bone_extrude"
+    bl_label = iface_("Better Extrude Bone")
+    bl_description = "Extrude a bone and increment its name"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context: Context) -> bool:
+        if context.mode != 'EDIT_ARMATURE':
+            cls.poll_message_set("Active Armature must be in edit mode.")
+            return False
+        return any(
+            eb.select_tail or eb.select_head
+            for eb in context.active_object.data.edit_bones
+        )
+
+
+class ARMATURE_OT_better_bone_duplicate(Macro):
+    bl_idname = "armature.better_bone_duplicate"
+    bl_label = iface_("Better Duplicate Bone")
+    bl_description = "Duplicate a bone and increment its name"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context: Context) -> bool:
+        if context.mode != 'EDIT_ARMATURE':
+            cls.poll_message_set("Active Armature must be in edit mode.")
+            return False
+        return any(eb.select for eb in context.active_object.data.edit_bones)
+
+
+def bone_has_drivers(rig: Object, bone_name: str) -> bool:
+    for db in (rig, rig.data):
+        if db.animation_data:
+            for fc in db.animation_data.drivers:
+                if f'bones["{bone_name}"]' in fc.data_path:
+                    return True
+    return False
+
 
 def copy_drivers_of_bone(
         rig: Object,
         old_bone_name: str,
-        new_ebone_name: str
+        new_bone_name: str
     ) -> list[FCurve]:
     datablocks = []
     if rig.animation_data:
@@ -122,90 +149,40 @@ def copy_drivers_of_bone(
         datablocks.append(rig.data)
 
     new_drivers = []
-
     for db in datablocks:
         for fc in db.animation_data.drivers:
             if f'bones["{old_bone_name}"]' in fc.data_path:
                 new_fc = db.animation_data.drivers.from_existing(src_driver=fc)
-                new_fc.data_path = new_fc.data_path.replace(
-                    old_bone_name, new_ebone_name
-                )
+                new_fc.data_path = new_fc.data_path.replace(old_bone_name, new_bone_name)
                 new_fc.driver.expression = new_fc.driver.expression
                 new_drivers.append(new_fc)
-
     return new_drivers
 
 
-class ARMATURE_OT_better_bone_extrude(BoneDuplicateOpMixin, Operator):
-    bl_idname = "armature.better_bone_extrude"
-    bl_description = "Extrude a bone and increment its name. Hold Shift when confirming the extrusion to leave the name as it is"
-    # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
-    bl_options = {'REGISTER'}
-    bl_label = iface_("Better Extrude Bone")
-
-    @classmethod
-    def poll(cls, context):
-        if not context.mode == 'EDIT_ARMATURE':
-            cls.poll_message_set("Active Armature must be in edit mode.")
-            return False
-        return [
-            ebone
-            for ebone in context.active_object.data.edit_bones
-            if ebone.select_tail or ebone.select_head
-        ]
-
-    def bone_operation(self):
-        # Extrude it!
-        bpy.ops.armature.extrude_move()
-
-    def post_execute(self, new_ebones):
-        for new_eb in new_ebones:
-            new_eb.select_head = False
-            new_eb.select = False
-            if new_eb.parent and new_eb.use_connect:
-                new_eb.parent.select_tail = False
-
-
-class ARMATURE_OT_better_bone_duplicate(BoneDuplicateOpMixin, Operator):
-    bl_idname = "armature.better_bone_duplicate"
-    bl_description = "Duplicate a bone and increment its name. Hold Shift to leave the name as it is"
-    # Undo flag is omitted, because an Undo step is created by duplicate_move() anyways.
-    bl_options = {'REGISTER'}
-    bl_label = iface_("Better Duplicate Bone")
-
-    @classmethod
-    def poll(cls, context):
-        if not context.mode == 'EDIT_ARMATURE':
-            cls.poll_message_set("Active Armature must be in edit mode.")
-            return False
-        return [ebone for ebone in context.active_object.data.edit_bones if ebone.select]
-
-    def bone_operation(self):
-        # Duplicate it!
-        bpy.ops.armature.duplicate_move()
-
-    def post_execute(self, new_ebones):
-        pass
-
-registry = [ARMATURE_OT_better_bone_extrude, ARMATURE_OT_better_bone_duplicate]
+registry = [
+    ARMATURE_OT_post_process_new_bones,
+    ARMATURE_OT_better_bone_extrude,
+    ARMATURE_OT_better_bone_duplicate,
+]
 
 
 def register():
-    register_hotkey(
-        ARMATURE_OT_better_bone_extrude.bl_idname,
-        hotkey_kwargs={
-            'type': 'E',
-            'value': 'PRESS'
-        },
-        keymap_name='Armature',
-    )
+    # Macros allow us to combine these undo steps into one.
+    ARMATURE_OT_better_bone_extrude.define("ARMATURE_OT_extrude").properties.forked = False
+    ARMATURE_OT_better_bone_extrude.define("TRANSFORM_OT_translate")
+    ARMATURE_OT_better_bone_extrude.define("ARMATURE_OT_post_process_new_bones").properties.is_extrude = True
+
+    ARMATURE_OT_better_bone_duplicate.define("ARMATURE_OT_duplicate")
+    ARMATURE_OT_better_bone_duplicate.define("TRANSFORM_OT_translate")
+    ARMATURE_OT_better_bone_duplicate.define("ARMATURE_OT_post_process_new_bones")
 
     register_hotkey(
+        ARMATURE_OT_better_bone_extrude.bl_idname,
+        hotkey_kwargs={'type': 'E', 'value': 'PRESS'},
+        keymap_name='Armature',
+    )
+    register_hotkey(
         ARMATURE_OT_better_bone_duplicate.bl_idname,
-        hotkey_kwargs={
-            'type': 'D',
-            'value': 'PRESS',
-            'shift': True
-        },
+        hotkey_kwargs={'type': 'D', 'value': 'PRESS', 'shift': True},
         keymap_name='Armature',
     )
