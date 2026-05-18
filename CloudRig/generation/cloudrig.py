@@ -2413,6 +2413,8 @@ class CLOUDRIG_MT_collections_quick_select(Menu):
                 op.select = True
                 op.reveal_bones = False
 
+        bpy.types.POSE_MT_selection_sets_select.draw(self, context)
+
 
 class POSE_OT_cloudrig_collections_reveal_all(Operator):
     """Reveal all collections"""
@@ -3192,7 +3194,7 @@ def register():
         hotkeys.register_hotkey(
             bl_idname='wm.call_menu',
             hotkey_kwargs={
-                'type': 'Q',
+                'type': 'W',
                 'value': 'PRESS',
                 'shift': True,
                 'alt': True,
