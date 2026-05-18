@@ -9,6 +9,7 @@ from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
+from numpy import average
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.bone_set import BoneSet
@@ -199,16 +200,19 @@ class Component_Limb_BipedLeg(Component_Limb):
         knee, foot, toe = self.bones_org[-3:]
         # Project a line along the knee bone, and find the point on that line closest to the toe's tail.
         intersect = intersect_point_line(toe.tail, knee.head, knee.tail)[0]
+        if (intersect - knee.head).length < knee.length:
+            # If the closest point is actually along the knee, use the end of the knee instead.
+            # (We only want to extrapolate the knee if it's necessary,
+            # we don't want to pick a position along the knee.)
+            intersect = knee.tail
         # Find the direction that points from the toe's tail towards this intersection point.
         intersect_to_toe = (intersect - toe.tail).normalized()
 
         # Amount we want to offset the point by, away from the foot.
         shift_from_toe = intersect_to_toe * foot.length
-        # Amount we want to offset the point by, up along the knee.
-        shift_along_knee = knee.vector.normalized() * -foot.length
 
         # Calculate final position by adding the offsets to the intersection point.
-        head = intersect + shift_from_toe + shift_along_knee
+        head = foot.head + shift_from_toe.normalized() * min(foot.length, toe.length)
 
         # The tail should point toward the toe bone but stay perpendicular to the knee bone.
         tail = head + -intersect_to_toe * foot.length
@@ -244,6 +248,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             use_custom_shape_bone_size=True,
         )
         roll_ctrl.roll_align_vector(org_knee.head, axis='-Z')
+        self.create_dsp_bone(roll_ctrl).parent = ik_foot_chain[0]
         if self.params.custom_props.props_storage == "GENERATED":
             self.properties_bone.parent = roll_ctrl
         # Limit Rotation, lock other transforms.
