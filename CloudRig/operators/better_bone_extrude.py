@@ -19,7 +19,7 @@ class ARMATURE_OT_post_process_new_bones(Operator):
     is_extrude: BoolProperty(default=False)
 
     def invoke(self, context: Context, event: Event) -> set[str]:
-        if event.shift:
+        if event.alt:
             return {'FINISHED'}
         return self.execute(context)
 
@@ -78,7 +78,7 @@ class ARMATURE_OT_post_process_new_bones(Operator):
                     # For some reason, setting active state affects selection state, so, to fix that...
                     flipped_bone.select, flipped_bone.select_head, flipped_bone.select_tail = sel
 
-        if not any(driver_renames.values()):
+        if not any(driver_renames.values()) or self.is_extrude:
             return {'FINISHED'}
 
         new_drivers = []
