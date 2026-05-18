@@ -16,7 +16,7 @@ def test_pose_consistency(context_poses):
         'META-Cloud_Human_ToonSpine_Long': 20,
         # Tests various constraint relinking configurations.
         'META-relinking': 40,
-        # Tests Action Set-ups, rubber hose limbs, face grid component, intersection controls, probably more.
+        # Tests Action Set-ups, rubber hose limbs, face grid component, intersection controls, center smooth intersections, probably more.
         'META-Sintel': 20,
     }
 

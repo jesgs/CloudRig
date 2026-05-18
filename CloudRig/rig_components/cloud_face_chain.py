@@ -284,10 +284,10 @@ def do_centered_cluster(
     pos_sum = cluster[0].tail.copy()
     shape_scale_sum = Vector((abs(s) for s in cluster[0].custom_shape_scale_xyz))
     z_axis_sum = cluster[0].z_axis
-    for bone in cluster[1:]:
-        pos_sum += bone.tail
-        z_axis_sum += bone.z_axis
-        shape_scale_sum += Vector((abs(s) for s in bone.custom_shape_scale_xyz))
+    for str_bone in cluster[1:]:
+        pos_sum += str_bone.tail
+        z_axis_sum += str_bone.z_axis
+        shape_scale_sum += Vector((abs(s) for s in str_bone.custom_shape_scale_xyz))
     direction = z_axis_sum.normalized()
     avg_shape_scale = shape_scale_sum / len(cluster)
     avg_z_axis = z_axis_sum / len(cluster)
@@ -298,29 +298,35 @@ def do_centered_cluster(
         intersection.use_custom_shape_bone_size = False
         intersection.custom_shape_scale_xyz = avg_shape_scale
 
-    for bone in cluster:
-        flipped_name = component.naming.flip_name(bone)
-        if flipped_name == bone.name:
+    for str_bone in cluster:
+        flipped_name = component.naming.flip_name(str_bone)
+        if flipped_name == str_bone.name:
             continue
-        opposite_bone = bone.owner_component.generator.find_bone_info(flipped_name)
+        opposite_bone = str_bone.owner_component.generator.find_bone_info(flipped_name)
         if not opposite_bone:
             continue
 
-        x_axis = 'X' if bone.tail.x > 0 else '-X'
-        bone.flatten(axis=x_axis)
-        bone.roll_align_vector(bone.head + z_axis_sum)
-        if has_tangent_helpers(bone.owner_component):
-            bone.tangent_helper.flatten(axis=x_axis)
-            bone.tangent_helper.roll_align_vector(bone.head + z_axis_sum)
-        if bone.owner_component.params.chain.smooth_spline:
-            if has_tangent_helpers(opposite_bone.owner_component):
-                # Make the Damped Track constraint of the opposite TAN- bone aim
-                # at this STR bone's Damped Track target.
-                # This gets us a smooth curve across the two chains.
-                # (This is also what would happen if it was just one longer smooth chain)
-                bone.tangent_helper.constraint_infos[1].subtarget = (
-                    opposite_bone.tangent_helper.constraint_infos[0].subtarget
-                )
+        x_axis = 'X' if str_bone.tail.x > 0 else '-X'
+        str_bone.flatten(axis=x_axis)
+        str_bone.roll_align_vector(str_bone.head + z_axis_sum)
+        if has_tangent_helpers(str_bone.owner_component):
+            str_bone.tangent_helper.flatten(axis=x_axis)
+            str_bone.tangent_helper.roll_align_vector(str_bone.head + z_axis_sum)
+        if (
+            str_bone.owner_component.params.chain.smooth_spline and
+            has_tangent_helpers(opposite_bone.owner_component)
+        ):
+            # Add the missing "Damped Track Next" constraint that was skipped because
+            # its target wouldn't have existed during generation,
+            # since it belongs to another component.
+            str_bone.tangent_helper.add_constraint(
+                'DAMPED_TRACK',
+                name="Damped Track Next (Smooth Intersection)",
+                index=2,
+                subtarget=opposite_bone.tangent_helper.constraint_infos[1].subtarget,
+                track_axis='TRACK_Y',
+                influence=0.5,
+            )
 
 
 class Params(PropertyGroup):
