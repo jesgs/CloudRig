@@ -59,7 +59,11 @@ class Component_ToonChain(Component_Base):
         #     str_bone.add_constraint('LIMIT_SCALE', use_max_xyz=False, use_min_xyz=True)
 
         self.tangent_helpers = []
-        if self.params.chain.bbone_density > 0 and self.params.chain.smooth_spline:
+        if (
+            self.params.chain.bbone_density > 0 and
+            self.params.chain.smooth_spline and
+            len(self.str_chain) > 1
+        ):
             # Create tangent helpers that will control bendy bone curvature
             self.tangent_helpers = self.__make_tangent_helpers(self.str_chain)
 
@@ -788,10 +792,8 @@ class Component_ToonChain(Component_Base):
             self.tangent_helpers[0].constraint_infos[1].subtarget = (
                 parent_component.str_chain[-1]
             )
-        if parent_component.params.chain.smooth_spline:
-            parent_component.tangent_helpers[-1].constraint_infos[2].subtarget = (
-                self.str_chain[0]
-            )
+        if parent_component.params.chain.smooth_spline and parent_component.tangent_helpers:
+            parent_component.tangent_helpers[-1].constraint_infos[2].subtarget = self.str_chain[0]
         if parent_component.params.chain.unlock_deform:
             parent_component.__make_def_control(last_str, last_def)
 
