@@ -1,9 +1,11 @@
 import bpy
+from bpy.app.handlers import persistent
 from bpy.types import BlendImportContext, Context, Object, Scene
 
 from .bs_utils.prefs import get_addon_prefs
 
 
+@persistent
 def cloudrig_append_link_handler(lapp_context: BlendImportContext):
     context = bpy.context
     prefs = get_addon_prefs(context)
