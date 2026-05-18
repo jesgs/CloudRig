@@ -245,7 +245,7 @@ class ActionConstraintSetup(PropertyGroup):
 
     def setup_id_to_str(self, curr_value, _is_set):
         try:
-            curr_value = int(curr_value)
+            curr_value = int(curr_value.rstrip('_'))
         except ValueError:
             return ""
         action_setups = self.id_data.cloudrig.generator.action_setups
@@ -258,7 +258,13 @@ class ActionConstraintSetup(PropertyGroup):
         action_setup = next((setup for setup in action_setups if setup.name==new_value), None)
         if not action_setup:
             return ""
-        return str(action_setup.unique_id)
+        # NOTE: Workaround no longer needed in bpy.app.version(5, 2, 0)
+        # Workaround for #346: RNA_property_as_string allocates the buffer using
+        # RNA_property_string_length (stored value length) but RNA_property_string_get
+        # writes the get_transform'd value, causing a heap overflow when the display name
+        # is longer than the stored ID. Pad the stored ID with underscores to match the
+        # name length so the allocated buffer is always large enough.
+        return str(action_setup.unique_id).ljust(len(new_value), '_')
 
     trigger_select_a: StringProperty(
         name="Trigger A",
