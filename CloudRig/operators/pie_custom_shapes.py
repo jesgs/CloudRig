@@ -327,9 +327,7 @@ class MESH_OT_return_to_pose_mode(Operator):
         return {'FINISHED'}
 
 
-class POSE_OT_duplicate_and_edit_widget_of_selected_bones(
-    POSE_OT_edit_widget_of_selected_bones
-):
+class POSE_OT_duplicate_and_edit_widget_of_selected_bones(POSE_OT_edit_widget_of_selected_bones):
     """Duplicate, then edit custom shape of the selected bones"""
 
     bl_idname = "pose.duplicate_and_edit_widget_of_selected_bones"
@@ -355,7 +353,7 @@ class POSE_OT_duplicate_and_edit_widget_of_selected_bones(
             new_shape.make_local()
             new_shape.data = new_shape.data.copy()
             new_shape.asset_clear()
-            new_shape.name = "WGT-" + pb.name
+            new_shape.data.name = new_shape.name = "WGT-" + pb.name
 
             for coll in shape.users_collection:
                 coll.objects.link(new_shape)
