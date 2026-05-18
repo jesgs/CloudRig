@@ -399,7 +399,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
         col = layout.column(align=True)
         row = col.row()
         row.label(text="Snapped bones:")
-        if bone_map:
+        if len(bone_map) == 1:
             row.enabled = False
             pb = list(bone_map.keys())[0]
             row.prop(pb, 'name', text="", icon='BONE_DATA')
