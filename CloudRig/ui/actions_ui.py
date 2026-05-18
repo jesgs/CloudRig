@@ -35,6 +35,7 @@ from bpy_extras import anim_utils
 from ..bs_utils.ui import aligned_label, label_split
 from ..utils.external.naming import Side, get_name_side
 
+ACTION_NAME_SEPARATOR = "➔"
 
 class ActionConstraintSetup(PropertyGroup):
     def update_ui(self, context):
@@ -101,7 +102,7 @@ class ActionConstraintSetup(PropertyGroup):
         if self.action:
             name = self.action.name
             if self.action_slot and len(self.action.slots) > 1:
-                name += " ➔ " + self.action_slot.name_display
+                return f"{name} {ACTION_NAME_SEPARATOR} {self.action_slot.name_display}"
         else:
             name = str(self.unique_id)
         return name

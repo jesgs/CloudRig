@@ -2,17 +2,34 @@ import bpy
 import numpy as np
 from bpy.types import Object, PoseBone
 from mathutils import Matrix, Vector
-
+import pytest
 
 def test_pose_consistency(context_poses):
+    # This test is a bit overloaded but whatever.
+
     obj_frame_map = {
+        # Tests foot roll, scale inheritance, limb stretching, FK hinge, probably more.
         'META-Cloud_Human': 20,
+        # Tests Spine: Cartoon in 3-bone configuration
         'META-Cloud_Human_ToonSpine': 20,
+        # Tests Spine:Cartoon in many-bone configuration (in this case 5)
         'META-Cloud_Human_ToonSpine_Long': 20,
+        # Tests various constraint relinking configurations.
         'META-relinking': 40,
+        # Tests Action Set-ups, rubber hose limbs, face grid component, intersection controls, probably more.
         'META-Sintel': 20,
     }
+
+    # For Action Set-ups, test automatic creating of shape key drivers.
+    sk_ob: Object = context_poses.scene.objects['ShapeKeyTest']
+    sk_ob.data.shape_keys.animation_data_clear()
+
     metarigs_test(context_poses, obj_frame_map)
+
+    shape_keys = sk_ob.data.shape_keys.key_blocks
+    assert shape_keys['RIG-sintel_actions ➔ lips_smile.L'].value == shape_keys['lips_smile.L'].value == pytest.approx(0.730, abs=1e-3)
+    assert shape_keys['RIG-sintel_actions ➔ lips_smile.R'].value == shape_keys['lips_smile.R'].value == pytest.approx(0.424, abs=1e-3)
+    assert shape_keys['RIG-sintel_actions ➔ lips_smile'].value == shape_keys['lips_smile'].value == shape_keys['RIG-sintel_actions ➔ lips_smile+wide'].value == pytest.approx(0.0, abs=1e-3)
 
 def test_curves(context_curves):
     obj_frame_map = {

@@ -22,6 +22,7 @@ from ..utils.external.mechanism import (
 )
 from ..utils.external.naming import Side, change_name_side, get_name_side
 from .troubleshooting import LoggerMixin
+from ..ui.actions_ui import ACTION_NAME_SEPARATOR
 
 
 class ActionConstraintSide(LoggerMixin):
@@ -247,7 +248,7 @@ class ActionConstraintSide(LoggerMixin):
 
             if mesh.shape_keys:
                 for key_block in mesh.shape_keys.key_blocks[1:]:
-                    if key_block.name == self.name:
+                    if key_block.name in (self.name, self.name.rsplit(ACTION_NAME_SEPARATOR+" ")[-1]):
                         self.rig_shape_key(key_block)
 
     def rig_shape_key(self, key_block):
