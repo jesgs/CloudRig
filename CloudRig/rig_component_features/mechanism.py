@@ -98,7 +98,7 @@ class CloudMechanismMixin:
         )
         return def_bone
 
-    def get_metarig_pbone(self, bone_name):
+    def get_metarig_pbone(self, bone_name: str) -> PoseBone | None:
         """Find and return a bone in the metarig."""
         return self.generator.metarig.pose.bones.get(bone_name)
 
