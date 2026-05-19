@@ -269,7 +269,7 @@ class SnappingOpMixin:
         return affected_pbones
 
     def key_bones_single_frame(
-        self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix], options=set()
+        self, context, pbone_matrix_map: OrderedDict[PoseBone, Matrix], options={'INSERTKEY_AVAILABLE'}
     ):
         for pbone, mat in pbone_matrix_map.items():
             pbone.matrix = mat.copy()
