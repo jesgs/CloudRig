@@ -34,7 +34,7 @@ class Component_Eyelid(Component_FaceChain):
         main STR controls of the eyelid. This needs to account for
         intersection controls."""
 
-        # Parent rig must be a cloud_aim type rig!
+        # Parent component must be an Aim component!
         parent_component = self.parent_component
         if not parent_component or not isinstance(parent_component, Component_Aim):
             self.raise_generation_error(rpt_('Parent bone of a "Chain: Eyelid" component must be an "Aim" component (ie. the eye bone).'))

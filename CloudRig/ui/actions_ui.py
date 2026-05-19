@@ -9,6 +9,7 @@ import bpy
 from bl_math import clamp
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
@@ -517,7 +518,7 @@ class CLOUDRIG_UL_action_setups(UIList):
 
             if not action_setup.subtarget:
                 row.alert = True
-                text = 'Missing Control Bone'
+                text = rpt_('Missing Control Bone')
                 icon = 'ERROR'
 
             elif generator.target_rig:
@@ -527,15 +528,15 @@ class CLOUDRIG_UL_action_setups(UIList):
 
                 if action_setup.subtarget not in bones:
                     row.alert = True
-                    text = f'Missing: "{action_setup.subtarget}"'
+                    text = rpt_('Missing: "{bone}"').format(bone=action_setup.subtarget)
                 elif (
                     action_setup.symmetrical
                     and flipped_name not in bones
                 ):
                     row.alert = True
-                    text = f'Missing: "{flipped_name}"'
+                    text = rpt_('Missing: "{bone}"').format(bone=flipped_name)
 
-            row.label(text=text, icon=icon)
+            row.label(text=text, icon=icon, translate=False)
 
         icon = 'CHECKBOX_HLT' if action_setup.enabled else 'CHECKBOX_DEHLT'
         row.enabled = action_setup.enabled

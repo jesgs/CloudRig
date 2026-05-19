@@ -1793,7 +1793,7 @@ class CloudRig_RigPreferences(PropertyGroup):
 
 
 class CloudRigBoneCollection(PropertyGroup):
-    """Properties stored on BoneCollection.cloudrig_info.
+    __longdoc__ = """Properties stored on BoneCollection.cloudrig_info.
     Used for implementing and drawing the nested collections UIList.
     Also some other functionality like Solo Collection and Preserve on Regenerate.
     """

@@ -239,7 +239,7 @@ class ComponentParams(PropertyGroup):
 
 
 class RigComponent(PropertyGroup):
-    """Rig Component data is stored on PoseBones.
+    __longdoc__ = """Rig Component data is stored on PoseBones.
     If a Component Type is assigned by the user via the UI, parameters will appear,
     and this bone (and usually its connected children) will contribute to the Target Rig.
     """

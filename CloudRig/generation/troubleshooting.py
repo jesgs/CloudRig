@@ -753,7 +753,7 @@ class CloudLogManager:
 
 
 class CLOUDRIG_UL_log_entry_slots(UIList):
-    """CloudRigLogEntries are displayed under Properties->Armature->CloudRig->Generation Log,
+    __longdoc__ = """CloudRigLogEntries are displayed under Properties->Armature->CloudRig->Generation Log,
     when the active object is a CloudRig Metarig.
     """
 

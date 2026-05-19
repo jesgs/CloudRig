@@ -1,0 +1,78 @@
+When prompted to translate a .po file, take this into account:
+- Preserve the .po file format.
+- Preserve {format} strings.
+- Keep track of translations which you have a low confidence about, and list them at the end.
+- Here are some HUNGARIAN word translation recommendations:
+
+CloudRig -> CloudRig
+overlay -> overlay
+rig -> rig
+metarig -> metarig
+overlay -> overlay
+generator -> generátor
+operator -> operátor
+parameter -> paraméter
+add-on -> kiegészítő
+Hook -> Kampó
+Pin -> tűzés
+Falloff -> Átmenet
+Vertex -> Csúcs
+IK pole -> IK könyök
+Curl Control -> Bodró Vezérlő
+widget -> csont alak
+Action -> Akció
+bone set -> csont típus
+bone collection -> csont csoport
+bone -> csont
+component (rig component) -> komponens
+control (animator-facing bone) -> vezérlő
+mechanism bone -> mechanizmus csont
+unhide -> láthatóvá tesz
+widget -> csont alak
+custom shape -> csont alak
+armature -> csontváz
+driver -> driver
+constraint -> lekötő
+keyframe -> kulcskocka
+pose bone / pose mode -> póz csont / póz mód
+parent / unparent -> szülővé tesz / szülő eltávolítása
+snap & bake -> illesztés és rögzítés
+IK/FK -> IK/FK
+pole target -> IK könyök
+thumbnail -> bélyegkép
+clipboard -> vágólap
+Generation Log -> generálási napló
+Action Slot -> Akció elem
+Trigger A/B -> Aktiváló A/B
+Parenting" -> Szülő kapcsolat
+Bone Set UI Data -> Csont típus felület adatai
+Enum -> Lista
+Strip Start / Strip End -> Eleje levágása / Vége levágása
+Bendy Bone -> Hajlékony csont
+B-Bone -> Hajlékonycsont
+In Front -> Előtérbe
+Solo Collection -> Szóló csoport
+Stack trace -> Stack trace
+Pretty Stack -> Csini stack
+Pivot Shape -> Pivot alak
+Spline -> Görbe
+Rubber Hose -> Gumicső
+Forefoot -> Lábpárna
+Foot Roll -> Láb gördülés
+Bezier -> Bezier
+Hinge -> zsanér
+Gizmo -> gizmo
+Cloth Object -> Ruha objektum
+Wire Width -> Vonal vastagság
+Curl Each -> Egyenkénti bodrás
+Tip Control -> Csúcs vezérlő
+Shrinkwrap -> Simulás / Hozzásimítás
+Locks -> Lezárások
+vertex group -> csúcscsoport
+symmetrize -> tükrözés
+Aim -> cél, célzó, célzás
+Aim Target -> célzó vezérlő
+Dissolve -> Oszlatás
+Graph Editor -> Gráfszerkesztő
+Target Rig -> Generált Rig
+Quaternion -> Kvaternió

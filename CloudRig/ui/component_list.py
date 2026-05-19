@@ -16,7 +16,8 @@ from .component_param_panels import (
 
 
 class CLOUDRIG_UL_rig_components(UIList):
-    """The Rig Component list is actually a list of all pose bones on the object,
+    """Rig Components"""
+    __longdoc__ = """The Rig Component list is actually a list of all pose bones on the object,
     filtered to only show the ones that have a CloudRig component type assigned.
     """
 

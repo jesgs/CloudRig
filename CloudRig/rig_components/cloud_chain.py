@@ -743,8 +743,8 @@ class Component_ToonChain(Component_Base):
     def __connect_parent_component(self):
         """Connect two separate but connected cloud_chain components.
 
-        If the parent rig is a connected chain rig with tip_control=False,
-        make the last DEF bone of that rig stretch to this rig's first STR.
+        If the parent component is a connected chain component with tip_control=False,
+        make the last DEF bone of that component stretch to this component's first STR.
         """
         parent_component = self.parent_component
         meta_org_bone = self.get_metarig_pbone(self.bones_org[0].name)
@@ -778,7 +778,7 @@ class Component_ToonChain(Component_Base):
         )
         parent_component.params.chain.tip_control = tip_control_bkp
 
-        # Set bbone ease according to parent rig's Sharp Sections param.
+        # Set bbone ease according to parent component's Sharp Sections param.
         if parent_component.params.chain.sharp:
             parent_component.bones_def[-1].bbone_easeout = 0
             self.bones_def[0].bbone_easein = 0

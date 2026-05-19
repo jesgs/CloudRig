@@ -331,8 +331,8 @@ class CloudParentingMixin:
                 rpt_("Name-based parenting"),
                 description=rpt_(
                     'Parent bone "{parent_name}" did not yet exist at time of parenting. '
-                    "This could be caused by incorrect metarig bone hierarchy, where a child rig "
-                    "is not parented to its intended parent rig, so it executes before the parent."
+                    "This could be caused by incorrect metarig bone hierarchy, where a child component "
+                    "is not parented to its intended parent component, so it executes before the parent."
                 ).format(parent_name=parent_name),
             )
             component_root.parent = parent_name
