@@ -1,8 +1,9 @@
 import bpy
 import numpy as np
+import pytest
 from bpy.types import Object, PoseBone
 from mathutils import Matrix, Vector
-import pytest
+
 
 def test_pose_consistency(context_poses):
     # This test is a bit overloaded but whatever.
@@ -64,7 +65,8 @@ class MatchingPose:
         return bpy.data.objects.get(self.rig_name)
 
     def __enter__(self):
-        self.context.scene.frame_current = self.frame
+        if self.context.scene.frame_current != self.frame:
+            self.context.scene.frame_current = self.frame
         self.context.view_layer.update()
         self.old_pose = pose_to_dict(self.rig, bone_subset=self.bone_subset, visible_only=True)
 

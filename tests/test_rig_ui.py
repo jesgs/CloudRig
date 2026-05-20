@@ -2,7 +2,7 @@ import bpy
 
 from .conftest import select_obj
 from .install_this import disable_this, enable_this
-from .test_pose_consistency import MatchingPose
+from .test_pose_consistency import MatchingPose, assert_matching_pose, pose_to_dict
 
 
 def test_snap_bake_ops(context_poses):
@@ -23,19 +23,30 @@ def test_snap_bake_ops(context_poses):
     # We snap FK to IK, then IK back to FK, and assert that the IK bones are in the exact same transforms as they started out with.
     # This snapping logic is perceptibly perfect, but we still have to crank the matrix tolerance up a fair bit, even for it to pass
     # on my work PC.
+
+    def snap_ikfk(do_bake=False):
+        bpy.ops.pose.cloudrig_toggle_ikfk_bake(
+            prop_bone="Properties",
+            prop_id="ik_left_upperarm",
+            do_bake=do_bake,
+            frame_start=11, frame_end=15,
+            map_fk_to_ik="[('FK-UpperArm.L', 'IK-M-UpperArm.L'), ('FK-Forearm.L', 'IK-M-Forearm.L'), ('FK-Wrist.L', 'IK-M-Wrist.L')]",
+            map_ik_to_fk="[('IK-Wrist.L', 'FK-Wrist.L'), ('IK-M-UpperArm.L', 'FK-UpperArm.L')]",
+            ik_pole="POLE-UpperArm.L",
+            ik_first="IK-M-UpperArm.L",
+            fk_first="FK-UpperArm.L",
+        )
+
+    def snap_hinge():
+        bpy.ops.pose.cloudrig_snap_bake(
+            bone_names="['FK-Head']",
+            prop_bone="Properties",
+            prop_id="fk_hinge_head"
+        )
+
     with MatchingPose(context_poses, rig, frame=13, bone_subset=['IK-Wrist.L', 'IK-M-UpperArm.L'], matrix_tol=0.1):
-        for i in range(3):
-            bpy.ops.pose.cloudrig_toggle_ikfk_bake(
-                prop_bone="Properties",
-                prop_id="ik_left_upperarm",
-                do_bake=True if i<2 else False,
-                frame_start=11, frame_end=15,
-                map_fk_to_ik="[('FK-UpperArm.L', 'IK-M-UpperArm.L'), ('FK-Forearm.L', 'IK-M-Forearm.L'), ('FK-Wrist.L', 'IK-M-Wrist.L')]",
-                map_ik_to_fk="[('IK-Wrist.L', 'FK-Wrist.L'), ('IK-M-UpperArm.L', 'FK-UpperArm.L')]",
-                ik_pole="POLE-UpperArm.L",
-                ik_first="IK-M-UpperArm.L",
-                fk_first="FK-UpperArm.L"
-            )
+        for i in range(4):
+            snap_ikfk(do_bake = i<2)
 
             bpy.ops.pose.cloudrig_switch_parent_bake(
                 bone_names="['IK-Wrist.L', 'POLE-UpperArm.L']",
@@ -47,9 +58,21 @@ def test_snap_bake_ops(context_poses):
                 key_before_start=True,
                 key_after_end=True,
                 parent_names="['Root', 'Torso', 'Chest', 'Arm Root']",
-                selected='2'
+                selected='2',
             )
 
+    # Test pose is preserved when moving the bone and snapping it without explicitly keying it.
+    context_poses.view_layer.update()
+    rig.pose.bones['IK-Wrist.L'].location.x += 0.5
+    with MatchingPose(context_poses, rig, frame=13, bone_subset=['IK-Wrist.L'], matrix_tol=0.1):
+        snap_ikfk()
+        snap_ikfk()
+
+    # Same test for hinge switch op.
+    context_poses.view_layer.update()
+    rig.pose.bones['FK-Head'].rotation_euler.x += 0.5
+    with MatchingPose(context_poses, rig, frame=13, bone_subset=['FK-Head'], matrix_tol=0.1):
+        snap_hinge()
 
 def test_rig_ops(context_poses):
     context_poses.view_layer.objects.active = bpy.data.objects['RIG-Cloud_Human']

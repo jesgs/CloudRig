@@ -501,6 +501,12 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
 
         active_frame_bkp = context.scene.frame_current
 
+        # Insert keys on the bones which define the current pose, in case user
+        # has moved them but hasn't keyed them.
+        for pb in affected_pbones:
+            context.view_layer.update()
+            key_transforms(pb)
+
         # Save the matrix of each bone at each frame.
         frame_matrix_map = self.map_frames_to_bone_matrices(context, affected_pbones)
 
