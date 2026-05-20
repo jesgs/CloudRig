@@ -40,6 +40,7 @@ FORBIDDEN_PATTERNS: dict[str, str] = {
     "`label_name` or `panel_name` must be wrapped in n_()":           r'''(label_name|panel_name)\s*=\s*"(.+)"''',
     "'.format()' must be outside of translation function, not inside":r'''(_|n_|iface_|tip_|rpt_|data_)\(.*?(?<!\))\.format''',
     "Do not call long version of translation functions":              r'''pgettext_[data|rpt|tip|iface|n]\(''',
+    "report() must not combine strings without translation wrappers": r'''self\.report\(\{'\w+'\},\s*"[^"]*"\s*\+''',
 }
 
 # ---------------------------------------------------------------------------

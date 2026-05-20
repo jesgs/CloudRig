@@ -3,6 +3,7 @@ from contextlib import ExitStack, contextmanager, nullcontext
 from pathlib import Path
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import (
     BoolProperty,
     FloatProperty,
@@ -403,7 +404,7 @@ class VIEW3D_OT_render_widget_thumbnails(Operator):
                 downscale_to_size=self.downscale_to_size,
             )
             if filepath:
-                self.report({'INFO'}, "Rendered thumbnail: " + filepath)
+                self.report({'INFO'}, iface_("Rendered thumbnail: ") + filepath)
             else:
                 self.report({'INFO'}, "Rendered thumbnail.")
         return {'FINISHED'}

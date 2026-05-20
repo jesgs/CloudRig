@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bl_ui.generic_ui_list import draw_ui_list
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy.types import Operator, UI_UL_list, UIList
@@ -172,7 +173,7 @@ class CLOUDRIG_OT_add_rig_component(Operator):
             self.report({'ERROR'}, "A component type must be selected.")
             return {'CANCELLED'}
         if self.bone_name not in rig.pose.bones:
-            self.report({'ERROR'}, "Bone not found in rig: " + self.bone_name)
+            self.report({'ERROR'}, iface_("Bone not found in rig: ") + self.bone_name)
             return {'CANCELLED'}
         selected_pb = rig.pose.bones[self.bone_name]
 

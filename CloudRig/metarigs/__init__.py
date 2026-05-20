@@ -29,10 +29,10 @@ class CLOUDRIG_OT_metarig_add(Operator):
     def execute(self, context):
         metarig = append_metarig(context, self.metarig_name)
         if not metarig:
-            self.report({'ERROR'}, "Failed to load metarig: " + self.metarig_name)
+            self.report({'ERROR'}, iface_("Failed to load metarig: ") + self.metarig_name)
             return {'CANCELLED'}
 
-        self.report({'INFO'}, "Loaded Metarig: " + metarig.name)
+        self.report({'INFO'}, iface_("Loaded Metarig: ") + metarig.name)
         return {'FINISHED'}
 
 
@@ -47,15 +47,15 @@ class CLOUDRIG_OT_sample_add(Operator):
     def execute(self, context):
         if context.mode == 'EDIT_ARMATURE':
             sample_obj = add_sample_to_current_rig(context, self.sample_name)
-            self.report({'INFO'}, "Added rig sample: " + self.sample_name)
+            self.report({'INFO'}, iface_("Added rig sample: ") + self.sample_name)
             return {'FINISHED'}
         else:
             sample_obj = append_sample(context, self.sample_name)
         if not sample_obj:
-            self.report({'ERROR'}, "Failed to load rig sample: " + self.sample_name)
+            self.report({'ERROR'}, iface_("Failed to load rig sample: ") + self.sample_name)
             return {'CANCELLED'}
 
-        self.report({'INFO'}, "Added rig sample: " + sample_obj.name)
+        self.report({'INFO'}, iface_("Added rig sample: ") + sample_obj.name)
         return {'FINISHED'}
 
 

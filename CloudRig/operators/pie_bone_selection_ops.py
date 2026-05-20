@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, IntProperty, StringProperty
 from bpy.types import Bone, EditBone, Operator, PoseBone
@@ -167,7 +168,7 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
             bone = rig.pose.bones.get(self.bone_name)
 
         if not bone:
-            self.report({'ERROR'}, "Bone name not found in rig: " + self.bone_name)
+            self.report({'ERROR'}, iface_("Bone name not found in rig: ") + self.bone_name)
             return {'CANCELLED'}
 
         super().execute(context)
