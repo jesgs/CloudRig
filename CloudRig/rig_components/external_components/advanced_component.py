@@ -80,7 +80,9 @@ class AdvancedComponent(Component_Base):
     def __create_control(self, bone: BoneInfo):
         # We must create BoneInfo instances on a BoneSet.
         # "My Bone Set" was defined in define_bone_sets() above.
-        ctr_bone: BoneInfo = self.bone_sets["My Bone Set"].new(
+        ctr_bone: BoneInfo = self.bone_sets[
+            "My Bone Set"
+        ].new(
             name="CTR-" + bone.name,
             source=bone,  # head, tail, roll, radius, width, envelope.
             custom_shape_name=self.params.advanced_component.shape_control.shape_name,  # See Widgets.blend for bone shapes.
@@ -109,9 +111,7 @@ class AdvancedComponent(Component_Base):
 class Params(PropertyGroup):
     """Defines the parameters to be registered in RNA. Must be exactly `Params`."""
 
-    create_control: BoolProperty(
-        name="Make Control", description="Create a Control bone", default=True
-    )
+    create_control: BoolProperty(name="Make Control", description="Create a Control bone", default=True)
     always_false: BoolProperty(
         name="Forced to False",
         description="This parameter is forced to be False",
@@ -120,8 +120,9 @@ class Params(PropertyGroup):
 
     shape_control: Component_Base.make_custom_shape_params(
         identifier="Control",
-        default="Circle" # See Widgets.blend for bone shapes.
+        default="Circle",  # See Widgets.blend for bone shapes.
     )
+
 
 # Un-comment the below line to make this component appear in Blender.
 # RIG_COMPONENT_CLASS = AdvancedComponent

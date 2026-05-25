@@ -29,7 +29,7 @@ def get_param_classes() -> dict:
     module_dicts = (
         rig_components.ALL_COMPONENT_MODULES,
         rig_component_features.component_feature_modules,
-        {"cloud_base": rig_components.cloud_base}
+        {"cloud_base": rig_components.cloud_base},
     )
     for module_dict in module_dicts:
         for module_name, module in module_dict.items():
@@ -65,6 +65,7 @@ def inject_update_callback(pg_class) -> dict:
             # print(f"Marked overlay as dirty. {prop_name} changed to `{getattr(self, prop_name)}`.")
             if update:
                 update(self, context)
+
         return update_wrapper
 
     annotations = get_type_hints(pg_class)
@@ -90,12 +91,14 @@ def inject_update_callback(pg_class) -> dict:
 
     return pg_class
 
+
 class NameProperty(PropertyGroup):
     name: StringProperty()
 
 
 class BoneSet_ForUI(PropertyGroup):
     """Bone Set UI Data"""
+
     __longdoc__ = """I want to draw Bone Sets in a UIList, but for that, they need to be a CollectionProperty,
     which I want to avoid for the reasons explained in the docstring of `class BoneSets`.
 
@@ -108,6 +111,7 @@ class BoneSet_ForUI(PropertyGroup):
 
 class BoneSets(PropertyGroup):
     "Bone Set"
+
     __longdoc__ = """We could've simply created a `class BoneSet(PropertyGroup)`
     and then make a CollectionProperty of that, yes.
     But that would have a lot of downsides:
@@ -163,7 +167,7 @@ class BoneSets(PropertyGroup):
             ),
             'collections_active_index': IntProperty(
                 name="Bone Set Collection Active Index",
-                description="Bone Collections that bones in this Bone Set will be assigned to during generation", # This is displayed when mouse hovering the list.
+                description="Bone Collections that bones in this Bone Set will be assigned to during generation",  # This is displayed when mouse hovering the list.
             ),
             'color_palette': EnumProperty(
                 name="Color Palette",
@@ -189,7 +193,8 @@ class BoneSets(PropertyGroup):
                 name="Wire Width",
                 description="Wire Width to assign to bones of this Bone Set",
                 default=bone_set_definition.get('wire_width') or 1.0,
-                min=1, max=10
+                min=1,
+                max=10,
             ),
             'generated_bones': CollectionProperty(  # TODO: Implement this, so bone sets store which bones they generated. Although, might be more useful to store this on the RigComponent instead, actually.
                 name="Generated Bones",
@@ -215,25 +220,19 @@ class BoneSets(PropertyGroup):
                 rna_name = bone_set_name.lower().replace(" ", "_")
                 if rna_name in classes:
                     continue
-                bone_set_class = BoneSets.class_from_definition(
-                    rna_name, bone_set_definition
-                )
+                bone_set_class = BoneSets.class_from_definition(rna_name, bone_set_definition)
                 classes[rna_name] = bone_set_class
         return classes
 
     bone_set_property_groups = make_bone_set_property_groups()
 
     __annotations__ = {
-        name: PointerProperty(type=bone_set_class)
-        for name, bone_set_class in bone_set_property_groups.items()
+        name: PointerProperty(type=bone_set_class) for name, bone_set_class in bone_set_property_groups.items()
     }
 
 
 class ComponentParams(PropertyGroup):
-    __annotations__ = {
-        name: PointerProperty(type=param_class)
-        for name, param_class in get_param_classes().items()
-    }
+    __annotations__ = {name: PointerProperty(type=param_class) for name, param_class in get_param_classes().items()}
 
     bone_sets: PointerProperty(type=BoneSets)
 
@@ -243,9 +242,11 @@ class RigComponent(PropertyGroup):
     If a Component Type is assigned by the user via the UI, parameters will appear,
     and this bone (and usually its connected children) will contribute to the Target Rig.
     """
-    last_bone_name: StringProperty() #TODO: Reset this as an early generation step.
+    last_bone_name: StringProperty()  # TODO: Reset this as an early generation step.
     bone_name: StringProperty(description="INTERNAL: Stores a cache of the start of this component.")
-    overlay_is_dirty: BoolProperty(description="INTERNAL: Flag that gets set to True when a component parameter is changed, and gets set to False when the virtual component is re-generated.")
+    overlay_is_dirty: BoolProperty(
+        description="INTERNAL: Flag that gets set to True when a component parameter is changed, and gets set to False when the virtual component is re-generated."
+    )
 
     def update_caches(self, _context=None):
         # Update pbone chain stuff for the overlay and generation.
@@ -259,9 +260,7 @@ class RigComponent(PropertyGroup):
             self.enabled_with_parents = True
         for child_comp in self.children:
             child_comp.enabled_with_parents = (
-                self.enabled_toggle
-                and self.enabled_with_parents
-                and child_comp.enabled_toggle
+                self.enabled_toggle and self.enabled_with_parents and child_comp.enabled_toggle
             )
             child_comp.should_draw = self.show_child_components and self.should_draw
             child_comp.update_caches()
@@ -322,10 +321,7 @@ class RigComponent(PropertyGroup):
 
     @property
     def bone_set_dict(self):
-        return {
-            key: getattr(self.params.bone_sets, key)
-            for key in self.params.bone_sets.keys()
-        }
+        return {key: getattr(self.params.bone_sets, key) for key in self.params.bone_sets.keys()}
 
     def update_ui_bone_sets(self):
         # Update UI Bone Sets, which are the ones displayed under the "Bone Organization"
@@ -345,10 +341,7 @@ class RigComponent(PropertyGroup):
             # doesn't have any collections yet, its defaults are assigned.
             if len(bone_set.collections) == 0:
                 self.reset_collections_of_bone_set(bone_set)
-        self.bone_sets_active_index = min(
-            self.bone_sets_active_index,
-            len(self.ui_bone_sets) - 1
-        )
+        self.bone_sets_active_index = min(self.bone_sets_active_index, len(self.ui_bone_sets) - 1)
 
     def reset_collections_of_bone_set(self, bone_set):
         ui_bone_set = self.ui_bone_sets[bone_set.name]
@@ -414,6 +407,7 @@ class RigComponent(PropertyGroup):
             if comp_class:
                 comp_class.set_param_defaults(self)
         return comp_info.module_name
+
     component_type: StringProperty(
         name="Component Type",
         description=(
@@ -502,7 +496,7 @@ class RigComponent(PropertyGroup):
                 for child_pb in cur_pb.children:
                     if child_pb.cloudrig_component.component_type == "":
                         if only_connected:
-                            if  not child_pb.bone.use_connect:
+                            if not child_pb.bone.use_connect:
                                 continue
                             if next_pb is not None:
                                 # TODO: This check should be done during generation, and result in an error or generation log entry.
@@ -536,7 +530,7 @@ class RigComponent(PropertyGroup):
             pass
         return chain
 
-    def instantiate(self, generator, parent_component: RigComponent=None) -> RigComponent | None:
+    def instantiate(self, generator, parent_component: RigComponent = None) -> RigComponent | None:
         return self.component_class(
             generator=generator,
             bone_name=self.base_bone_name,
@@ -587,9 +581,7 @@ class RigComponent(PropertyGroup):
 
     @property
     def children(self) -> list[RigComponent]:
-        child_component_pbs = [
-            pb for pb in get_direct_child_component_pbones(self.owner_pose_bone)
-        ]
+        child_component_pbs = [pb for pb in get_direct_child_component_pbones(self.owner_pose_bone)]
         child_component_pbs.sort(key=lambda pb: pb.cloudrig_component.sibling_order)
         return [pb.cloudrig_component for pb in child_component_pbs]
 
@@ -597,7 +589,8 @@ class RigComponent(PropertyGroup):
     def siblings(self) -> list[RigComponent]:
         if self.parent:
             return self.parent.children
-        return sorted([
+        return sorted(
+            [
                 pb.cloudrig_component
                 for pb in self.id_data.pose.bones
                 if pb.cloudrig_component.component_type and not pb.cloudrig_component.parent
@@ -618,9 +611,10 @@ class RigComponent(PropertyGroup):
     def __str__(self) -> str:
         return f"{self.base_bone_name}: {self.component_type or 'No Component'}"
 
+
 def get_component_ui_name(component_module_name: str):
     prefs = get_addon_prefs()
-    comp_info = next((comp for comp in prefs.component_types if comp.module_name==component_module_name), None)
+    comp_info = next((comp for comp in prefs.component_types if comp.module_name == component_module_name), None)
     if not comp_info and component_module_name:
         # Backwards compatibility: If the UI name is stored in the property, let this still work.
         # Properties that are kept alive this way will break if the UI name of the component changes,
@@ -629,6 +623,7 @@ def get_component_ui_name(component_module_name: str):
     if not comp_info:
         return ""
     return comp_info.name
+
 
 class Properties_CloudRig(PropertyGroup):
     def active_component_update_callback(self, _context=None):
@@ -654,7 +649,7 @@ class Properties_CloudRig(PropertyGroup):
         if len(self.rig_component_bones) == 0:
             return
         rig_ob = self.id_data
-        if self.active_component_index > len(rig_ob.pose.bones)-1:
+        if self.active_component_index > len(rig_ob.pose.bones) - 1:
             return
 
         active_comp = rig_ob.pose.bones[self.active_component_index].cloudrig_component
@@ -665,7 +660,9 @@ class Properties_CloudRig(PropertyGroup):
     @active_component.setter
     def active_component(self, comp: RigComponent):
         set_bone = comp.owner_pose_bone
-        new_idx = next((i for i, pb in enumerate(self.id_data.pose.bones) if pb==set_bone), self.active_component_index)
+        new_idx = next(
+            (i for i, pb in enumerate(self.id_data.pose.bones) if pb == set_bone), self.active_component_index
+        )
         self.active_component_index = new_idx
         parent = comp.parent
         while parent:
@@ -700,11 +697,7 @@ class Properties_CloudRig(PropertyGroup):
     @property
     def rig_component_bones(self) -> list[RigComponent]:
         rig = self.id_data
-        return [
-            pb.cloudrig_component
-            for pb in rig.pose.bones
-            if pb.cloudrig_component.component_type
-        ]
+        return [pb.cloudrig_component for pb in rig.pose.bones if pb.cloudrig_component.component_type]
 
     generator: PointerProperty(type=GeneratorProperties)
 
@@ -712,7 +705,7 @@ class Properties_CloudRig(PropertyGroup):
         self.refresh_generation_order()
         self.id_data.cloudrig_prefs.sync_collection_names()
 
-    def refresh_generation_order(self, pbone_subset: list[PoseBone]=[]):
+    def refresh_generation_order(self, pbone_subset: list[PoseBone] = []):
         """Set the `order` and `depth` property of rig components.
 
         These are used for determining what order to execute rig components in

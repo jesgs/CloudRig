@@ -11,12 +11,14 @@ from bpy.types import ImagePreview
 EXTENSIONS = ("png", "svg")
 ICON_STORAGE = defaultdict()
 
+
 def get_cloudrig_icon_id(icon_name: str) -> int:
     icon_id = -1
     icon = ICON_STORAGE.get("default").get(icon_name)
     if icon:
         icon_id = icon.icon_id
     return icon_id
+
 
 def get_widget_icon_id(wgt_name: str) -> int:
     wgt_name = wgt_name.replace("WGT-", "").lower()
@@ -25,11 +27,13 @@ def get_widget_icon_id(wgt_name: str) -> int:
         return get_cloudrig_icon_id('missing_icon')
     return icon_id
 
+
 def get_icons(icon_map_name="default") -> dict[str, ImagePreview]:
     icon_map = ICON_STORAGE.get(icon_map_name)
     if icon_map:
         return icon_map.items()
     return {}
+
 
 def ensure_icon(icon_name: str, dir_path="", icon_map_name="default") -> ImagePreview:
     if not dir_path:
@@ -52,7 +56,8 @@ def ensure_icon(icon_name: str, dir_path="", icon_map_name="default") -> ImagePr
 
     return icon_map.load(icon_name, full_path.as_posix(), 'IMAGE')
 
-def ensure_icons_from_dir(dir_path: str|Path, icon_map_name="default") -> list[ImagePreview]:
+
+def ensure_icons_from_dir(dir_path: str | Path, icon_map_name="default") -> list[ImagePreview]:
     if type(dir_path) is str:
         dir_path = Path(dir_path)
     if not dir_path.exists():
@@ -64,9 +69,11 @@ def ensure_icons_from_dir(dir_path: str|Path, icon_map_name="default") -> list[I
 
     return icons
 
+
 def register():
     ensure_icon("vertical_twoway_arrows")
     ensure_icon("missing_icon")
+
 
 def unregister():
     global ICON_STORAGE

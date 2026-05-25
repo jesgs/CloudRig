@@ -14,9 +14,8 @@ from .external.mechanism import make_driver
 sides = {'.L': 'Left', '.R': 'Right'}
 suffixes = list(sides.keys())
 
-def set_custom_property_value(
-    rig: Object, bone_name: str, prop: str, value: int | float | bool | str | ID
-):
+
+def set_custom_property_value(rig: Object, bone_name: str, prop: str, value: int | float | bool | str | ID):
     """Assign the value of a custom property."""
     bone = rig.pose.bones.get(bone_name)
     if not bone:
@@ -27,9 +26,7 @@ def set_custom_property_value(
     rna_idprop_ui_prop_update(bone, prop)
 
 
-def set_custom_property_default(
-    rig: Object, bone_name: str, prop: str, value: int | float | bool | str | ID
-):
+def set_custom_property_default(rig: Object, bone_name: str, prop: str, value: int | float | bool | str | ID):
     """Assign the value of a custom property as the default and current values."""
     bone = rig.pose.bones.get(bone_name)
     if not bone:
@@ -147,9 +144,7 @@ def GLOBAL_rename_obdatas():
         ob.data.shape_keys.name = ob.name
 
 
-def LEGACY_auto_assign_bone_gizmo_maps(
-    old_rig: Object, new_rig: Object, *, bone_collection: str
-):
+def LEGACY_auto_assign_bone_gizmo_maps(old_rig: Object, new_rig: Object, *, bone_collection: str):
     """Auto-assign vertex groups/face maps for the Bone Gizmo addon for bones
     of the passed collection."""
 
@@ -199,11 +194,7 @@ def LEGACY_auto_assign_bone_gizmo(pb: PoseBone, obs: list[Object]):
 
 
 def add_property_drivers(
-    rig: Object,
-    bone_name: str,
-    property_name: str,
-    data_path: str,
-    driver_expressions: str | list
+    rig: Object, bone_name: str, property_name: str, data_path: str, driver_expressions: str | list
 ):
     """Add custom drivers to a bone's properties.
 
@@ -232,12 +223,7 @@ def add_property_drivers(
         )
 
 
-def update_bone_collection(
-    rig: Object,
-    bone_name: str,
-    collection_name: str,
-    operation: str
-):
+def update_bone_collection(rig: Object, bone_name: str, collection_name: str, operation: str):
     """Add or remove a bone from a specified collection.
 
     Args:
@@ -260,11 +246,7 @@ def update_bone_collection(
         collection.unassign(bone)
 
 
-def update_widget_properties(
-    rig: Object,
-    bone_name: str,
-    **kwargs
-):
+def update_widget_properties(rig: Object, bone_name: str, **kwargs):
     """Apply custom properties to the specified bone.
 
     Args:
@@ -291,7 +273,7 @@ def update_widget_properties(
         'rotation': 'custom_shape_rotation_euler',
         'transform': 'custom_shape_transform',
         'wire_width': 'custom_shape_wire_width',
-        'use_bone_size': 'use_custom_shape_bone_size'
+        'use_bone_size': 'use_custom_shape_bone_size',
     }
 
     for kwarg, value in kwargs.items():

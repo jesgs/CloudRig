@@ -78,13 +78,16 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
         bonenames = {}
         for bone in generated_rig.data.bones:
             bone.hide = False
-        with temporary_setattr(
+        with (
+            temporary_setattr(
                 generated_rig.data,
                 use_mirror_x=False,
-            ), object_mode(
+            ),
+            object_mode(
                 generated_rig,
                 mode='EDIT',
-            ):
+            ),
+        ):
             # Store the original bone names and parents.
             for ebone in generated_rig.data.edit_bones:
                 if ebone.select:
@@ -154,8 +157,8 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
             if not pbone:
                 continue
             arm_con = pbone.constraints.new(type='ARMATURE')
-            pbone.constraints.move(len(pbone.constraints)-1, 0)
-            arm_con.name = "NOHLP_Armature@"+parent_name
+            pbone.constraints.move(len(pbone.constraints) - 1, 0)
+            arm_con.name = "NOHLP_Armature@" + parent_name
             arm_con.targets.new()
 
         # Copy drivers.
@@ -168,6 +171,7 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
                     copy_driver(fcurve, tgt_id)
 
         return {'FINISHED'}
+
 
 registry = [
     OBJECT_OT_cloudrig_push_to_metarig,

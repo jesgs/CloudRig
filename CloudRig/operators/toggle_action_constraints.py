@@ -19,11 +19,11 @@ class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
     def get_first_referencing_constraint(
         rig,
         action: Action,
-        action_slot: ActionSlot
+        action_slot: ActionSlot,
     ) -> Constraint | None:
         for pb in rig.pose.bones:
             for c in pb.constraints:
-                if c.type == 'ACTION' and c.action == action and c.action_slot==action_slot:
+                if c.type == 'ACTION' and c.action == action and c.action_slot == action_slot:
                     return c
 
     @classmethod

@@ -24,6 +24,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
     def update_new_name(self, context):
         for item, (op_prop_name, _desired_name, new_name) in get_future_names(self, context).items():
             setattr(self, op_prop_name, new_name)
+
     new_name: StringProperty(
         name="Name",
         description="Value to set the name of the active element to.",
@@ -87,7 +88,10 @@ class OBJECT_OT_rename_with_symmetry(Operator):
         box.label(text="Rename:")
 
         warn = 0
-        for item, (op_prop_name, desired_name, new_name), in get_future_names(self, context).items():
+        for (
+            item,
+            (op_prop_name, desired_name, new_name),
+        ) in get_future_names(self, context).items():
             icon_id = UILayout.icon(item)
             self.draw_rename_preview(box, item, op_prop_name, icon_value=icon_id)
             if new_name != desired_name:
@@ -103,7 +107,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
         row = split.row()
         row.prop(item, 'name', text="", icon_value=icon_value)
         split = split.row().split(factor=0.1)
-        split.row().label(text="\u279C")
+        split.row().label(text="\u279c")
         split.row().prop(self, op_prop_name, text="", icon_value=icon_value)
 
     def execute(self, context):
@@ -124,7 +128,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
             bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.object.mode_set(mode='EDIT')
 
-        self.report({'INFO'}, msg+"!")
+        self.report({'INFO'}, msg + "!")
         return {'FINISHED'}
 
 
@@ -138,15 +142,12 @@ def get_collprop(item):
     else:
         raise NotImplementedError(f"Data type not yet supported: {type(item)}")
 
+
 def get_future_names(self, context) -> dict[Any, tuple[str, str, str]]:
     rename_dict = {}
     item = get_active_item(context)
     collprop = get_collprop(item)
-    rename_dict[item] = (
-        'name_display',
-        self.new_name,
-        uniqify(self.new_name, collprop, id=item, strip_first=False)
-    )
+    rename_dict[item] = ('name_display', self.new_name, uniqify(self.new_name, collprop, id=item, strip_first=False))
 
     if not self.use_symmetry:
         return rename_dict
@@ -156,10 +157,11 @@ def get_future_names(self, context) -> dict[Any, tuple[str, str, str]]:
         rename_dict[opposite_item] = (
             'name_display_flipped',
             flip_name(self.new_name),
-            uniqify(flip_name(self.new_name), collprop, id=opposite_item, strip_first=False)
+            uniqify(flip_name(self.new_name), collprop, id=opposite_item, strip_first=False),
         )
 
     return rename_dict
+
 
 def get_active_item(context) -> Any | None:
     if context.mode == 'OBJECT' and context.object:
@@ -169,11 +171,14 @@ def get_active_item(context) -> Any | None:
     elif context.mode == 'EDIT_ARMATURE':
         return context.active_bone
 
+
 def get_opposite_item(item) -> Any | None:
     collprop = get_collprop(item)
     return collprop.get(flip_name(item.name))
 
+
 registry = [OBJECT_OT_rename_with_symmetry]
+
 
 def register():
     register_hotkey(

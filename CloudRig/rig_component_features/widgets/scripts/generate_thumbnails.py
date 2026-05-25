@@ -11,6 +11,8 @@ def import_cloudrig():
     if module_name:
         return importlib.import_module(module_name)
     raise ModuleNotFoundError("Failed to import CloudRig.")
+
+
 CloudRig = import_cloudrig()
 thumbnailer = CloudRig.operators.render_thumbnail
 
@@ -20,13 +22,10 @@ main_coll = bpy.data.collections['Widgets']
 for coll in main_coll.children:
     if coll.hide_viewport:
         continue
-    camera = next((obj for obj in coll.objects if obj.type=='CAMERA'), None)
+    camera = next((obj for obj in coll.objects if obj.type == 'CAMERA'), None)
     if not camera:
         continue
-    with (
-        thumbnailer.active_camera(context, camera),
-        thumbnailer.selection_state(context, selected_obs=coll.objects)
-    ):
+    with thumbnailer.active_camera(context, camera), thumbnailer.selection_state(context, selected_obs=coll.objects):
         bpy.ops.object.cloudrig_render_widget_thumbnails(
             thickness=0.015,
             margin=10,

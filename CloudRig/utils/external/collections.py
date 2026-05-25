@@ -3,7 +3,10 @@ from bpy.types import Collection, Context, LayerCollection
 
 
 def ensure_collection(
-    context: Context, collection_name: str, hidden=False, exclude=True,
+    context: Context,
+    collection_name: str,
+    hidden=False,
+    exclude=True,
 ) -> Collection:
     """Check if a collection with a certain name exists.
     If yes, return it, if not, create it in the active collection.
@@ -21,9 +24,7 @@ def ensure_collection(
         parent_collection.children.link(collection)
 
     view_layer = context.view_layer
-    layer_collection = find_layer_collection_by_collection(
-        view_layer.layer_collection, collection
-    )
+    layer_collection = find_layer_collection_by_collection(view_layer.layer_collection, collection)
     if layer_collection:
         layer_collection.exclude = exclude
 

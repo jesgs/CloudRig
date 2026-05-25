@@ -35,5 +35,5 @@ class WM_OT_cloudrig_template_script_create(Operator):
         self.report({'INFO'}, msg)
         return {'FINISHED'}
 
-registry = [WM_OT_cloudrig_template_script_create]
 
+registry = [WM_OT_cloudrig_template_script_create]

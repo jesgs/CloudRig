@@ -30,10 +30,10 @@ class CloudMechanismMixin:
         pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
         return pose_bone.cloudrig_component.component_pbone_chain
 
-    def create_parent_bone(self, child: BoneInfo, bone_set: BoneSet|None=None) -> BoneInfo:
+    def create_parent_bone(self, child: BoneInfo, bone_set: BoneSet | None = None) -> BoneInfo:
         return create_parent_bone(child, bone_set)
 
-    def create_parent_constraint_holder(self, child: BoneInfo, bone_set: BoneSet|None=None) -> BoneInfo:
+    def create_parent_constraint_holder(self, child: BoneInfo, bone_set: BoneSet | None = None) -> BoneInfo:
         return create_parent_constraint_holder(child, bone_set)
 
     def ensure_free_transforms(self, child: BoneInfo, bone_set=None) -> BoneInfo:
@@ -44,7 +44,14 @@ class CloudMechanismMixin:
                 if any(
                     (
                         data_path.endswith(prop_name)
-                        for prop_name in ("location", "rotation_euler", "rotation_quaternion", "rotation_axis_angle", "rotation_mode", "scale")
+                        for prop_name in (
+                            "location",
+                            "rotation_euler",
+                            "rotation_quaternion",
+                            "rotation_axis_angle",
+                            "rotation_mode",
+                            "scale",
+                        )
                     )
                 ):
                     drivers.append((driver_ref))
@@ -65,12 +72,8 @@ class CloudMechanismMixin:
         return create_dsp_bone(parent, self.bones_mch, **kwargs)
 
     def constrain_between_bones(
-            self,
-            child: BoneInfo,
-            start: BoneInfo,
-            end: BoneInfo,
-            influence=0.5
-        ) -> tuple[ConstraintInfo, ConstraintInfo, ConstraintInfo]:
+        self, child: BoneInfo, start: BoneInfo, end: BoneInfo, influence=0.5
+    ) -> tuple[ConstraintInfo, ConstraintInfo, ConstraintInfo]:
         copy_first = child.add_constraint(
             'COPY_TRANSFORMS',
             name="Copy Transforms (First)",
@@ -178,9 +181,7 @@ class CloudMechanismMixin:
                 "variables": [
                     {
                         "type": "SINGLE_PROP",
-                        "targets": [
-                            {"data_path": f'pose.bones["{pole_ctrl.name}"].hide'}
-                        ],
+                        "targets": [{"data_path": f'pose.bones["{pole_ctrl.name}"].hide'}],
                     }
                 ],
             }
@@ -198,9 +199,7 @@ class CloudMechanismMixin:
         return pole_ctrl
 
 
-def copy_relink_real_driver(
-    src_id: ID, tgt_id: ID, fcurve: FCurve, data_path: str = None, index: int = None
-) -> FCurve:
+def copy_relink_real_driver(src_id: ID, tgt_id: ID, fcurve: FCurve, data_path: str = None, index: int = None) -> FCurve:
     """Copy a real driver to the Target Rig.
     Replace references to the Metarig with the Target Rig.
     May copy to a different data path than the source.
@@ -208,6 +207,7 @@ def copy_relink_real_driver(
     new_fcurve = copy_driver(fcurve, tgt_id, data_path, index)
     relink_real_driver(src_id, tgt_id, new_fcurve)
     return new_fcurve
+
 
 def relink_real_driver(src_id: ID, tgt_id: ID, new_fcurve: FCurve):
     """Anything that was targetting src_id or None should now target tgt_id.
@@ -224,9 +224,8 @@ def relink_real_driver(src_id: ID, tgt_id: ID, new_fcurve: FCurve):
             for i, name in enumerate(split[1:]):
                 var.targets[i].bone_target = name
 
-def copy_driver(
-    from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None
-) -> FCurve:
+
+def copy_driver(from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None) -> FCurve:
     """Copy an existing FCurve containing a driver to a new ID, by creating a copy
     of the existing driver on the target ID.
 
@@ -264,7 +263,7 @@ def copy_driver(
     return new_fcurve
 
 
-def create_parent_bone(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
+def create_parent_bone(child: BoneInfo, bone_set: BoneSet = None) -> BoneInfo:
     """Copy a bone, prefix it with "P", make the bone shape a bit bigger and
     parent the bone to this copy."""
     if bone_set is None:
@@ -285,7 +284,7 @@ def create_parent_bone(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
     return parent_bone
 
 
-def create_parent_constraint_holder(child: BoneInfo, bone_set: BoneSet=None) -> BoneInfo:
+def create_parent_constraint_holder(child: BoneInfo, bone_set: BoneSet = None) -> BoneInfo:
     constrained_parent = create_parent_bone(
         child,
         bone_set=bone_set,
@@ -337,9 +336,7 @@ def find_or_create_constraint(pb: PoseBone, con_type: str, name=None) -> Constra
     return con
 
 
-def vector_along_bone_chain(
-    chain: list[BoneInfo], length=0, index=-1
-) -> tuple[Vector, Vector]:
+def vector_along_bone_chain(chain: list[BoneInfo], length=0, index=-1) -> tuple[Vector, Vector]:
     """On a bone chain, find the point a given length down the chain. Return its position and direction."""
     if index > -1:
         # Instead of using bone length, simply return the location and direction of a bone at a given index.

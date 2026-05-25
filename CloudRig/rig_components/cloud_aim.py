@@ -21,9 +21,11 @@ class Component_Aim(Component_Base):
 
     relink_default_prefix = "CTR"
 
-    parent_switch_behaviour = n_("The active parent will own the Aim Target.\n"
-    "If there are several Aim Components with matching Aim Group values, "
-    "this will affect the shared Group Master Target instead.")
+    parent_switch_behaviour = n_(
+        "The active parent will own the Aim Target.\n"
+        "If there are several Aim Components with matching Aim Group values, "
+        "this will affect the shared Group Master Target instead."
+    )
     parent_switch_overwrites_root_parent = False
 
     max_bones_in_chain = 1
@@ -72,7 +74,7 @@ class Component_Aim(Component_Base):
         panel_name=n_("Face"),
         row_name="",
         label_name=n_("Aim Target Parent"),
-        entry_name=""
+        entry_name="",
     ):
         """Apply the parent switching to the aim target or group master if it exists."""
         super().base__apply_parent_switching(
@@ -107,7 +109,7 @@ class Component_Aim(Component_Base):
     def __make_target_control(self, aim_bone: BoneInfo) -> BoneInfo:
         """Set up target control for a bone."""
         head = self.__find_target_pos(aim_bone)
-        tail = head + (head-aim_bone.head).normalized() * aim_bone.length
+        tail = head + (head - aim_bone.head).normalized() * aim_bone.length
 
         target_bone = self.bone_sets['Aim Target Control'].new(
             name=self.naming.add_prefix(aim_bone.source, "TGT"),
@@ -115,15 +117,15 @@ class Component_Aim(Component_Base):
             head=head,
             tail=tail,
             custom_shape_name=self.params.aim.shape_target.shape_name,
-            custom_shape_scale_xyz=Vector([max(1, self.params.aim.target_distance) * self.scale*self.params.aim.target_size*0.1]*3),
+            custom_shape_scale_xyz=Vector(
+                [max(1, self.params.aim.target_distance) * self.scale * self.params.aim.target_size * 0.1] * 3
+            ),
             use_custom_shape_bone_size=False,
             parent=aim_bone.parent,
         )
         target_bone.roll_align_other(self.bones_org[0])
         dsp_bone = self.create_dsp_bone(target_bone)
-        dsp_bone.add_constraint(
-            'DAMPED_TRACK', subtarget=aim_bone.name, track_axis='TRACK_NEGATIVE_Y'
-        )
+        dsp_bone.add_constraint('DAMPED_TRACK', subtarget=aim_bone.name, track_axis='TRACK_NEGATIVE_Y')
 
         return target_bone
 
@@ -164,12 +166,8 @@ class Component_Aim(Component_Base):
         )
         dsp_bone = self.create_dsp_bone(ctr_bone)
         dsp_bone.put(ctr_bone.tail)
-        dsp_bone.drivers.append(
-            {'prop': 'scale', 'index': 0, 'variables': [(ctr_bone.name, '.scale[0]')]}
-        )
-        dsp_bone.drivers.append(
-            {'prop': '.scale', 'index': 2, 'variables': [(ctr_bone.name, '.scale[2]')]}
-        )
+        dsp_bone.drivers.append({'prop': 'scale', 'index': 0, 'variables': [(ctr_bone.name, '.scale[0]')]})
+        dsp_bone.drivers.append({'prop': '.scale', 'index': 2, 'variables': [(ctr_bone.name, '.scale[2]')]})
         return ctr_bone
 
     def __make_root_bone(self, org_bone) -> BoneInfo:
@@ -201,26 +199,27 @@ class Component_Aim(Component_Base):
             self.rig_ui__add_bone_property(
                 prop_bone=highlight_ctr,
                 prop_id=prop_name,
-
                 panel_name=n_("Face"),
                 label_name=n_("Eye Highlights Follow"),
                 row_name="Eye Highlights",
                 slider_name=self.side_prefix + " Eye",
-
                 custom_prop_settings={
                     'default': 1.0,
-                    'description': tip_('Makes "{child}" follow "{parent}"')
-                    .format(child=highlight_ctr.name, parent=ctr_bone.name),
+                    'description': tip_('Makes "{child}" follow "{parent}"').format(
+                        child=highlight_ctr.name, parent=ctr_bone.name
+                    ),
                 },
                 operator="pose.cloudrig_snap_bake",
                 op_icon="FILE_REFRESH",
                 op_kwargs={
                     "bone_names": [highlight_ctr.name],
                 },
-                context_bones = [highlight_ctr, ctr_bone],
+                context_bones=[highlight_ctr, ctr_bone],
             )
 
-            self.create_driven_armature_constraint(highlight_ctr, target_bones=[ctr_bone.parent, ctr_bone], prop_bone=highlight_ctr, prop_name=prop_name)
+            self.create_driven_armature_constraint(
+                highlight_ctr, target_bones=[ctr_bone.parent, ctr_bone], prop_bone=highlight_ctr, prop_name=prop_name
+            )
 
         self.lock_transforms(highlight_ctr, loc=False, rot=False, scale=[False, True, False])
 
@@ -228,8 +227,11 @@ class Component_Aim(Component_Base):
             self.make_def_bone(highlight_ctr, highlight_ctr.name.replace("CTR-", "DEF-"), self.bones_def)
 
     def __group_get_components(self) -> list[Component_Aim]:
-        return [comp for comp in self.generator.all_components
-                if isinstance(comp, Component_Aim) and comp.params.aim.group == self.params.aim.group]
+        return [
+            comp
+            for comp in self.generator.all_components
+            if isinstance(comp, Component_Aim) and comp.params.aim.group == self.params.aim.group
+        ]
 
     def __is_last_of_group(self) -> bool:
         return self is self.__group_get_components()[-1]
@@ -305,14 +307,12 @@ class Component_Aim(Component_Base):
             tail=target_center + group_vec.normalized() * lgt,
             custom_shape_name=self.params.aim.shape_master.shape_name,
             use_custom_shape_bone_size=False,
-            custom_shape_scale_xyz=Vector((targets_size, 1, shape_size*2.2)),
+            custom_shape_scale_xyz=Vector((targets_size, 1, shape_size * 2.2)),
         )
         for tgt_bone in tgt_bones:
             tgt_bone.parent = group_master
         group_master.roll_align_other(center_bone)
-        group_master.add_constraint(
-            'DAMPED_TRACK', subtarget=center_bone.name, track_axis='TRACK_NEGATIVE_Y'
-        )
+        group_master.add_constraint('DAMPED_TRACK', subtarget=center_bone.name, track_axis='TRACK_NEGATIVE_Y')
 
         for comp in self.__group_get_components():
             comp.group_master = group_master
@@ -343,12 +343,8 @@ class Component_Aim(Component_Base):
         cls.define_bone_set(
             n_("Aim Target Control"), collections=['Face Main'], color_palette='THEME12', wire_width=1.5
         )
-        cls.define_bone_set(
-            n_("Aim Root Control"), collections=['Face Secondary'], color_palette='THEME12'
-        )
-        cls.define_bone_set(
-            n_("Aim Deform"), collections=['Deform Bones'], is_advanced=True
-        )
+        cls.define_bone_set(n_("Aim Root Control"), collections=['Face Secondary'], color_palette='THEME12')
+        cls.define_bone_set(n_("Aim Deform"), collections=['Deform Bones'], is_advanced=True)
 
     @classmethod
     def draw_appearance_params(cls, layout, context, component):
@@ -406,34 +402,18 @@ class Params(PropertyGroup):
         default=False,
         description="Create a deform bone for this rig",
     )
-    root: BoolProperty(
-        name="Create Root", default=False, description="Create a root bone for this rig"
-    )
+    root: BoolProperty(name="Create Root", default=False, description="Create a root bone for this rig")
     create_sub_control: BoolProperty(
         name="Create Highlight",
         description="Create a secondary control and deform bone attached to the aim control. Useful for eye highlights. The extent to which it follows the eye's rotation can be controlled in the Rig UI under the Face panel",
         default=False,
     )
 
-    shape_target: Component_Base.make_custom_shape_params(
-        identifier="Target",
-        default="Circle"
-    )
-    shape_eye: Component_Base.make_custom_shape_params(
-        identifier="Eye",
-        default="Circle"
-    )
-    shape_root: Component_Base.make_custom_shape_params(
-        identifier="Root",
-        default="Square"
-    )
-    shape_highlight: Component_Base.make_custom_shape_params(
-        identifier="Highlight",
-        default="Circle"
-    )
-    shape_master: Component_Base.make_custom_shape_params(
-        identifier="Master",
-        default="Circle"
-    )
+    shape_target: Component_Base.make_custom_shape_params(identifier="Target", default="Circle")
+    shape_eye: Component_Base.make_custom_shape_params(identifier="Eye", default="Circle")
+    shape_root: Component_Base.make_custom_shape_params(identifier="Root", default="Square")
+    shape_highlight: Component_Base.make_custom_shape_params(identifier="Highlight", default="Circle")
+    shape_master: Component_Base.make_custom_shape_params(identifier="Master", default="Circle")
+
 
 RIG_COMPONENT_CLASS = Component_Aim

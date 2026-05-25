@@ -68,17 +68,10 @@ def set_active_bone(context, bone: Bone | EditBone | PoseBone):
 
     if context.mode == 'PAINT_WEIGHT':
         if bone.name in context.active_object.vertex_groups:
-            context.active_object.vertex_groups.active = (
-                context.active_object.vertex_groups[bone.name]
-            )
+            context.active_object.vertex_groups.active = context.active_object.vertex_groups[bone.name]
 
 
-def reveal_and_select_bone(
-        context,
-        bone: Bone | EditBone | PoseBone,
-        extend_selection=False,
-        set_active=True
-    ):
+def reveal_and_select_bone(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
     rig = active_rig(context)
 
     reveal_bone(bone)
@@ -141,16 +134,13 @@ class BoneSelectOperatorMixin:
 
 
 class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
-    "Select this bone.\n\n" \
-    "Shift: Extend selection"
+    "Select this bone.\n\nShift: Extend selection"
 
     bl_idname = "pose.select_bone_by_name"
     bl_label = "Select Bone By Name"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    bone_name: StringProperty(
-        name="Bone Name", description="Name of the bone to select"
-    )
+    bone_name: StringProperty(name="Bone Name", description="Name of the bone to select")
 
     @classmethod
     def poll(cls, context):
@@ -257,18 +247,16 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
             else:
                 target_bone = rig.data.bones.get(bone_name)
             if not target_bone:
-                self.report(
-                    {'INFO'},
-                    rpt_('Bone "{bone_name}" not found.')
-                    .format(bone_name=bone_name)
-                )
+                self.report({'INFO'}, rpt_('Bone "{bone_name}" not found.').format(bone_name=bone_name))
                 continue
 
             if is_active_bone(context, bone):
                 active_target_bone = target_bone
 
             if target_bone.hide:
-                self.report({'WARNING'}, rpt_('Bone "{bone_name}" could not be made visible.').format(bone_name=bone_name))
+                self.report(
+                    {'WARNING'}, rpt_('Bone "{bone_name}" could not be made visible.').format(bone_name=bone_name)
+                )
                 continue
 
             reveal_and_select_bone(context, target_bone, set_active=False, extend_selection=self.extend_selection)
@@ -315,9 +303,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         layout.use_property_decorate = False
         rig = active_rig(context)
         if context.mode == 'EDIT_ARMATURE':
-            layout.prop_search(
-                self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA'
-            )
+            layout.prop_search(self, 'bone_name', rig.data, 'edit_bones', icon='BONE_DATA')
         else:
             layout.prop_search(self, 'bone_name', rig.data, 'bones', icon='BONE_DATA')
         layout.prop(self, 'extend_selection')

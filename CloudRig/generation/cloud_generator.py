@@ -152,10 +152,12 @@ class GeneratorProperties(PropertyGroup):
         description="Reload custom shapes, discarding any local modifications to them",
         default=True,
     )
+
     def mark_all_dirty(self, context):
         for pb in self.id_data.pose.bones:
             if pb.cloudrig_component.component_class:
                 pb.cloudrig_component.overlay_is_dirty = True
+
     preserve_shapes_properties: BoolProperty(
         name="Preserve Shape Properties",
         description="Preserve custom shape properties on the Target Rig, if available",
@@ -235,16 +237,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.logger = CloudLogManager(self)
 
         # Set flag to handle Bone Gizmos.
-        self.use_gizmos = (
-            check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
-        )
+        self.use_gizmos = check_addon(context, 'bone_gizmos') and self.params.auto_setup_gizmos
 
     ### Helper functions/properties.
-    def raise_generation_error(
-        self, description_short="Generation Error", description="", **kwargs
-    ):
+    def raise_generation_error(self, description_short="Generation Error", description="", **kwargs):
         """For raising non-bug errors that should be fixable by the user."""
-        errmsg = (description or description_short)
+        errmsg = description or description_short
         self.logger.log_fatal_error(
             description_short, description=description, display_stack_trace='ADVANCED', **kwargs
         )
@@ -326,7 +324,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         if metarig.cloudrig.metarig_version > current_metarig_version:
             self.logger.log(
                 rpt_("Outdated CloudRig"),
-                description=rpt_("This metarig was generated with a newer version of CloudRig.\nYou should update CloudRig in Edit->Preferences->Get Extensions."),
+                description=rpt_(
+                    "This metarig was generated with a newer version of CloudRig.\nYou should update CloudRig in Edit->Preferences->Get Extensions."
+                ),
                 operator='object.cloudrig_dismiss_warning',
                 op_text=iface_('Dismiss Warning'),
             )
@@ -385,9 +385,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                     # This is a custom widget and it's not even following naming convention, so we're
                     # not gonna be able to reload it anyways.
                     continue
-                self.ensure_widget(
-                    context, obj.name.replace("WGT-", ""), overwrite=True
-                )
+                self.ensure_widget(context, obj.name.replace("WGT-", ""), overwrite=True)
 
         if self.params.auto_setup_gizmos and self.use_gizmos:
             auto_initialize_gizmos(self.target_rig, self.bone_infos)
@@ -422,7 +420,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         self.restore_rig_states(context)
 
     @staticmethod
-    def build_component_pbone_order(metarig: Object, pbone_subset: list[PoseBone]=[]) -> list[PoseBone]:
+    def build_component_pbone_order(metarig: Object, pbone_subset: list[PoseBone] = []) -> list[PoseBone]:
         """Return those Pose Bones of a metarig which have Rig Components assigned,
         ordered in the desired generation order."""
 
@@ -432,9 +430,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         return [
             pb
-            for pb in sorted(
-                metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order
-            )
+            for pb in sorted(metarig.pose.bones, key=lambda pb: pb.cloudrig_component.order)
             if (
                 pb in pbone_subset
                 and (
@@ -444,7 +440,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         ]
 
-    def generate_abstraction_layer(self, context, *, comp_pbone_subset: list[PoseBone]=[]):
+    def generate_abstraction_layer(self, context, *, comp_pbone_subset: list[PoseBone] = []):
         """Generate the virtual bones by instantiating the rig components of passed Pose Bones,
         and calling their create_bone_infos() function.
         Note: This function can be called from pretty much any context!!
@@ -477,13 +473,11 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         """Create the collection where bone shapes will be linked to."""
         if not self.params.widget_collection:
             wgts_group_name = self.target_rig.name.replace("NEW-RIG-", "") + "-custom_shapes"
-            self.params.widget_collection = ensure_collection(
-                context, wgts_group_name, hidden=True
-            )
+            self.params.widget_collection = ensure_collection(context, wgts_group_name, hidden=True)
 
         return self.params.widget_collection
 
-    def instantiate_rig_components(self, comp_pbone_subset: list[PoseBone]=[]) -> OrderedDict[str, "Component_Base"]:
+    def instantiate_rig_components(self, comp_pbone_subset: list[PoseBone] = []) -> OrderedDict[str, "Component_Base"]:
         """Refresh the generation order stored in each rig component, then create rig instances based on that order."""
 
         pbones_ordered = self.build_component_pbone_order(self.metarig, comp_pbone_subset)
@@ -495,19 +489,19 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             if parent_component_rna:
                 parent_component = comp_map.get(parent_component_rna.base_bone_name)
                 if not self.painter:
-                    assert (
-                        parent_component
-                    ), "Error: Parent should've been instantiated already! Are we not looping hierarchically?"
+                    assert parent_component, (
+                        "Error: Parent should've been instantiated already! Are we not looping hierarchically?"
+                    )
 
-            comp_instance = pb.cloudrig_component.instantiate(
-                generator=self, parent_component=parent_component
-            )
+            comp_instance = pb.cloudrig_component.instantiate(generator=self, parent_component=parent_component)
             if not comp_instance:
                 self.logger.log(
                     rpt_("Invalid Component Type"),
                     note=pb.cloudrig_component.component_type,
                     base_bone_name=pb.name,
-                    description=rpt_("This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type."),
+                    description=rpt_(
+                        "This component type no longer exists in CloudRig. Perhaps it's been renamed or removed. Please re-assign a valid component type."
+                    ),
                     operator='pose.cloudrig_assign_component_type',
                     op_kwargs={'bone_name': pb.name, 'remove_active_log': True},
                     op_text=iface_("Assign Component"),
@@ -537,13 +531,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         pose_bone.cloudrig_component.component_type = 'Raw Copy'
         pose_bone.custom_shape = self.ensure_widget(context, "Root")
         pose_bone.custom_shape_wire_width = 2.0
-        pose_bone.custom_shape_rotation_euler.x += pi/2
+        pose_bone.custom_shape_rotation_euler.x += pi / 2
         return pose_bone
 
     ### Main generation steps.
     def components_load_bone_infos(self, component_map: dict[str, "Component_Base"], metarig):
-        """Let all rig components populate their initial BoneInfo instances.
-        """
+        """Let all rig components populate their initial BoneInfo instances."""
 
         bone_infos = {}
 
@@ -608,8 +601,9 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 if bone_info.name in bones_created:
                     # If a BoneInfo with this name was already created in this loop, we have a name collision.
                     self.raise_generation_error(
-                        description=rpt_("Bone `{bone}` was already created. " \
-                            "It can't be created again by `{component}`. " \
+                        description=rpt_(
+                            "Bone `{bone}` was already created. "
+                            "It can't be created again by `{component}`. "
                             "This could be a bug, but it could also be caused by bones not being named uniquely enough."
                         ).format(bone=bone_info.name, component=bone_info.bone_set.rig_component.base_bone_name)
                     )
@@ -618,9 +612,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
             edit_bone = ensure_ebone(self.target_rig, bone_info.name)
             bone_info.name = edit_bone.name
-            assert (
-                bone_info.name == edit_bone.name
-            ), "Bone names clash. Should have been caught already."
+            assert bone_info.name == edit_bone.name, "Bone names clash. Should have been caught already."
             bones_created.append(bone_info.name)
 
     def parent_orphan_bone_infos_to_root(self):
@@ -688,7 +680,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             bone_info.write_pose_data(context, self.metarig, pose_bone)
 
     ### Final generation steps.
-    def execute_custom_script(self, context, old_rig: Object|None, new_rig: Object):
+    def execute_custom_script(self, context, old_rig: Object | None, new_rig: Object):
         """Execute a text datablock to be executed after rig generation."""
         # This is a bit hacky, but we need the rig name to be the "original" so that
         # post-gen script authors can get a reference to the rig easily.
@@ -704,14 +696,16 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         except Exception as exc:
             self.logger.log_fatal_error(
                 rpt_("Post-Generation Script failed."),
-                description=rpt_('Execution of post-generation script in text datablock "{script}" failed, see stack trace below.').format(script=script.name),
+                description=rpt_(
+                    'Execution of post-generation script in text datablock "{script}" failed, see stack trace below.'
+                ).format(script=script.name),
                 note=str(exc),
                 display_stack_trace='ALWAYS',
             )
             self.custom_script_failure = True
             raise exc
         finally:
-            new_rig.name = "NEW-"+new_rig.name
+            new_rig.name = "NEW-" + new_rig.name
             if old_rig:
                 old_rig.name = old_rig.name.replace("OLD-", "")
             if context.active_object != new_rig:
@@ -721,9 +715,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 # In case user didn't go back to Object mode...
                 bpy.ops.object.mode_set(mode='OBJECT')
 
-    def replace_old_with_new_rig(
-        self, context, old_rig, new_rig, preserve_custom_props=True
-    ):
+    def replace_old_with_new_rig(self, context, old_rig, new_rig, preserve_custom_props=True):
         """Preserve useful user-inputted information from the previous rig,
         then delete it and remap users to the new rig.
         """
@@ -731,11 +723,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         # If cloudrig.py is linked, save that reference. This will be checked for
         # later, in ensure_cloudrig_ui.
-        if (
-            'cloudrig_ui' in old_rig.data
-            and old_rig.data['cloudrig_ui']
-            and old_rig.data['cloudrig_ui'].library
-        ):
+        if 'cloudrig_ui' in old_rig.data and old_rig.data['cloudrig_ui'] and old_rig.data['cloudrig_ui'].library:
             new_rig.data['cloudrig_ui'] = old_rig.data['cloudrig_ui']
 
         if preserve_custom_props:
@@ -854,6 +842,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
 def parent_orphans(rig: Object, root_name: str):
     root_pb = rig.pose.bones.get(root_name)
+
     def is_orphan(bone):
         pbone = rig.pose.bones[bone.name]
         if root_pb in pbone.children_recursive:
@@ -942,7 +931,7 @@ def create_target_rig_obj(context, metarig) -> Object:
     today = datetime.today()
     date = f"{today.year}-{today.month}-{today.day}"
     now = datetime.now()
-    timestamp = (f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}")
+    timestamp = f"{str(now.hour).zfill(2)}:{str(now.minute).zfill(2)}:{str(now.second).zfill(2)}"
     target_rig.data['generation_date'] = date
     target_rig.data['generation_time'] = timestamp
 
@@ -1058,10 +1047,7 @@ class CLOUDRIG_OT_generate(Operator):
         elif is_active_cloudrig(context):
             # Find the metarig referencing this rig
             for obj in context.scene.objects:
-                if (
-                    obj.type == 'ARMATURE'
-                    and obj.cloudrig.generator.target_rig == context.active_object
-                ):
+                if obj.type == 'ARMATURE' and obj.cloudrig.generator.target_rig == context.active_object:
                     return obj
 
         metarigs = [obj for obj in context.scene.objects if is_cloud_metarig(obj)]
@@ -1098,8 +1084,9 @@ class CLOUDRIG_OT_generate(Operator):
         if prev_generated_rig and prev_generated_rig not in set(context.view_layer.objects):
             self.report(
                 {'ERROR'},
-                "Target rig '{rig}' cannot be re-generated because it is not in the current view layer."
-                .format(rig=prev_generated_rig.name),
+                "Target rig '{rig}' cannot be re-generated because it is not in the current view layer.".format(
+                    rig=prev_generated_rig.name
+                ),
             )
             return {'CANCELLED'}
 
@@ -1114,22 +1101,14 @@ class CLOUDRIG_OT_generate(Operator):
         if prev_generated_rig:
             if prev_generated_rig.mode == 'EDIT':
                 ebones = prev_generated_rig.data.edit_bones
-                state_selection = {
-                    ebone.name: (ebone.select, ebone.select_head, ebone.select_tail)
-                    for ebone in ebones
-                }
+                state_selection = {ebone.name: (ebone.select, ebone.select_head, ebone.select_tail) for ebone in ebones}
                 state_hide = {ebone.name: ebone.hide for ebone in ebones}
             else:
                 pbones = prev_generated_rig.pose.bones
-                state_selection = {
-                    pbone.name: (pbone.select, pbone.select, pbone.select)
-                    for pbone in pbones
-                }
+                state_selection = {pbone.name: (pbone.select, pbone.select, pbone.select) for pbone in pbones}
                 state_hide = {ebone.name: ebone.hide for ebone in pbones}
 
-            state_collections = {
-                coll.name: coll.is_visible for coll in prev_generated_rig.data.collections_all
-            }
+            state_collections = {coll.name: coll.is_visible for coll in prev_generated_rig.data.collections_all}
         else:
             self.preserve_state = False
 
@@ -1156,8 +1135,9 @@ class CLOUDRIG_OT_generate(Operator):
             # This means an error has occurred. It was already handled in generate_rig().
             self.report(
                 {'ERROR'},
-                rpt_("Generation of {metarig} has failed. See the Generation Log for more info.")
-                .format(metarig=metarig.name),
+                rpt_("Generation of {metarig} has failed. See the Generation Log for more info.").format(
+                    metarig=metarig.name
+                ),
             )
             return {'FINISHED'}
         elif self.focus_generated:
@@ -1172,18 +1152,20 @@ class CLOUDRIG_OT_generate(Operator):
                 state_hide=state_hide,
                 state_collections=state_collections,
             )
-        duration = time()-start_time
+        duration = time() - start_time
         if len(metarig.cloudrig.generator.logs) > 0:
             self.report(
                 {'WARNING'},
-                rpt_("Generation of {new_rig} successful with {num_warnings} warnings. ({seconds}s)")
-                .format(new_rig=new_rig.name, num_warnings=len(metarig.cloudrig.generator.logs), seconds=f"{duration:.2f}"),
+                rpt_("Generation of {new_rig} successful with {num_warnings} warnings. ({seconds}s)").format(
+                    new_rig=new_rig.name, num_warnings=len(metarig.cloudrig.generator.logs), seconds=f"{duration:.2f}"
+                ),
             )
         else:
             self.report(
                 {'INFO'},
-                rpt_("Generation of {new_rig} successful. ({seconds}s)")
-                .format(new_rig=new_rig.name, seconds=f"{duration:.2f}")
+                rpt_("Generation of {new_rig} successful. ({seconds}s)").format(
+                    new_rig=new_rig.name, seconds=f"{duration:.2f}"
+                ),
             )
 
         return {'FINISHED'}
@@ -1230,16 +1212,18 @@ class CLOUDRIG_OT_generate(Operator):
                 op_kwargs = {}
                 if exception_module:
                     exc_mod_name = exception_module.__name__
-                    is_cloudrig_bug = 'rig_components' not in exc_mod_name or "." not in exc_mod_name.split("rig_components.")[-1]
+                    is_cloudrig_bug = (
+                        'rig_components' not in exc_mod_name or "." not in exc_mod_name.split("rig_components.")[-1]
+                    )
                     if is_cloudrig_bug:
                         operator = 'wm.cloudrig_report_bug'
                     elif (
-                        hasattr(exception_module, 'RIG_COMPONENT_CLASS') and
-                        hasattr(exception_module.RIG_COMPONENT_CLASS, 'bug_report_url') and
-                        exception_module.RIG_COMPONENT_CLASS.bug_report_url
+                        hasattr(exception_module, 'RIG_COMPONENT_CLASS')
+                        and hasattr(exception_module.RIG_COMPONENT_CLASS, 'bug_report_url')
+                        and exception_module.RIG_COMPONENT_CLASS.bug_report_url
                     ):
                         operator = 'wm.url_open'
-                        op_kwargs = {'url':exception_module.RIG_COMPONENT_CLASS.bug_report_url}
+                        op_kwargs = {'url': exception_module.RIG_COMPONENT_CLASS.bug_report_url}
 
                 # Any other exception type is a bug.
                 # We give the user a button to report the error.
@@ -1256,8 +1240,9 @@ class CLOUDRIG_OT_generate(Operator):
 
                 self.report(
                     {'ERROR'},
-                    "A bug has occurred. You can report it through the Generation Log interface.{traceback}"
-                    .format(traceback=f"\n{traceback.format_exc()}"),
+                    "A bug has occurred. You can report it through the Generation Log interface.{traceback}".format(
+                        traceback=f"\n{traceback.format_exc()}"
+                    ),
                 )
 
             return

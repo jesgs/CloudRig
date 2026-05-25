@@ -32,10 +32,7 @@ class POSE_OT_scale_custom_shape(Operator):
 
             return False
 
-        bones = [
-            pb for pb in get_pbones_of_selected(context, whole_ebone=True)
-            if poll_bone(pb)
-        ]
+        bones = [pb for pb in get_pbones_of_selected(context, whole_ebone=True) if poll_bone(pb)]
         if not bones:
             cls.poll_message_set("No pose bones with custom shapes selected")
             return False
@@ -48,8 +45,7 @@ class POSE_OT_scale_custom_shape(Operator):
     def invoke(self, context, event):
         self.rig = rig = self.get_rig(context)
         self.pbones = [
-            pb for pb in get_pbones_of_selected(context, whole_ebone=True)
-            if (pb.custom_shape or is_cloud_metarig(rig))
+            pb for pb in get_pbones_of_selected(context, whole_ebone=True) if (pb.custom_shape or is_cloud_metarig(rig))
         ]
 
         self.mirror_pbones = []
@@ -66,8 +62,7 @@ class POSE_OT_scale_custom_shape(Operator):
 
         # Cache initial state
         self.initial_states = {
-            pb: (pb.custom_shape_scale_xyz.copy(), pb.bone.bbone_x, pb.bone.bbone_z)
-            for pb in self.pbones
+            pb: (pb.custom_shape_scale_xyz.copy(), pb.bone.bbone_x, pb.bone.bbone_z) for pb in self.pbones
         }
 
         self.prev_mouse_x = event.mouse_x
@@ -106,7 +101,10 @@ class POSE_OT_scale_custom_shape(Operator):
                     else:
                         pb.custom_shape_scale_xyz *= scale_factor
                 else:
-                    if event.alt and (pb.bone.display_type == 'BBONE' or (pb.id_data.data.display_type == 'BBONE' and pb.bone.display_type=='ARMATURE_DEFINED')):
+                    if event.alt and (
+                        pb.bone.display_type == 'BBONE'
+                        or (pb.id_data.data.display_type == 'BBONE' and pb.bone.display_type == 'ARMATURE_DEFINED')
+                    ):
                         if self.constraint_axis == 0:
                             pb.bone.bbone_x *= scale_factor
                         if self.constraint_axis == 2:
@@ -117,10 +115,10 @@ class POSE_OT_scale_custom_shape(Operator):
                 if event.ctrl:
                     self.constraint_axis = None
                     if event.alt:
-                        avg = (pb.bone.bbone_x + pb.bone.bbone_z)/2
+                        avg = (pb.bone.bbone_x + pb.bone.bbone_z) / 2
                         pb.bone.bbone_x = pb.bone.bbone_z = avg
                     else:
-                        avg = sum((abs(s) for s in pb.custom_shape_scale_xyz))/3
+                        avg = sum((abs(s) for s in pb.custom_shape_scale_xyz)) / 3
                         pb.custom_shape_scale_xyz = (avg, avg, avg)
 
                 if self.rig.data.use_mirror_x:
@@ -129,7 +127,6 @@ class POSE_OT_scale_custom_shape(Operator):
                         opp_pb.bone.bbone_x = pb.bone.bbone_x
                         opp_pb.bone.bbone_z = pb.bone.bbone_z
                         opp_pb.custom_shape_scale_xyz = pb.custom_shape_scale_xyz * Vector((-1, 1, 1))
-
 
             self.prev_mouse_x = event.mouse_x
 
@@ -156,9 +153,10 @@ def register():
     for keymap_name in ('Pose', 'Armature'):
         register_hotkey(
             POSE_OT_scale_custom_shape.bl_idname,
-            hotkey_kwargs={'type': "S", 'value': "PRESS", 'alt' : True, 'shift': True},
+            hotkey_kwargs={'type': "S", 'value': "PRESS", 'alt': True, 'shift': True},
             keymap_name=keymap_name,
         )
+
 
 def unregister():
     bpy.types.VIEW3D_MT_transform_armature.remove(draw_scale_custom_shape_op)

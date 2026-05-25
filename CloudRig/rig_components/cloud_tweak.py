@@ -35,8 +35,10 @@ class Component_TweakBone(Component_Base):
         if len(bone_infos) > 1:
             self.add_log(
                 rpt_("Tweak does not support chains"),
-                description=rpt_("The Bone Tweak component type will only affect the first bone of the chain. " \
-                    "To affect the rest of the bone chain, you must assign the Bone Tweak type to each bone.")
+                description=rpt_(
+                    "The Bone Tweak component type will only affect the first bone of the chain. "
+                    "To affect the rest of the bone chain, you must assign the Bone Tweak type to each bone."
+                ),
             )
 
         bone_info_tuple = [(key, value) for key, value in bone_infos.items()][0]
@@ -52,7 +54,8 @@ class Component_TweakBone(Component_Base):
         if not self.bone_to_tweak:
             self.add_log(
                 rpt_("No bone to tweak"),
-                description=rpt_('Could not find a bone called "{bone}" on the Target Rig. ' \
+                description=rpt_(
+                    'Could not find a bone called "{bone}" on the Target Rig. '
                     'If it exists, ensure this Tweak component is generated AFTER the component you want to tweak.'
                 ).format(bone=self.original_name),
                 operator='object.cloudrig_rename_bone',

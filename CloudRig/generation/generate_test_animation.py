@@ -30,8 +30,7 @@ class TestAnimationGeneratorMixin:
 
         if not any(
             [
-                hasattr(rig.params.fk_chain, 'test_animation_generate')
-                and rig.params.fk_chain.test_animation_generate
+                hasattr(rig.params.fk_chain, 'test_animation_generate') and rig.params.fk_chain.test_animation_generate
                 for rig in self.component_map.values()
             ]
         ):
@@ -42,10 +41,7 @@ class TestAnimationGeneratorMixin:
         components_anim_order = []
 
         def add_component_hierarchy_to_animation_order(component):
-            if (
-                hasattr(type(component), 'has_test_animation')
-                and type(component).has_test_animation
-            ):
+            if hasattr(type(component), 'has_test_animation') and type(component).has_test_animation:
                 components_anim_order.append(component)
             for child_comp in component.child_components:
                 add_component_hierarchy_to_animation_order(child_comp)
@@ -81,9 +77,7 @@ def ensure_test_action(metarig: Object, target_rig: Object) -> tuple[Action, Act
     test_action = metarig.cloudrig.generator.test_action
     slot_name = "Test Action"
     if not test_action:
-        test_action = bpy.data.actions.new(
-            "DeformTest-" + target_rig.name.replace("NEW-", "")
-        )
+        test_action = bpy.data.actions.new("DeformTest-" + target_rig.name.replace("NEW-", ""))
         metarig.cloudrig.generator.test_action = test_action
     slot = test_action.slots.get(f'OB{slot_name}')
     if not slot:

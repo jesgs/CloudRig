@@ -66,7 +66,7 @@ class POSE_OT_dissolve_bones(Operator):
 
             for eb in context.selected_editable_bones[:]:
                 reconnect = []
-                eb.head = eb.tail = (eb.head+eb.vector/2)
+                eb.head = eb.tail = eb.head + eb.vector / 2
                 for child in eb.children:
                     if child.use_connect:
                         reconnect.append(child)
@@ -81,6 +81,7 @@ class POSE_OT_dissolve_bones(Operator):
             bpy.ops.object.mode_set(mode=org_mode)
         return {'FINISHED'}
 
+
 def can_dissolve_any(bones: list[EditBone or PoseBone]) -> bool:
     def any_connected_children(bone) -> bool:
         return any((child.use_connect for child in bone.children))
@@ -88,10 +89,8 @@ def can_dissolve_any(bones: list[EditBone or PoseBone]) -> bool:
     def has_connected_parent(bone) -> bool:
         return bone.parent and bone.use_connect
 
-    return any((
-        has_connected_parent(bone) or any_connected_children(bone)
-        for bone in bones
-    ))
+    return any((has_connected_parent(bone) or any_connected_children(bone) for bone in bones))
+
 
 def remove_drivers_of_bone(
     rig: Object,

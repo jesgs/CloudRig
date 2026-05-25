@@ -3,7 +3,7 @@
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import BoolProperty
-from bpy.types import Context, Event, FCurve, Object, Operator, Macro
+from bpy.types import Context, Event, FCurve, Macro, Object, Operator
 
 from ..bs_utils.hotkeys import register_hotkey
 from ..generation.cloudrig import is_cloud_metarig
@@ -47,10 +47,12 @@ class ARMATURE_OT_post_process_new_bones(Operator):
                     # even if it isn't actually.
                     # But during extrude, the body is not selected, so we can't rely on that.
                     flipped = bpy.utils.flip_name(ebone.name)
-                    if (flipped != ebone.name
-                            and flipped in rig.data.edit_bones
-                            and flipped.endswith('.001')
-                            and flipped[:-4] in rig.data.edit_bones):
+                    if (
+                        flipped != ebone.name
+                        and flipped in rig.data.edit_bones
+                        and flipped.endswith('.001')
+                        and flipped[:-4] in rig.data.edit_bones
+                    ):
                         bones_to_rename.add(rig.data.edit_bones[flipped])
 
             for ebone in bones_to_rename:
@@ -109,7 +111,7 @@ class ARMATURE_OT_better_bone_extrude(Macro):
             cls.poll_message_set("Active Armature must be in edit mode.")
             return False
         return any(
-            eb.select_tail or eb.select_head
+            eb.select_tail or eb.select_head  #
             for eb in context.active_object.data.edit_bones
         )
 
@@ -138,10 +140,10 @@ def bone_has_drivers(rig: Object, bone_name: str) -> bool:
 
 
 def copy_drivers_of_bone(
-        rig: Object,
-        old_bone_name: str,
-        new_bone_name: str
-    ) -> list[FCurve]:
+    rig: Object,
+    old_bone_name: str,
+    new_bone_name: str,
+) -> list[FCurve]:
     datablocks = []
     if rig.animation_data:
         datablocks.append(rig)

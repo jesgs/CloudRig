@@ -77,8 +77,8 @@ class Component_Lattice(Component_Base):
         if org_bi.custom_shape:
             root_bone.copy_custom_shape(org_bi)
         else:
-            root_bone.custom_shape_name=self.params.lattice.shape_root.shape_name
-            root_bone.use_custom_shape_bone_size=True
+            root_bone.custom_shape_name = self.params.lattice.shape_root.shape_name
+            root_bone.use_custom_shape_bone_size = True
         return root_bone
 
     def __make_hook_ctrl(self, root_bone: BoneInfo) -> BoneInfo:
@@ -125,9 +125,7 @@ class Component_Lattice(Component_Base):
             1,
             1,
         )
-        lattice_ob.data.points_u, lattice_ob.data.points_v, lattice_ob.data.points_w = [
-            resolution
-        ] * 3
+        lattice_ob.data.points_u, lattice_ob.data.points_v, lattice_ob.data.points_w = [resolution] * 3
 
         # Create a falloff vertex group
         vg = ensure_falloff_vgroup(lattice_ob, vg_name="Hook", multiplier=1.5)
@@ -138,7 +136,7 @@ class Component_Lattice(Component_Base):
         lattice_ob.parent_type = 'BONE'
         lattice_ob.parent_bone = self.lattice_root.name
         lattice_ob.matrix_world = root_bone.matrix
-        scale = sum((abs(s) for s in root_bone.custom_shape_scale_xyz))/3
+        scale = sum((abs(s) for s in root_bone.custom_shape_scale_xyz)) / 3
         if root_bone.use_custom_shape_bone_size:
             scale *= root_bone.length
         lattice_ob.matrix_world = lattice_ob.matrix_world @ Matrix.Scale(scale, 4)
@@ -184,6 +182,7 @@ class Component_Lattice(Component_Base):
         cls.draw_prop_custom_shape(context, layout, params.lattice, 'shape_root')
         cls.draw_prop_custom_shape(context, layout, params.lattice, 'shape_lattice')
 
+
 class Params(PropertyGroup):
     lattice: PointerProperty(
         type=Object,
@@ -196,14 +195,8 @@ class Params(PropertyGroup):
         default=True,
     )
 
-    shape_root: Component_Base.make_custom_shape_params(
-        identifier="Lattice Root",
-        default="Cube"
-    )
-    shape_lattice: Component_Base.make_custom_shape_params(
-        identifier="Lattice Control",
-        default="Sphere"
-    )
+    shape_root: Component_Base.make_custom_shape_params(identifier="Lattice Root", default="Cube")
+    shape_lattice: Component_Base.make_custom_shape_params(identifier="Lattice Control", default="Sphere")
 
 
 RIG_COMPONENT_CLASS = Component_Lattice

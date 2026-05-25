@@ -188,27 +188,27 @@ PRESETS_BLENDER = [
     {
         "normal": (0.0, 0.0, 0.0),
         "select": (0.0, 0.0, 0.0),
-        "active": (0.0, 0.0, 0.0)
+        "active": (0.0, 0.0, 0.0),
     },
     {
         "normal": (0.0, 0.0, 0.0),
         "select": (0.0, 0.0, 0.0),
-        "active": (0.0, 0.0, 0.0)
+        "active": (0.0, 0.0, 0.0),
     },
     {
         "normal": (0.0, 0.0, 0.0),
         "select": (0.0, 0.0, 0.0),
-        "active": (0.0, 0.0, 0.0)
+        "active": (0.0, 0.0, 0.0),
     },
     {
         "normal": (0.0, 0.0, 0.0),
         "select": (0.0, 0.0, 0.0),
-        "active": (0.0, 0.0, 0.0)
+        "active": (0.0, 0.0, 0.0),
     },
     {
         "normal": (0.0, 0.0, 0.0),
         "select": (0.0, 0.0, 0.0),
-        "active": (0.0, 0.0, 0.0)
+        "active": (0.0, 0.0, 0.0),
     },
 ]
 
@@ -337,9 +337,10 @@ class CLOUDRIG_OT_set_bone_color_prefs(Operator):
                 "CloudRig",
                 "Assign CloudRig's recommended bone color presets",
             ),
-            ("BLENDER",
-             "Blender",
-             "Assign Blender's default bone color presets"
+            (
+                "BLENDER",
+                "Blender",
+                "Assign Blender's default bone color presets",
             ),
         ],
     )

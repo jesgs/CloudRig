@@ -37,7 +37,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         # Relink to the Hook controls.
         if con_info.name.startswith("TAIL-"):
-            return self.bone_sets['Curve Hooks'][org_i+1]
+            return self.bone_sets['Curve Hooks'][org_i + 1]
         return self.bone_sets['Curve Hooks'][org_i]
 
     def curve__initialize(self):
@@ -45,10 +45,12 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         subdiv = self.params.spline_ik.subdivide
         total = length * subdiv
         if length > 255:
-            self.raise_generation_error(rpt_(
-                "Spline IK component consists of {length} bones, " \
-                "but the Spline IK constraint only supports a chain of 255 bones max."
-            ).format(length=length))
+            self.raise_generation_error(
+                rpt_(
+                    "Spline IK component consists of {length} bones, "
+                    "but the Spline IK constraint only supports a chain of 255 bones max."
+                ).format(length=length)
+            )
         if total > 255:
             old_total = total
             old_subdiv = subdiv
@@ -57,28 +59,21 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                 total = length * subdiv
             self.add_log(
                 rpt_("Spline IK clamped to 255 bones"),
-                description=rpt_("Trying to subdivide {length} bones {old_subdiv} times, would result in {old_total} bones. \n" \
+                description=rpt_(
+                    "Trying to subdivide {length} bones {old_subdiv} times, would result in {old_total} bones. \n"
                     "The Spline IK constraint only supports a chain of 255 bones, so subdivisions has been capped at {subdiv} "
                     "for a new total of {total} bones."
                 ).format(length=length, old_subdiv=old_subdiv, old_total=old_total, subdiv=subdiv, total=total),
             )
 
-        self.num_controls = (
-            self.bone_count + 1
-            if self.params.spline_ik.match_hooks
-            else self.params.spline_ik.hooks
-        )
+        self.num_controls = self.bone_count + 1 if self.params.spline_ik.match_hooks else self.params.spline_ik.hooks
 
     def create_bone_infos(self, context):
         curve_ob = self.params.curve.target
         if not curve_ob:
             curve_ob = self.curve__create_curve_object(context)
             self.params.curve.target = curve_ob
-        point_indices = (
-            list(range(self.num_controls))
-            if self.params.spline_ik.match_hooks
-            else None
-        )
+        point_indices = list(range(self.num_controls)) if self.params.spline_ik.match_hooks else None
         self.curve__reset_to_default_spline(
             curve_ob,
             num_points=self.num_controls,
@@ -132,15 +127,15 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                 fk_ctrl.roll_align_other(hook_ctrl)
                 hook_ctrl.parent = fk_ctrl
                 next_parent = fk_ctrl
-                if hook_idx not in (0, len(hooks_of_spline)-1):
+                if hook_idx not in (0, len(hooks_of_spline) - 1):
                     hook_ctrl.add_constraint(
                         'COPY_ROTATION',
                         name="Copy Rotation (Counter-Rotate)",
-                        use_xyz = [True, False, True],
-                        invert_xyz = [True, False, True],
-                        mix_mode = 'BEFORE',
-                        space = 'LOCAL',
-                        influence = 0.5,
+                        use_xyz=[True, False, True],
+                        invert_xyz=[True, False, True],
+                        mix_mode='BEFORE',
+                        space='LOCAL',
+                        influence=0.5,
                         subtarget=fk_ctrl,
                     )
 
@@ -231,9 +226,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     @classmethod
     def curve__draw_selector_ui(cls, layout, context, params):
         """Disable the curve selection."""
-        row = cls.draw_prop(
-            context, layout.row(), params.curve, "target", icon='OUTLINER_OB_CURVE'
-        )
+        row = cls.draw_prop(context, layout.row(), params.curve, "target", icon='OUTLINER_OB_CURVE')
         if not cls.is_advanced_mode(context):
             # We don't usually want user to be able to edit the curve object,
             # but when duplicating a component bone, we need to be able to clear the pointer.
@@ -327,9 +320,7 @@ class Params(PropertyGroup):
         default=False,
     )
 
-    shape_fk: Component_Curve_SplineIK.make_custom_shape_params(
-        identifier="FK",
-        default="Square"
-    )
+    shape_fk: Component_Curve_SplineIK.make_custom_shape_params(identifier="FK", default="Square")
+
 
 RIG_COMPONENT_CLASS = Component_Curve_SplineIK

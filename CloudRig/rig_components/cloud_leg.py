@@ -102,8 +102,8 @@ class Component_Limb_BipedLeg(Component_Limb):
                 tail=intersect_point_line(toe.head, knee.head, knee.tail)[0],
                 parent=self.ik_mstr,
                 custom_shape_name=self.params.leg.shape_forefoot.shape_name,
-                custom_shape_rotation_euler=Vector((-pi/2, 0, 0)),
-                custom_shape_wire_width=max(1.5, self.ik_mstr.custom_shape_wire_width/2),
+                custom_shape_rotation_euler=Vector((-pi / 2, 0, 0)),
+                custom_shape_wire_width=max(1.5, self.ik_mstr.custom_shape_wire_width / 2),
             )
             forefoot.roll_align_vector(knee.head)
 
@@ -125,7 +125,6 @@ class Component_Limb_BipedLeg(Component_Limb):
                 elif self.params.ik_chain.flatten_controls:
                     self.foot_snap_bone.flatten()
 
-
         self.__make_ik_toe()
 
     def ik_chain__make_master_ctr(self, bone_set: BoneSet, source_bone: BoneInfo) -> BoneInfo:
@@ -146,9 +145,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         """Toe is not relevant for IK/FK switching."""
         fk_chain = fk_chain[:-1]
 
-        ui_data = super().ik_chain__get_ik_switch_ui_data(
-            fk_chain, ik_chain, ik_mstr, ik_pole
-        )
+        ui_data = super().ik_chain__get_ik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 
         if self.params.ik_chain.world_align and self.params.leg.use_foot_roll:
             # In the case of world aligned IK control + footroll, we must
@@ -230,12 +227,12 @@ class Component_Limb_BipedLeg(Component_Limb):
         return head, tail
 
     def __make_footroll(
-            self,
-            ik_chain: list[BoneInfo],
-            org_chain: list[BoneInfo],
-            foot_ik: BoneInfo,
-            ik_mstr: BoneInfo,
-        ):
+        self,
+        ik_chain: list[BoneInfo],
+        org_chain: list[BoneInfo],
+        foot_ik: BoneInfo,
+        ik_mstr: BoneInfo,
+    ):
         ik_foot_chain = ik_chain[-2:]
         _org_thigh, org_knee, org_foot, org_toe = org_chain
         org_toe.roll_align_other(org_foot)
@@ -249,7 +246,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         TOE_THRESHOLD = 135
 
         roll_ctrl = self.bone_sets['IK Controls'].new(
-            name=self.naming.add_prefix(org_foot, "ROLL-M"), # TODO: Swap the name of this with roll_mch
+            name=self.naming.add_prefix(org_foot, "ROLL-M"),  # TODO: Swap the name of this with roll_mch
             source=None,
             bbone_width=1 / 18,
             head=head,
@@ -271,7 +268,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             max_x=rad(TOE_THRESHOLD),
             use_limit_y=True,
             min_y=rad(-HEEL_LIMIT),
-            max_y = rad(HEEL_LIMIT),
+            max_y=rad(HEEL_LIMIT),
             use_limit_z=True,
             min_z=rad(-TWIST_RANGE),
             max_z=rad(TWIST_RANGE),
@@ -302,8 +299,8 @@ class Component_Limb_BipedLeg(Component_Limb):
                 map_to='ROTATION',
                 from_min_z_rot=rad(-TWIST_RANGE),
                 from_max_z_rot=rad(TWIST_RANGE),
-                to_min_z_rot=rad(-TWIST_RANGE*(2/3)),
-                to_max_z_rot=rad(TWIST_RANGE*(2/3)),
+                to_min_z_rot=rad(-TWIST_RANGE * (2 / 3)),
+                to_max_z_rot=rad(TWIST_RANGE * (2 / 3)),
             )
 
             heel_pvt_outer = self.bone_sets['IK Mechanism'].new(
@@ -335,20 +332,20 @@ class Component_Limb_BipedLeg(Component_Limb):
             # print("Dot: ", heel_pvt_back.y_axis.dot(roll_ctrl.x_axis), heel_pvt_back.name, roll_ctrl.name)
             if heel_pvt_back.y_axis.dot(roll_ctrl.x_axis) < 0:
                 # RIGHT SIDE
-                back_con.from_min_x_rot=rad(-HEEL_LIMIT)
-                back_con.to_min_y_rot=rad(HEEL_LIMIT)
-                back_con.from_min_y_rot=rad(-HEEL_LIMIT)
-                back_con.to_min_z_rot=rad(-HEEL_LIMIT)
-                outer_con.from_max_y_rot=rad(HEEL_LIMIT)
-                outer_con.to_max_y_rot=rad(HEEL_LIMIT)
+                back_con.from_min_x_rot = rad(-HEEL_LIMIT)
+                back_con.to_min_y_rot = rad(HEEL_LIMIT)
+                back_con.from_min_y_rot = rad(-HEEL_LIMIT)
+                back_con.to_min_z_rot = rad(-HEEL_LIMIT)
+                outer_con.from_max_y_rot = rad(HEEL_LIMIT)
+                outer_con.to_max_y_rot = rad(HEEL_LIMIT)
             else:
                 # LEFT SIDE
-                back_con.from_min_x_rot=rad(-HEEL_LIMIT)
-                back_con.to_min_y_rot=rad(-HEEL_LIMIT)
-                back_con.from_max_y_rot=rad(HEEL_LIMIT)
-                back_con.to_max_z_rot=rad(HEEL_LIMIT)
-                outer_con.from_min_y_rot=rad(-HEEL_LIMIT)
-                outer_con.to_min_y_rot=rad(-HEEL_LIMIT)
+                back_con.from_min_x_rot = rad(-HEEL_LIMIT)
+                back_con.to_min_y_rot = rad(-HEEL_LIMIT)
+                back_con.from_max_y_rot = rad(HEEL_LIMIT)
+                back_con.to_max_z_rot = rad(HEEL_LIMIT)
+                outer_con.from_min_y_rot = rad(-HEEL_LIMIT)
+                outer_con.to_min_y_rot = rad(-HEEL_LIMIT)
 
             roll_mch = ik_mstr
         else:
@@ -385,13 +382,13 @@ class Component_Limb_BipedLeg(Component_Limb):
             ik_foot_chain[i].parent = rik_bone
 
             # Calculate angle of rotation necessary to make this bone vertical.
-            angle_to_vertical = (org_knee.head-org_knee.tail).angle(rik_bone.vector)
+            angle_to_vertical = (org_knee.head - org_knee.tail).angle(rik_bone.vector)
 
             if i == 0:
                 # Foot bone's roll
                 rik_bone.add_constraint(
                     'COPY_LOCATION',
-                    name = "Copy Location (RIK)",
+                    name="Copy Location (RIK)",
                     space='WORLD',
                     subtarget=rik_chain[-2].name,
                     head_tail=1,
@@ -439,7 +436,9 @@ class Component_Limb_BipedLeg(Component_Limb):
             if self.params.leg.heel_bone and not heel_pivot:
                 self.add_log(
                     rpt_("Heel Pivot Missing"),
-                    description=rpt_('Could not find HeelPivot bone in the metarig: "{heel}".').format(heel=heel_pivot_name)
+                    description=rpt_('Could not find HeelPivot bone in the metarig: "{heel}".').format(
+                        heel=heel_pivot_name
+                    ),
                 )
         return self._heel_pivot_bone
 
@@ -452,7 +451,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             target_bones=[self.bones_org[-2].fk_bone, self.ik_chain[-1]],
             prop_bone=self.properties_bone,
             prop_name=self.ikfk_name,
-            name="Armature (Toe FK/IK)"
+            name="Armature (Toe FK/IK)",
         )
 
     @no_overlay
@@ -521,6 +520,7 @@ class Component_Limb_BipedLeg(Component_Limb):
             cls.draw_prop_custom_shape(context, layout, params.leg, 'shape_footroll')
         if params.leg.create_forefoot:
             cls.draw_prop_custom_shape(context, layout, params.leg, 'shape_forefoot')
+
 
 class Params(PropertyGroup):
     use_foot_roll: BoolProperty(

@@ -76,13 +76,9 @@ def make_constraint(
                 con_target.subtarget = target_info
             elif isinstance(target_info, tuple):
                 if len(target_info) == 2:
-                    con_target.subtarget, con_target.weight = map(
-                        force_lazy, target_info
-                    )
+                    con_target.subtarget, con_target.weight = map(force_lazy, target_info)
                 else:
-                    con_target.target, con_target.subtarget, con_target.weight = map(
-                        force_lazy, target_info
-                    )
+                    con_target.target, con_target.subtarget, con_target.weight = map(force_lazy, target_info)
             else:
                 assert isinstance(target_info, dict)
                 for key, val in target_info.items():

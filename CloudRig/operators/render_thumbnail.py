@@ -25,16 +25,17 @@ def get_3d_view(context) -> Area | None:
     if context.area and context.area.type == 'VIEW_3D':
         area = context.area
     else:
-        area = next((a for a in context.screen.areas if a.type=='VIEW_3D'))
+        area = next((a for a in context.screen.areas if a.type == 'VIEW_3D'))
 
     if area:
         return area.spaces.active
+
 
 @contextmanager
 def temporary_setattr(obj, **kwargs):
     """Temporarily set attributes on obj."""
     old_values = {name: getattr(obj, name) for name in kwargs}
-    old_values = {name:value.copy() if hasattr(value, 'copy') else value for name, value in old_values.items()}
+    old_values = {name: value.copy() if hasattr(value, 'copy') else value for name, value in old_values.items()}
     try:
         for name, value in kwargs.items():
             if hasattr(value, 'copy'):
@@ -49,23 +50,24 @@ def temporary_setattr(obj, **kwargs):
         for name, value in old_values.items():
             setattr(obj, name, value)
 
+
 @contextmanager
 def viewport_settings(
-        context,
-        resolution=(512, 512),
-        show_overlays=False,
-        show_gizmo=False,
-        film_transparent=True,
-        color_type='MATERIAL',
-        light='MATCAP',
-        single_color=(1, 1, 1),
-        media_type='IMAGE',
-        file_format='PNG',
-        color_mode='RGBA',
-        color_depth='8',
-        show_object_outline=False,
-        shading_type = 'SOLID',
-    ):
+    context,
+    resolution=(512, 512),
+    show_overlays=False,
+    show_gizmo=False,
+    film_transparent=True,
+    color_type='MATERIAL',
+    light='MATCAP',
+    single_color=(1, 1, 1),
+    media_type='IMAGE',
+    file_format='PNG',
+    color_mode='RGBA',
+    color_depth='8',
+    show_object_outline=False,
+    shading_type='SOLID',
+):
 
     view_3d = get_3d_view(context)
 
@@ -75,37 +77,44 @@ def viewport_settings(
     old_res = (render.resolution_x, render.resolution_y)
     # Also handle color mode separately (because it doesn't work otherwise for no reason??)
 
-    with temporary_setattr(
-        render.image_settings,
-        media_type=media_type,
-        file_format=file_format,
-        color_depth=str(color_depth),
-        color_mode=color_mode,
-        compression=100,
-    ), temporary_setattr(
-        render,
-        film_transparent=film_transparent,
-        resolution_x=resolution[0],
-        resolution_y=resolution[1],
-    ), temporary_setattr(
-        view_3d,
-        show_gizmo=show_gizmo,
-    ), temporary_setattr(
-        view_3d.overlay,
-        show_overlays=show_overlays,
-    ), temporary_setattr(
-        view_3d.shading,
-        type=shading_type,
-        color_type=color_type,
-        light=light,
-        single_color=single_color,
-        show_object_outline=show_object_outline,
+    with (
+        temporary_setattr(
+            render.image_settings,
+            media_type=media_type,
+            file_format=file_format,
+            color_depth=str(color_depth),
+            color_mode=color_mode,
+            compression=100,
+        ),
+        temporary_setattr(
+            render,
+            film_transparent=film_transparent,
+            resolution_x=resolution[0],
+            resolution_y=resolution[1],
+        ),
+        temporary_setattr(
+            view_3d,
+            show_gizmo=show_gizmo,
+        ),
+        temporary_setattr(
+            view_3d.overlay,
+            show_overlays=show_overlays,
+        ),
+        temporary_setattr(
+            view_3d.shading,
+            type=shading_type,
+            color_type=color_type,
+            light=light,
+            single_color=single_color,
+            show_object_outline=show_object_outline,
+        ),
     ):
         try:
             context.view_layer.update()
             yield
         finally:
             render.resolution_x, render.resolution_y = old_res
+
 
 @contextmanager
 def widget_geonodes(objects: list[Object], thickness=0.03):
@@ -140,8 +149,9 @@ def widget_geonodes(objects: list[Object], thickness=0.03):
             stack.enter_context(widget_geonodes_single(obj, thickness))
         yield
 
+
 @contextmanager
-def selection_state(context, active_obj: Object=None, selected_obs: list[Object]=None):
+def selection_state(context, active_obj: Object = None, selected_obs: list[Object] = None):
     # Obviously, deleting active or selected objects is not supported!
     # This does not enforce visibility!
     if selected_obs is None:
@@ -165,8 +175,9 @@ def selection_state(context, active_obj: Object=None, selected_obs: list[Object]
         obj.select_set(True)
     context.view_layer.objects.active = active_backup
 
+
 @contextmanager
-def focus_objects(context, objects: list[Object]=None, margin=0.1):
+def focus_objects(context, objects: list[Object] = None, margin=0.1):
     view_3d = get_3d_view(context)
     if not objects or not view_3d:
         yield
@@ -180,7 +191,8 @@ def focus_objects(context, objects: list[Object]=None, margin=0.1):
 
     region_3d.view_matrix = org_view_matrix
 
-def focus_view_on_objects(context, objects: list[Object]=None, margin=0.1):
+
+def focus_view_on_objects(context, objects: list[Object] = None, margin=0.1):
     if not objects:
         objects = context.selected_objects
     bbox_3d = get_bbox_3d(objects, margin=margin)
@@ -188,6 +200,7 @@ def focus_view_on_objects(context, objects: list[Object]=None, margin=0.1):
     if bpy.app.version >= (4, 4, 0):
         # This worked fine until 4.4, but now it needs to be ran twice...!
         fit_view3d_to_coords(context, *bbox_3d)
+
 
 @contextmanager
 def active_camera(context, camera: Object):
@@ -199,16 +212,20 @@ def active_camera(context, camera: Object):
     org_location = view3d.region_3d.view_location.copy()
     org_distance = view3d.region_3d.view_distance
 
-    with temporary_setattr(
+    with (
+        temporary_setattr(
             context.scene,
             camera=camera,
-        ), temporary_setattr(
+        ),
+        temporary_setattr(
             view3d,
             use_local_camera=False,
-        ), temporary_setattr(
+        ),
+        temporary_setattr(
             view3d.region_3d,
             view_perspective='CAMERA',
-        ):
+        ),
+    ):
         # This is not just for UI feedback, it's for some reason necessary, otherwise
         # it's using the wrong camera...
         redraw_viewport()
@@ -217,6 +234,7 @@ def active_camera(context, camera: Object):
     view3d.region_3d.view_matrix = org_matrix.copy()
     view3d.region_3d.view_location = org_location.copy()
     view3d.region_3d.view_distance = org_distance
+
 
 def fit_view3d_to_coords(context, center, coords):
     view_3d = get_3d_view(context)
@@ -268,6 +286,7 @@ def fit_view3d_to_coords(context, center, coords):
         region_3d.view_matrix = cam_matrix
         context.scene.camera = org_cam
 
+
 def get_bbox_3d(objects: list[Object], margin=0.0) -> tuple[Vector, list[Vector]]:
     """Return combined transformed bounding box center and 8 corners in world space."""
     min_bound = [float('inf'), float('inf'), float('inf')]
@@ -284,17 +303,18 @@ def get_bbox_3d(objects: list[Object], margin=0.0) -> tuple[Vector, list[Vector]
 
     # Construct the 8 bounding box corners from the min/max X/Y/Z coords.
     corners = [
-        Vector((min_bound[0]-margin, min_bound[1]-margin, min_bound[2]-margin)),
-        Vector((min_bound[0]-margin, min_bound[1]-margin, max_bound[2]+margin)),
-        Vector((min_bound[0]-margin, max_bound[1]+margin, min_bound[2]-margin)),
-        Vector((min_bound[0]-margin, max_bound[1]+margin, max_bound[2]+margin)),
-        Vector((max_bound[0]+margin, min_bound[1]-margin, min_bound[2]-margin)),
-        Vector((max_bound[0]+margin, min_bound[1]-margin, max_bound[2]+margin)),
-        Vector((max_bound[0]+margin, max_bound[1]+margin, min_bound[2]-margin)),
-        Vector((max_bound[0]+margin, max_bound[1]+margin, max_bound[2]+margin)),
+        Vector((min_bound[0] - margin, min_bound[1] - margin, min_bound[2] - margin)),
+        Vector((min_bound[0] - margin, min_bound[1] - margin, max_bound[2] + margin)),
+        Vector((min_bound[0] - margin, max_bound[1] + margin, min_bound[2] - margin)),
+        Vector((min_bound[0] - margin, max_bound[1] + margin, max_bound[2] + margin)),
+        Vector((max_bound[0] + margin, min_bound[1] - margin, min_bound[2] - margin)),
+        Vector((max_bound[0] + margin, min_bound[1] - margin, max_bound[2] + margin)),
+        Vector((max_bound[0] + margin, max_bound[1] + margin, min_bound[2] - margin)),
+        Vector((max_bound[0] + margin, max_bound[1] + margin, max_bound[2] + margin)),
     ]
 
     return center, corners
+
 
 def get_world_bounding_box(obj) -> list[Vector]:
     """Returns the world-space coordinates of an object's bounding box."""
@@ -305,6 +325,7 @@ def get_world_bounding_box(obj) -> list[Vector]:
 
     return world_bbox_corners
 
+
 class VIEW3D_OT_render_widget_thumbnails(Operator):
     """Render a thumbnail for each selected mesh object suitable for bone custom shapes. Outputs to a "/thumbnails" folder."""
 
@@ -312,40 +333,20 @@ class VIEW3D_OT_render_widget_thumbnails(Operator):
     bl_label = "Render Bone Shape Thumbnails"
     bl_options = {'REGISTER', 'UNDO'}
 
-    thickness: FloatProperty(
-        name="Wire Thickness",
-        default=0.015,
-        min=0.0,
-        max=1.0
-    )
-    color: FloatVectorProperty(
-        name="Wire Color",
-        min=0.0,
-        max=1.0,
-        subtype='COLOR',
-        default=(1.0, 1.0, 1.0)
-    )
+    thickness: FloatProperty(name="Wire Thickness", default=0.015, min=0.0, max=1.0)
+    color: FloatVectorProperty(name="Wire Color", min=0.0, max=1.0, subtype='COLOR', default=(1.0, 1.0, 1.0))
     focus_view: BoolProperty(
         name="Frame Objects",
         description="Frame objects in the view automatically, while still using current view rotation.",
         default=True,
     )
-    margin: IntProperty(
-        name="Cropping Margin",
-        default=10,
-        min=0,
-        max=100
-    )
+    margin: IntProperty(name="Cropping Margin", default=10, min=0, max=100)
     save: BoolProperty(
         name="Save File",
         description="Save a .png named after the widget, in a /thumbnails folder next to this .blend.",
-        default=True
+        default=True,
     )
-    overwrite: BoolProperty(
-        name="Overwrite",
-        description="Overwrite existing files",
-        default=True
-    )
+    overwrite: BoolProperty(name="Overwrite", description="Overwrite existing files", default=True)
     render_resolution: IntVectorProperty(
         name="Render Resolution",
         description='Increase to increase crispness. Final image resolution is not determined by this. See "Downscale to Size" below.',
@@ -409,22 +410,23 @@ class VIEW3D_OT_render_widget_thumbnails(Operator):
                 self.report({'INFO'}, "Rendered thumbnail.")
         return {'FINISHED'}
 
+
 def render_widget(
-        context,
-        object: Object,
-        *,
-        focus_view=True,
-        color=(1, 1, 1),
-        thickness=0.01,
-        margin=10,
-        save=True,
-        render_resolution=(512, 512),
-        downscale_to_size=256,
-    ) -> str:
+    context,
+    object: Object,
+    *,
+    focus_view=True,
+    color=(1, 1, 1),
+    thickness=0.01,
+    margin=10,
+    save=True,
+    render_resolution=(512, 512),
+    downscale_to_size=256,
+) -> str:
     with (
         viewport_settings(context, light='FLAT', color_type='SINGLE', single_color=color, resolution=render_resolution),
         widget_geonodes([object], thickness=thickness),
-        focus_objects(context, [object], margin=0.2) if focus_view else nullcontext()
+        focus_objects(context, [object], margin=0.2) if focus_view else nullcontext(),
     ):
         bpy.ops.render.opengl()
         redraw_viewport()
@@ -441,11 +443,13 @@ def render_widget(
         else:
             return ""
 
+
 def get_thumbnail_path(obj) -> Path:
     this_dir = Path(bpy.data.filepath).parent
     thumbnails_dir = this_dir / Path("thumbnails")
     filename = widget_name(obj.name) + ".png"
     return thumbnails_dir / Path(filename)
+
 
 class ImageProcessor:
     def __init__(self, bpy_img: bpy.types.Image, name: str):
@@ -470,7 +474,7 @@ class ImageProcessor:
             return False  # No pixels to process
 
         # Convert 1D pixel list into a 2D list (rows of pixels)
-        pixel_rows = [self.pixels_rgba[h * self.width:(h+1) * self.width] for h in range(self.height)]
+        pixel_rows = [self.pixels_rgba[h * self.width : (h + 1) * self.width] for h in range(self.height)]
 
         # Find the bounding box of non-transparent pixels
         min_x, max_x = self.width, 0
@@ -497,8 +501,8 @@ class ImageProcessor:
         min_y -= margin
 
         # Calculate the bounding box width and height
-        content_width = (max_x - min_x)
-        content_height = (max_y - min_y)
+        content_width = max_x - min_x
+        content_height = max_y - min_y
 
         # Determine the square size
         square_size = max(content_width, content_height)
@@ -516,13 +520,13 @@ class ImageProcessor:
         pixel_rows = [row[min_x:max_x] for row in pixel_rows[min_y:max_y]]
 
         row_of_nothing = [(0, 0, 0, 0) for x in range(len(pixel_rows[0]))]
-        for i in range(square_size-content_height):
+        for i in range(square_size - content_height):
             if i % 2 == 0:
                 pixel_rows.insert(0, row_of_nothing)
             else:
                 pixel_rows.append(row_of_nothing)
 
-        for i in range(square_size-content_width):
+        for i in range(square_size - content_width):
             for row in pixel_rows:
                 if i % 2 == 0:
                     row.insert(0, (0, 0, 0, 0))
@@ -584,7 +588,7 @@ class ImageProcessor:
                 pixels = self.bpy_img.pixels[:]
             else:
                 pixels = self._pixels
-            self._pixels_rgba = [tuple(pixels[i:i+4]) for i in range(0, len(pixels), 4)]
+            self._pixels_rgba = [tuple(pixels[i : i + 4]) for i in range(0, len(pixels), 4)]
         return self._pixels_rgba
 
     @pixels_rgba.setter
@@ -600,13 +604,17 @@ class ImageProcessor:
             bpy.data.images.remove(self.bpy_img)
             self.bpy_img = None
 
+
 def draw_menu(self, context):
     self.layout.operator(VIEW3D_OT_render_widget_thumbnails.bl_idname)
 
+
 registry = [VIEW3D_OT_render_widget_thumbnails]
+
 
 def register():
     bpy.types.VIEW3D_MT_view.append(draw_menu)
+
 
 def unregister():
     bpy.types.VIEW3D_MT_view.remove(draw_menu)

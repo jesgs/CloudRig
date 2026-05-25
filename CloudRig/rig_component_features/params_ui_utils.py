@@ -36,7 +36,7 @@ class CloudUIMixin:
         op_icon='BLANK1',
         op_kwargs={},
         ###
-        context_bones: list[str|BoneInfo]=[]
+        context_bones: list[str | BoneInfo] = [],
     ) -> OrderedDict:
         ensure_custom_property(prop_bone, prop_id, **custom_prop_settings)
 
@@ -82,11 +82,9 @@ class CloudUIMixin:
         return False
 
     @classmethod
-    def draw_prop(
-        cls, context, layout, prop_owner, prop_name, enabled=True, **kwargs
-    ) -> UILayout | None:
+    def draw_prop(cls, context, layout, prop_owner, prop_name, enabled=True, **kwargs) -> UILayout | None:
         is_forced = cls.is_forced_param(prop_name)
-        if is_forced: # and not cls.is_advanced_mode(context):
+        if is_forced:  # and not cls.is_advanced_mode(context):
             return
 
         row = draw_prop(layout, prop_owner, prop_name, enabled=enabled, **kwargs)
@@ -111,9 +109,7 @@ class CloudUIMixin:
         if is_forced and not cls.is_advanced_mode(context):
             return
 
-        row = draw_prop_search(
-            layout, prop_owner, prop_name, collection, coll_prop_name, alert, **kwargs
-        )
+        row = draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, alert, **kwargs)
 
         if is_forced:
             row.enabled = False
@@ -136,7 +132,9 @@ class CloudUIMixin:
         else:
             cls.draw_prop_search(context, row, pgroup, 'name', prefs, 'widget_names')
             big_enough = prefs.widget_popup_size > 2
-            row.template_icon_view(pgroup, 'name_enum', show_labels=big_enough, scale=1, scale_popup=prefs.widget_popup_size)
+            row.template_icon_view(
+                pgroup, 'name_enum', show_labels=big_enough, scale=1, scale_popup=prefs.widget_popup_size
+            )
 
         row.prop(pgroup, 'use_pointer', text="", toggle=True, icon='OBJECT_DATA')
 
@@ -189,9 +187,7 @@ def draw_prop(layout, prop_owner, prop_name, enabled=True, **kwargs):
     return row
 
 
-def draw_prop_search(
-    layout, prop_owner, prop_name, collection, coll_prop_name, alert, **kwargs
-):
+def draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, alert, **kwargs):
     row = layout.row()
     row.alert = alert
     if alert:

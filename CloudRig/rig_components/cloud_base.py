@@ -45,6 +45,7 @@ class Component_Base(
     BoneGizmoMixin,
 ):
     """Base class that all CloudRig components should inherit from."""
+
     # Name to display for this component type in the UI. Cloud Base doesn't
     # appear in Blender because there's no RIG_COMPONENT_MODULE variable in this file.
     ui_name = "Cloud Base"
@@ -71,12 +72,7 @@ class Component_Base(
     def __str__(self) -> str:
         return f'{self.base_bone_name}: {type(self).ui_name}'
 
-    def __init__(
-        self,
-        generator: CloudRig_Generator,
-        bone_name: str,
-        parent_component=None
-    ):
+    def __init__(self, generator: CloudRig_Generator, bone_name: str, parent_component=None):
         # Quick access to generator features.
         self.generator = generator
         # Presence of an OverlayPainter instance determines whether code is running for a real rig generation, or just for overlay drawing.
@@ -146,12 +142,11 @@ class Component_Base(
                 self.add_log(
                     rpt_("Trailing zeroes"),
                     trouble_bone=pbone.name,
-                    description=rpt_("Trailing zeroes in bone names can cause bone name clashes and should be avoided."),
+                    description=rpt_(
+                        "Trailing zeroes in bone names can cause bone name clashes and should be avoided."
+                    ),
                     operator='object.cloudrig_rename_bone',
-                    op_kwargs={
-                        'old_name': pbone.name,
-                        'new_name': self.naming.uniqify(pbone)
-                    },
+                    op_kwargs={'old_name': pbone.name, 'new_name': self.naming.uniqify(pbone)},
                 )
 
             bone_info = self.bones_org.new(
@@ -178,10 +173,7 @@ class Component_Base(
 
     def create_component_interactions(self, context):
         self.base__relink()
-        skip_root_parenting = (
-            self.parent_switch_overwrites_root_parent
-            and self.params.parenting.parent_switching
-        )
+        skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.parenting.parent_switching
         if not skip_root_parenting and self.params.parenting.root_parent != "":
             self.base__apply_custom_root_parent()
         if self.params.parenting.parent_switching:
@@ -220,8 +212,9 @@ class Component_Base(
         elif "-" in base_name and (('KEEP-' not in base_name and 'ORG-' not in base_name) or not org_bi.preserve):
             target_name = con_info.name.rsplit("-", 1)[0] + "-" + org_bi.name
             self.raise_generation_error(
-                description=rpt_('Relinking Failed for constraint "{constraint}".\n' \
-                    'The dash (-) in the constraint name tells CloudRig to move the constraint to a ' \
+                description=rpt_(
+                    'Relinking Failed for constraint "{constraint}".\n'
+                    'The dash (-) in the constraint name tells CloudRig to move the constraint to a '
                     'generated bone named "{bone}", but no such bone exists.'
                 ).format(constraint=con_info.name, bone=target_name),
                 icon='CONSTRAINT_BONE',
@@ -282,7 +275,6 @@ class Component_Base(
     def set_param_defaults(cls, component):
         pass
 
-
     @classmethod
     def draw_control_params(cls, layout, context, component):
         params = component.params
@@ -315,7 +307,6 @@ class Component_Base(
             wire_width=0.5,
         )
 
-
     @classmethod
     def make_rotation_mode_param(
         cls,
@@ -343,10 +334,7 @@ class Component_Base(
                 ),
             )
 
-        return EnumProperty(
-            name=name, description=description, items=items, default=default
-        )
-
+        return EnumProperty(name=name, description=description, items=items, default=default)
 
     @classmethod
     def make_inherit_scale_param(
@@ -384,10 +372,7 @@ class Component_Base(
                 )
             )
 
-        return EnumProperty(
-            name=name, description=description, items=items, default=default
-        )
-
+        return EnumProperty(name=name, description=description, items=items, default=default)
 
     @classmethod
     def make_custom_shape_params(
@@ -410,7 +395,7 @@ class Component_Base(
                     self.name = ""
             else:
                 # Pointer was en-toggled.
-                obj = bpy.data.objects.get("WGT-"+self.name)
+                obj = bpy.data.objects.get("WGT-" + self.name)
                 if obj:
                     self.custom_shape = obj
 
@@ -423,7 +408,7 @@ class Component_Base(
         @shape_name.setter
         def shape_name(self, value: str):
             if self.use_pointer:
-                self.custom_shape = bpy.data.objects.get("WGT-"+value)
+                self.custom_shape = bpy.data.objects.get("WGT-" + value)
             else:
                 self.name = value
 
@@ -435,7 +420,7 @@ class Component_Base(
             return bpy.data.objects.get('WGT-' + self.shape_name)
 
         def get_enum(self, _current_value, _is_set):
-            value = next((w[4] for w in widgets_enum_items() if w[0]==self.name), 0)
+            value = next((w[4] for w in widgets_enum_items() if w[0] == self.name), 0)
             return value
 
         def set_enum(self, new_value, _current_value, _is_set):
@@ -447,13 +432,13 @@ class Component_Base(
         class_props = {
             '__annotations__': {
                 'name': StringProperty(
-                    name=identifier+" Shape",
+                    name=identifier + " Shape",
                     description=description or default_description,
                     default=default,
                     update=update_widgets,
                 ),
                 'name_enum': EnumProperty(
-                    name=identifier+" Shape",
+                    name=identifier + " Shape",
                     description=description or default_description,
                     items=widgets_enum_items,
                     get_transform=get_enum,
@@ -469,13 +454,13 @@ class Component_Base(
                     name=identifier + " Shape",
                     description='Object to use as custom shape for these bones. Must be a mesh object whose name starts with "WGT-"',
                     type=Object,
-                    poll=lambda self, object: object.type=='MESH' and object.name.startswith("WGT-"),
-                )
+                    poll=lambda self, object: object.type == 'MESH' and object.name.startswith("WGT-"),
+                ),
             },
             'shape_name': shape_name,
             'shape_object': shape_object,
         }
-        class_name="CloudRig_CustomShape_"+ identifier.replace(" ", "_").lower()
+        class_name = "CloudRig_CustomShape_" + identifier.replace(" ", "_").lower()
         group_class = type(class_name, (PropertyGroup,), class_props)
         # NOTE: This should become a PointerProperty(type=group_class)
         # But doing that here is too early, because the group_class would have to
@@ -491,7 +476,7 @@ class Params(PropertyGroup):
     base_name: StringProperty(
         name="Base Name",
         description='Optional. If provided, use this as the base name for some generated bones and properties, '
-            'rather than the bone name. This should not include a side indicator ("Left"/"Right"), as that will'
-            'be added automatically',
+        'rather than the bone name. This should not include a side indicator ("Left"/"Right"), as that will'
+        'be added automatically',
         default="",
     )

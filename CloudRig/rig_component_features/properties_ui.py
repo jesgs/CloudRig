@@ -97,9 +97,7 @@ def update_property_selector(self, context):
 
     context.scene.cloudrig_property_name_selector.clear()
 
-    prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
-        get_data_paths(self, rig)
-    )
+    prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
     # Populate the property drop-down selector with available custom properties.
     for key in get_drawable_custom_properties(prop_owner):
@@ -146,9 +144,7 @@ class CloudRigUIEditOpMixin:
         update_property_selector(self, context)
 
         rig = find_cloudrig(context)
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
-            get_data_paths(self, rig)
-        )
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         # Help initialize BoneCollection visibility toggles.
         if isinstance(prop_owner, BoneCollection):
@@ -163,9 +159,7 @@ class CloudRigUIEditOpMixin:
                 self.prop_name = ""
 
     def update_parent_selector(self, context):
-        parent_option = context.scene.cloudrig_property_parent_selector.get(
-            self.parent_selector
-        )
+        parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
         if parent_option and parent_option.current not in self.parent_value:
             # When user selects a parent property from the drop-down,
             # we want to make life easy by setting the parent value to the current value of the chosen property.
@@ -194,6 +188,7 @@ class CloudRigUIEditOpMixin:
         default=False,
         update=update_use_bone_selector,
     )
+
     def update_prop_name(self, context):
         rig = find_cloudrig(context)
 
@@ -207,12 +202,12 @@ class CloudRigUIEditOpMixin:
             if self.slider_name in {"", "is_visible"}:
                 self.slider_name = prop_owner.name
             if self.panel_name == "Properties":
-                self.panel_name=n_("Bone Collections")
+                self.panel_name = n_("Bone Collections")
 
     prop_name: StringProperty(
         name="Property Name",
         description="Name of the property. It can already exist, otherwise it will be created with a value of 1.0",
-        update=update_prop_name
+        update=update_prop_name,
     )
     use_manual_prop_name: BoolProperty(
         name="Custom Property",
@@ -225,9 +220,7 @@ class CloudRigUIEditOpMixin:
         default="Properties",
         description="Optional: The sub-panel that this property should be displayed in",
     )
-    label_name: StringProperty(
-        name="Label", description="Optional: Place this property under a text label"
-    )
+    label_name: StringProperty(name="Label", description="Optional: Place this property under a text label")
     row_name: StringProperty(
         name="Row ID",
         default="",
@@ -275,9 +268,7 @@ class CloudRigUIEditOpMixin:
         description="Display this child property only when the parent property matches one of these comma-separated values",
     )
 
-    show_internals: BoolProperty(
-        name="Internals", default=False, description="Show internal data"
-    )
+    show_internals: BoolProperty(name="Internals", default=False, description="Show internal data")
 
     operator: StringProperty(
         name="Operator ID",
@@ -289,9 +280,7 @@ class CloudRigUIEditOpMixin:
         default="{}",
         description="Internal. Only used by the Edit operator, to feed kwargs to the temp KeyMapItem",
     )
-    op_icon: StringProperty(
-        name="Operator Icon", default='BLANK1', description="Operator Icon"
-    )
+    op_icon: StringProperty(name="Operator Icon", default='BLANK1', description="Operator Icon")
     icon_true: StringProperty(
         name="True Icon",
         default='CHECKBOX_HLT',
@@ -334,7 +323,9 @@ class CloudRigUIEditOpMixin:
         # so we don't need to worry about making a mess there.
         rig, ui_data = get_rig_and_ui(context)
         self.panels = ui_data
-        self.temp_kmi = context.window_manager.keyconfigs.default.keymaps['Info'].keymap_items.new('', 'NUMPAD_5', 'PRESS')
+        self.temp_kmi = context.window_manager.keyconfigs.default.keymaps['Info'].keymap_items.new(
+            '', 'NUMPAD_5', 'PRESS'
+        )
         if self.operator:
             self.temp_kmi.idname = self.operator
             if self.op_kwargs:
@@ -344,9 +335,7 @@ class CloudRigUIEditOpMixin:
         self.owner_path = owner_path
 
         if owner_path.startswith('pose.bones') or owner_path.startswith('data.collections_all'):
-            prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(
-                self, rig
-            )
+            prop_owner, full_path, data_path, prop_name, prop_value = get_data_paths(self, rig)
             if prop_owner:
                 owner_path = prop_owner.name
                 if isinstance(prop_owner, PoseBone):
@@ -390,7 +379,7 @@ class CloudRigUIEditOpMixin:
     def draw_owner_box(self, layout, context) -> bool:
         """Returns whether UI drawing should be interrupted after this."""
         rig = find_cloudrig(context)
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (get_data_paths(self, rig))
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         owner_box = layout.box()
         owner_row = owner_box.row(align=True)
@@ -440,7 +429,7 @@ class CloudRigUIEditOpMixin:
     def draw_prop_box(self, layout, context) -> bool:
         """Returns whether UI drawing should be interrupted after this."""
         rig = find_cloudrig(context)
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (get_data_paths(self, rig))
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         prop_box = layout.box().column()
         if not prop_owner:
@@ -490,12 +479,13 @@ class CloudRigUIEditOpMixin:
             if prop_settings:
                 prop_settings = prop_settings.as_dict()
 
-        if prop_value is not None or issubclass(type(prop_owner), Modifier) or prop_settings and 'id_type' in prop_settings:
-            if (
-                prop_value is not None
-                and isinstance(prop_value, bpy_struct)
-                and not isinstance(prop_value, ID)
-            ):
+        if (
+            prop_value is not None
+            or issubclass(type(prop_owner), Modifier)
+            or prop_settings
+            and 'id_type' in prop_settings
+        ):
+            if prop_value is not None and isinstance(prop_value, bpy_struct) and not isinstance(prop_value, ID):
                 # Checking for prop_value!=None again is deliberate,
                 # as modifier inputs are allowed to be None and still be drawn.
                 self.err_msg = rpt_("This is a struct, not a property.")
@@ -525,9 +515,7 @@ class CloudRigUIEditOpMixin:
 
     def draw_placement_box(self, layout, context):
         rig = find_cloudrig(context)
-        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = (
-            get_data_paths(self, rig)
-        )
+        prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
         panel_box = layout.box().column()
         panel_row = panel_box.row()
@@ -555,12 +543,8 @@ class CloudRigUIEditOpMixin:
             panel_box.prop(self, 'texts')
         if type(prop_value) is bool:
             icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
-            panel_box.prop_search(
-                self, 'icon_true', icons, 'enum_items', icon=self.icon_true or 'BLANK1'
-            )
-            panel_box.prop_search(
-                self, 'icon_false', icons, 'enum_items', icon=self.icon_false or 'BLANK1'
-            )
+            panel_box.prop_search(self, 'icon_true', icons, 'enum_items', icon=self.icon_true or 'BLANK1')
+            panel_box.prop_search(self, 'icon_false', icons, 'enum_items', icon=self.icon_false or 'BLANK1')
         if type(prop_value) in (float, int):
             panel_box.prop(self, 'use_slider')
         bl_prop = prop_owner.bl_rna.properties.get(brackets_prop_name)
@@ -592,9 +576,7 @@ class CloudRigUIEditOpMixin:
         split = int_box.row().split(factor=0.15, align=True)
         icon = 'TRIA_DOWN' if self.show_internals else 'TRIA_RIGHT'
         split.prop(self, 'show_internals', icon=icon, toggle=False, emboss=False)
-        split.prop(
-            self, 'show_internals', icon='BLANK1', toggle=False, emboss=False, text=""
-        )
+        split.prop(self, 'show_internals', icon='BLANK1', toggle=False, emboss=False, text="")
         if self.show_internals:
             int_box.prop(self, 'parent_ui_path')
             if hasattr(self, 'ui_path'):
@@ -608,9 +590,7 @@ class CloudRigUIEditOpMixin:
             return
         context.scene.cloudrig_property_parent_selector.clear()
 
-        def add_slider_ui_paths_recursive(
-            ui_data: OrderedDict, ui_path: list[str], display_name: str
-        ):
+        def add_slider_ui_paths_recursive(ui_data: OrderedDict, ui_path: list[str], display_name: str):
             for elem_name, elem_data in ui_data.items():
                 new_ui_path = ui_path + [elem_name]
                 identifier = json.dumps(new_ui_path)
@@ -625,21 +605,15 @@ class CloudRigUIEditOpMixin:
                             parent_value = ui_path[-3]
                             new_display_name += f" ({parent_value})"
                         new_display_name += " -> " + elem_name
-                    parent_option = (
-                        context.scene.cloudrig_property_parent_selector.add()
-                    )
+                    parent_option = context.scene.cloudrig_property_parent_selector.add()
                     parent_option.name = new_display_name
                     parent_option.ui_path = identifier
                     parent_option.current = str(
-                        path_resolve_safe(
-                            rig, elem_data['owner_path'] + elem_data['prop_name']
-                        )
+                        path_resolve_safe(rig, elem_data['owner_path'] + elem_data['prop_name'])
                     )
 
                 if type(elem_data) is OrderedDict:
-                    add_slider_ui_paths_recursive(
-                        elem_data, new_ui_path[:], new_display_name
-                    )
+                    add_slider_ui_paths_recursive(elem_data, new_ui_path[:], new_display_name)
 
         add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
 
@@ -664,18 +638,14 @@ class CloudRigUIEditOpMixin:
                 if ret:
                     return ret
             self.report(
-                {'INFO'},
-                iface_("Added {num_props} properties to the rig UI.")
-                .format(num_props=len(owner.keys()))
+                {'INFO'}, iface_("Added {num_props} properties to the rig UI.").format(num_props=len(owner.keys()))
             )
         else:
             ret = self.execute_add_property(context)
             if ret:
                 return ret
             self.report(
-                {'INFO'},
-                iface_("Added property {prop_name} to the rig UI.")
-                .format(prop_name=self.slider_name)
+                {'INFO'}, iface_("Added property {prop_name} to the rig UI.").format(prop_name=self.slider_name)
             )
 
         redraw_viewport()
@@ -698,20 +668,14 @@ class CloudRigUIEditOpMixin:
                 # Make the property library overridable.
                 owner.property_overridable_library_set(brackets_prop_name, True)
             elif not issubclass(type(owner), Modifier):
-                self.report(
-                    {'ERROR'},
-                    rpt_("{type} does not support custom properties.")
-                    .format(type=type(owner))
-                )
+                self.report({'ERROR'}, rpt_("{type} does not support custom properties.").format(type=type(owner)))
                 return {'CANCELLED'}
 
         if not self.slider_name:
             self.slider_name = self.prop_name
 
         if self.use_parenting:
-            parent_option = context.scene.cloudrig_property_parent_selector.get(
-                self.parent_selector
-            )
+            parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
             if parent_option:
                 ui_path = json.loads(parent_option.ui_path)
             elif self.parent_selector == "" and len(self.parent_ui_path) > 2:
@@ -816,11 +780,7 @@ class CLOUDRIG_OT_edit_property_in_ui(CloudRigUIEditOpMixin, Operator):
         write_rig_panels(rig, self.panels)
         redraw_viewport()
 
-        self.report(
-            {'INFO'},
-            rpt_("Edited property {prop_path} in the rig UI.")
-            .format(prop_path=ui_path[-1])
-        )
+        self.report({'INFO'}, rpt_("Edited property {prop_path} in the rig UI.").format(prop_path=ui_path[-1]))
         return {'FINISHED'}
 
 
@@ -908,17 +868,9 @@ class CLOUDRIG_OT_reorder_rows(Operator):
     def modal(self, context, event):
         rig = find_cloudrig(context)
         self.index_offset = 0
-        if (
-            event.type in {'W', 'UP_ARROW'}
-            and not event.is_repeat
-            and event.value != 'RELEASE'
-        ):
+        if event.type in {'W', 'UP_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
             self.index_offset = -1
-        elif (
-            event.type in {'S', 'DOWN_ARROW'}
-            and not event.is_repeat
-            and event.value != 'RELEASE'
-        ):
+        elif event.type in {'S', 'DOWN_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
             self.index_offset = 1
         elif event.type == 'MOUSEMOVE':
             self.index_offset = int((event.mouse_y - self.mouse_initial) / -20)
@@ -1060,7 +1012,7 @@ def add_property_to_ui(
     op_icon='BLANK1',
     op_kwargs={},
     ###
-    context_bones: list[str|BoneInfo] = [],
+    context_bones: list[str | BoneInfo] = [],
     ###
     panels=None,
 ) -> OrderedDict:
@@ -1156,12 +1108,7 @@ def remove_property_from_ui(
     # So empty row, label, panels, and children data does not get left behind after removing their last elements.
     for parent, parent_name, child_name in reversed(parents):
         child_data = parent[child_name]
-        if not any(
-            [
-                key == 'owner_path' or type(value) is not str
-                for key, value in child_data.items()
-            ]
-        ):
+        if not any([key == 'owner_path' or type(value) is not str for key, value in child_data.items()]):
             index = ordereddict_get_index(parent, child_name)
             del parent[child_name]
             parents.pop()
@@ -1170,9 +1117,7 @@ def remove_property_from_ui(
     return ui_entry_data, parents, index
 
 
-def reorder_ui_row(
-    *, obj, ui_path: list[str], index_offset=1, panels=None
-) -> tuple[OrderedDict, bool]:
+def reorder_ui_row(*, obj, ui_path: list[str], index_offset=1, panels=None) -> tuple[OrderedDict, bool]:
     """Re-order a row of the rig UI, provided a list of names representing the path of
     nesting to follow in the UI data which is a nested OrderedDict.
 
@@ -1206,9 +1151,7 @@ def reorder_ui_row(
     return label_data[row_name], False
 
 
-def get_ui_element_chain(
-    root_element: OrderedDict, ui_path: list[str]
-) -> list[tuple[OrderedDict, str, str]]:
+def get_ui_element_chain(root_element: OrderedDict, ui_path: list[str]) -> list[tuple[OrderedDict, str, str]]:
     """Provided a deeply nested OrderedDict where all keys are strings, and a list of names
     that describe a path down the branches of the tree,
     return a list of (OrderedDict, dict_name, child_name) tuples.
@@ -1323,9 +1266,5 @@ registry = [
 
 
 def register():
-    bpy.types.Scene.cloudrig_property_parent_selector = CollectionProperty(
-        type=UIPathProperty
-    )
-    bpy.types.Scene.cloudrig_property_name_selector = CollectionProperty(
-        type=UIPathProperty
-    )
+    bpy.types.Scene.cloudrig_property_parent_selector = CollectionProperty(type=UIPathProperty)
+    bpy.types.Scene.cloudrig_property_name_selector = CollectionProperty(type=UIPathProperty)

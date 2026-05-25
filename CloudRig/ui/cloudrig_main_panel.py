@@ -189,6 +189,7 @@ def draw_custom_shapes_panel(context, layout):
     if not generator.preserve_shapes_properties:
         col.row().prop(generator, 'base_wire_width')
 
+
 def draw_cloudrig_popover(self, context):
     prefs = get_addon_prefs(context)
     if not prefs:

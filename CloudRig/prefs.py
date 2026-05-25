@@ -47,6 +47,7 @@ def init_component_module_list(context=None):
 
 class CloudRigComponentTypeInfo(PropertyGroup):
     "Component Type Info"
+
     __longdoc__ = """Purely for UI purposes, so we can store a list of strings in the RNA that
     represent the list of available rig types. We need that in the RNA so we can use
     prop_search() to draw a nice list that the user can type into to filter and search.
@@ -136,15 +137,21 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
             ('NONE', "None", "No rig preview. No performance cost"),
             ('ACTIVE', "Active", "Preview active bone's component. Minimal performance impact"),
             ('SELECTED', "Selected", "Preview components of selected bones. Performance impact depends on selection"),
-            ('CHILDREN', "Selected & Children", "Preview components of selected bones & their children. Performance impact may be noticable"),
-            ('VISIBLE', "Visible", "Preview all visible bones' components. Noticable performance impact while transforming metarig bones"),
+            (
+                'CHILDREN',
+                "Selected & Children",
+                "Preview components of selected bones & their children. Performance impact may be noticable",
+            ),
+            (
+                'VISIBLE',
+                "Visible",
+                "Preview all visible bones' components. Noticable performance impact while transforming metarig bones",
+            ),
         ],
         default='SELECTED',
     )
     overlay_use_dashed: BoolProperty(
-        name="Dashed",
-        default=True,
-        description="Use dashed lines for the rig preview. Slight performance impact"
+        name="Dashed", default=True, description="Use dashed lines for the rig preview. Slight performance impact"
     )
     overlay_opacity: FloatProperty(
         name="Opacity",
@@ -168,7 +175,13 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         description="Parameter view mode",
         items=[
             ('ACTIVE', "Active", "Show the 3D Viewport active bone's component & parameters", 'BONE_DATA', 0),
-            ('LIST', "List", "Show a list of all components on this rig, so you don't have to select bones in the 3D View", 'COLLAPSEMENU', 1),
+            (
+                'LIST',
+                "List",
+                "Show a list of all components on this rig, so you don't have to select bones in the 3D View",
+                'COLLAPSEMENU',
+                1,
+            ),
         ],
         default='ACTIVE',
     )
@@ -205,7 +218,12 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
             lib_row = panel.row(align=True)
             if self.widget_library and not os.path.exists(self.widget_library):
                 lib_row.alert = True
-            lib_row.prop(self, 'widget_library', placeholder="A .blend containing objects prefixed 'WGT-'", text="Additional Custom Shapes")
+            lib_row.prop(
+                self,
+                'widget_library',
+                placeholder="A .blend containing objects prefixed 'WGT-'",
+                text="Additional Custom Shapes",
+            )
             panel.row(align=True).prop(self, 'widget_import_method', expand=True, text="Import Method")
             panel.row(align=True).prop(self, 'widget_popup_size', text="UI Pop-up Size")
 
@@ -218,10 +236,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         draw_bone_color_presets(layout)
 
 
-registry = [
-    CloudRigComponentTypeInfo,
-    CloudRigPreferences
-]
+registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 
 
 def register():

@@ -28,7 +28,7 @@ def bounding_box(points: list[Vector]) -> tuple[Vector, Vector]:
 
 def bounding_box_diagonal_size(points: list[Vector]) -> float:
     low, high = bounding_box(points)
-    return (high-low).length
+    return (high - low).length
 
 
 def bounding_box_center(points: list[Vector]) -> Vector:
@@ -46,9 +46,7 @@ def scale_points_from_center(points, scale) -> list[Vector]:
     return new_points
 
 
-def project_vector_on_plane(
-    vec: Vector, plane_x: Vector, plane_y: Vector = None
-) -> Vector:
+def project_vector_on_plane(vec: Vector, plane_x: Vector, plane_y: Vector = None) -> Vector:
     """Flatten a vector onto a plane."""
     # if plane_y wasn't passed, we assume that plane_x is the normal of the plane.
     normal = plane_x
@@ -59,9 +57,7 @@ def project_vector_on_plane(
     return projection
 
 
-def project_points_on_plane(
-    points: list[Vector], projection_axis: Vector
-) -> list[Vector]:
+def project_points_on_plane(points: list[Vector], projection_axis: Vector) -> list[Vector]:
     """Return points that are flattened onto a plane.
     projection_axis is the plane's normal, and the plane's depth is the
     average depth of the points along this axis."""
@@ -80,13 +76,9 @@ def project_points_on_plane(
 
     for point in points:
         center_relative = point - points_center
-        projected_point = Vector(
-            (center_relative.dot(plane_x), center_relative.dot(plane_y), 0)
-        )
+        projected_point = Vector((center_relative.dot(plane_x), center_relative.dot(plane_y), 0))
 
-        angle_from_axis = atan2(
-            projected_point.x - plane_y.x, projected_point.y - plane_y.y
-        )
+        angle_from_axis = atan2(projected_point.x - plane_y.x, projected_point.y - plane_y.y)
 
         projected_points.append((projected_point, angle_from_axis))
 
@@ -114,6 +106,7 @@ def flat(vec: Vector) -> Vector:
             new_vec[i] = 0
 
     return new_vec
+
 
 def clamp(val, _min=0, _max=1) -> float or int:
     if val < _min:

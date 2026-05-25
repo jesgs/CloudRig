@@ -38,6 +38,7 @@ from ..utils.external.naming import Side, get_name_side
 
 ACTION_NAME_SEPARATOR = "➔"
 
+
 class ActionConstraintSetup(PropertyGroup):
     def update_ui(self, context):
         if not self.action:
@@ -61,13 +62,15 @@ class ActionConstraintSetup(PropertyGroup):
             curr_value = int(curr_value)
         except ValueError:
             return ""
-        action_slot = next((s for s in self.action.slots if s.handle==curr_value), None)
+        action_slot = next((s for s in self.action.slots if s.handle == curr_value), None)
         if not action_slot:
             return ""
         return action_slot.name_display
 
-    def slot_name_to_handle(self, new_value, curr_value, _is_set)  -> str:
-        action_slot = next((s for s in self.action.slots if s.name_display==new_value and s.identifier.startswith("OB")), None)
+    def slot_name_to_handle(self, new_value, curr_value, _is_set) -> str:
+        action_slot = next(
+            (s for s in self.action.slots if s.name_display == new_value and s.identifier.startswith("OB")), None
+        )
         if not action_slot:
             return ""
         return str(action_slot.handle)
@@ -92,7 +95,7 @@ class ActionConstraintSetup(PropertyGroup):
 
     @property
     def action_slot(self) -> ActionSlot | None:
-        return self.action.slots.get("OB"+self.action_slot_ui)
+        return self.action.slots.get("OB" + self.action_slot_ui)
 
     @action_slot.setter
     def action_slot(self, slot):
@@ -135,11 +138,10 @@ class ActionConstraintSetup(PropertyGroup):
         if not (channelbag and channelbag.fcurves):
             return
 
-        fcurves_of_subtarget = [
-            fc for fc in channelbag.fcurves
-            if f'pose.bones["{self.subtarget}"]' in fc.data_path
-        ]
-        transform_channel, min_frame, max_frame, value_min, value_max = get_fcurves_ranges(fcurves_of_subtarget or channelbag.fcurves)
+        fcurves_of_subtarget = [fc for fc in channelbag.fcurves if f'pose.bones["{self.subtarget}"]' in fc.data_path]
+        transform_channel, min_frame, max_frame, value_min, value_max = get_fcurves_ranges(
+            fcurves_of_subtarget or channelbag.fcurves
+        )
 
         self.frame_start = int(min_frame)
         self.frame_end = int(max_frame)
@@ -163,7 +165,7 @@ class ActionConstraintSetup(PropertyGroup):
     subtarget: StringProperty(
         name="Control Bone",
         description="Select a bone on the Target Rig which will drive this action",
-        update=update_subtarget
+        update=update_subtarget,
     )
 
     transform_channel: EnumProperty(
@@ -251,13 +253,14 @@ class ActionConstraintSetup(PropertyGroup):
         except ValueError:
             return ""
         action_setups = self.id_data.cloudrig.generator.action_setups
-        action_setup = next((setup for setup in action_setups if setup.unique_id==curr_value), None)
+        action_setup = next((setup for setup in action_setups if setup.unique_id == curr_value), None)
         if not action_setup:
             return ""
         return action_setup.name
+
     def setup_name_to_id(self, new_value, curr_value, _is_set):
         action_setups = self.id_data.cloudrig.generator.action_setups
-        action_setup = next((setup for setup in action_setups if setup.name==new_value), None)
+        action_setup = next((setup for setup in action_setups if setup.name == new_value), None)
         if not action_setup:
             return ""
         # NOTE: Workaround no longer needed in bpy.app.version(5, 2, 0)
@@ -450,11 +453,7 @@ class CLOUDRIG_OT_jump_to_action_setup(Operator):
             if action_setup.unique_id == self.setup_id:
                 context.object.cloudrig.generator.active_action_index = i
                 break
-        self.report(
-            {'INFO'},
-            rpt_('Set active action setup index to {index}.')
-            .format(index=i)
-        )
+        self.report({'INFO'}, rpt_('Set active action setup index to {index}.').format(index=i))
         return {'FINISHED'}
 
 
@@ -471,9 +470,7 @@ class CLOUDRIG_UL_action_setups(UIList):
         setup_index: int = 0,
         flt_flag: int = 0,
     ):
-        assert (
-            self.layout_type == 'DEFAULT'
-        ), "Other layouts not implemented for the Action Setup list."
+        assert self.layout_type == 'DEFAULT', "Other layouts not implemented for the Action Setup list."
 
         if not action_setup.action:
             layout.label(text="", translate=False, icon='ACTION')
@@ -507,7 +504,9 @@ class CLOUDRIG_UL_action_setups(UIList):
                 # No trigger set -> no setup or invalid setup
                 if not trigger_setup or trigger_setup.is_corrective:
                     row.alert = True
-                    text = iface_("Missing Trigger") if not trigger_setup else iface_("Corrective Trigger (Unsupported)")
+                    text = (
+                        iface_("Missing Trigger") if not trigger_setup else iface_("Corrective Trigger (Unsupported)")
+                    )
                     icon = 'ERROR'
                     break
 
@@ -529,10 +528,7 @@ class CLOUDRIG_UL_action_setups(UIList):
                 if action_setup.subtarget not in bones:
                     row.alert = True
                     text = rpt_('Missing: "{bone}"').format(bone=action_setup.subtarget)
-                elif (
-                    action_setup.symmetrical
-                    and flipped_name not in bones
-                ):
+                elif action_setup.symmetrical and flipped_name not in bones:
                     row.alert = True
                     text = rpt_('Missing: "{bone}"').format(bone=flipped_name)
 
@@ -548,13 +544,13 @@ def get_fcurve_transform_channel(fcurve: FCurve) -> str:
     if fcurve.data_path.endswith("location"):
         return "LOCATION_" + "XYZ"[fcurve.array_index]
     if (
-        fcurve.data_path.endswith("rotation_euler") or
-        fcurve.data_path.endswith("rotation_quaternion")
+        fcurve.data_path.endswith("rotation_euler") or fcurve.data_path.endswith("rotation_quaternion")
     ) and fcurve.array_index < 2:
-            return "ROTATION_" + "XYZ"[fcurve.array_index]
+        return "ROTATION_" + "XYZ"[fcurve.array_index]
     if fcurve.data_path.endswith("scale"):
         return "SCALE_" + "XYZ"[fcurve.array_index]
     return ""
+
 
 def get_fcurves_ranges(fcurves: list[FCurve]) -> tuple[str, int, int, float, float]:
     min_frame = fcurves[0].keyframe_points[0].co.x
@@ -580,6 +576,7 @@ def get_fcurves_ranges(fcurves: list[FCurve]) -> tuple[str, int, int, float, flo
             max_value_range = (get_fcurve_transform_channel(fc), value_range, min_value, max_value)
 
     return max_value_range[0], int(min_frame), int(max_frame), max_value_range[2], max_value_range[3]
+
 
 def draw_action_setup_list(context, layout):
     header, panel = layout.panel("CloudRig Actions", default_closed=True)
@@ -610,7 +607,7 @@ def draw_action_setup_list(context, layout):
         return
 
     col = layout.column(align=True)
-    col.use_property_split=False
+    col.use_property_split = False
     col.template_ID(active_setup, 'action', new=CLOUDRIG_OT_action_new.bl_idname)
     if not active_setup.action:
         return
@@ -630,6 +627,7 @@ def draw_action_setup_list(context, layout):
         draw_action_setup_ui(layout, active_setup, generator.target_rig)
     draw_status(layout, active_setup)
 
+
 def draw_ui_corrective(context, layout, action_setup):
     layout.prop(action_setup, 'frame_start', text="Frame Start")
     layout.prop(action_setup, 'frame_end', text="End")
@@ -637,6 +635,7 @@ def draw_ui_corrective(context, layout, action_setup):
 
     for trigger_prop in ['trigger_select_a', 'trigger_select_b']:
         draw_ui_trigger(context, layout, action_setup, trigger_prop)
+
 
 def draw_ui_trigger(context, layout: UILayout, action_setup: ActionConstraintSetup, trigger_prop: str):
     metarig = context.object
@@ -667,13 +666,12 @@ def draw_ui_trigger(context, layout: UILayout, action_setup: ActionConstraintSet
         draw_action_setup_ui(col, trigger_setup, generator.target_rig)
         col.separator()
 
+
 def draw_action_setup_ui(layout, action_setup, target_rig):
     if not target_rig:
         row = layout.row()
         row.alert = True
-        row.label(
-            text="Cannot verify bone name without a Target Rig", icon='ERROR'
-        )
+        row.label(text="Cannot verify bone name without a Target Rig", icon='ERROR')
 
     row = layout.row()
 
@@ -699,9 +697,7 @@ def draw_action_setup_ui(layout, action_setup, target_rig):
     flipped_subtarget = flip_name(action_setup.subtarget)
 
     if flipped_subtarget != action_setup.subtarget:
-        flipped_subtarget_exists = (
-            not target_rig or flipped_subtarget in target_rig.pose.bones
-        )
+        flipped_subtarget_exists = not target_rig or flipped_subtarget in target_rig.pose.bones
 
         row = layout.row()
         row.use_property_split = True
@@ -724,6 +720,7 @@ def draw_action_setup_ui(layout, action_setup, target_rig):
 
     layout.prop(action_setup, 'trans_min')
     layout.prop(action_setup, 'trans_max')
+
 
 def draw_status(layout, action_setup):
     """
@@ -751,7 +748,9 @@ def draw_status(layout, action_setup):
         split.label(text=iface_("Default Frame: {frame}").format(frame=round(default_frame, 2)))
     else:
         split.alert = True
-        split.label(text=iface_("Default Frame: {frame} (Should be a whole number!)").format(frame=round(default_frame, 2)))
+        split.label(
+            text=iface_("Default Frame: {frame} (Should be a whole number!)").format(frame=round(default_frame, 2))
+        )
 
 
 registry = (

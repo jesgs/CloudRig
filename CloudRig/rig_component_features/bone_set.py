@@ -78,14 +78,15 @@ class BoneSet(LinkedList):
         return f"{self.ui_name}: {super().__repr__()}"
 
     def new(
-            self,
-            name="Bone",
-            *,
-            source: BoneInfo | PoseBone | None,
-            keep_collections=False,
-            keep_colors=False,
-            keep_wire_width=False,
-            **kwargs) -> BoneInfo:
+        self,
+        name="Bone",
+        *,
+        source: BoneInfo | PoseBone | None,
+        keep_collections=False,
+        keep_colors=False,
+        keep_wire_width=False,
+        **kwargs,
+    ) -> BoneInfo:
         """Create and add a new BoneInfo to self.
 
         The new bone will start out as a copy of `source`, if there is one.
@@ -109,7 +110,7 @@ class BoneSet(LinkedList):
         inferred = {
             "collections": self.collections.copy(),
             "color_palette_base": self.color_palette,
-            "custom_shape_wire_width": self.wire_width+self.rig_component.generator.params.base_wire_width,
+            "custom_shape_wire_width": self.wire_width + self.rig_component.generator.params.base_wire_width,
         }
         if keep_collections:
             if isinstance(source, BoneInfo):
@@ -158,9 +159,9 @@ class BoneSetMixin:
         """Take a bone set definition stored in the class and create a single BoneSet for it."""
         rna_bone_set = getattr(self.params.bone_sets, bone_set_prop_name)
 
-        assert (
-            rna_bone_set
-        ), f"Failed to create Bone Set {bone_set_prop_name}. Couldn't find corresponding RNA bone set."
+        assert rna_bone_set, (
+            f"Failed to create Bone Set {bone_set_prop_name}. Couldn't find corresponding RNA bone set."
+        )
 
         bone_set_def = self.bone_set_defs.get(bone_set_prop_name)
         defaults = self.defaults.copy()
@@ -182,9 +183,7 @@ class BoneSetMixin:
         bone_set_defs = type(self).bone_set_defs
         bone_sets = {}
         for bone_set_prop_name, bone_set_def in bone_set_defs.items():
-            bone_sets[bone_set_def['ui_name']] = self.init_bone_set(
-                bone_set_prop_name
-            )
+            bone_sets[bone_set_def['ui_name']] = self.init_bone_set(bone_set_prop_name)
         return bone_sets
 
     ##############################
@@ -198,17 +197,13 @@ class BoneSetMixin:
         params = component.params
 
         if not component.active_bone_set:
-            layout.label(
-                text="UI Bone Sets were not yet initialized. This should never happen!"
-            )
+            layout.label(text="UI Bone Sets were not yet initialized. This should never happen!")
             return
 
         active_ui_bone_set = component.active_ui_bone_set
         active_bone_set = getattr(params.bone_sets, active_ui_bone_set.name)
         if not active_bone_set:
-            layout.label(
-                text="Could not find Bone Set named " + active_ui_bone_set.name
-            )
+            layout.label(text="Could not find Bone Set named " + active_ui_bone_set.name)
             return
 
         prefs = get_addon_prefs(context)
@@ -224,9 +219,7 @@ class BoneSetMixin:
             unique_id="CloudRig Bone Sets",
         )
         eye_icon = 'HIDE_OFF' if prefs.bone_set_show_advanced else 'HIDE_ON'
-        list_column.prop(
-            prefs, 'bone_set_show_advanced', text="", emboss=False, icon=eye_icon
-        )
+        list_column.prop(prefs, 'bone_set_show_advanced', text="", emboss=False, icon=eye_icon)
 
         col = layout.column(align=True)
         if not any(CLOUDRIG_UL_bone_sets.flt_flags):
@@ -263,9 +256,7 @@ class BoneSetMixin:
         col.operator('pose.cloudrig_bone_set_collection_add', icon='ADD', text="")
         col.operator('pose.cloudrig_bone_set_collection_remove', icon='REMOVE', text="")
         col.separator()
-        col.operator(
-            'pose.cloudrig_bone_set_collection_reset', icon='FILE_REFRESH', text=""
-        )
+        col.operator('pose.cloudrig_bone_set_collection_reset', icon='FILE_REFRESH', text="")
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
@@ -282,7 +273,13 @@ class BoneSetMixin:
 
     @classmethod
     def define_bone_set(
-        cls, ui_name, collections: list[str]=[], color_palette='DEFAULT', wire_width=1.0, is_advanced=False, defaults={}
+        cls,
+        ui_name,
+        collections: list[str] = [],
+        color_palette='DEFAULT',
+        wire_width=1.0,
+        is_advanced=False,
+        defaults={},
     ):
         """
         A Bone Set contains properties for assigning bone collections, color, and wire width.
@@ -341,9 +338,7 @@ class BoneSetMixin:
 
 
 class CLOUDRIG_UL_bone_set_collections(UIList):
-    def draw_item(
-        self, context, layout, data, item, icon_value, active_data, active_propname
-    ):
+    def draw_item(self, context, layout, data, item, icon_value, active_data, active_propname):
         collection = item
         metarig_ob = item.id_data
 
@@ -400,18 +395,14 @@ class CLOUDRIG_UL_bone_sets(UIList):
                     # Filter advanced bone sets when the user doesn't want to see them.
                     flt_flags[idx] = 0
                     continue
-                if not component_class.is_bone_set_used(
-                    context, metarig, component.params, ui_bone_set.name
-                ):
+                if not component_class.is_bone_set_used(context, metarig, component.params, ui_bone_set.name):
                     # Filter bone sets that are not used based on current parameters.
                     flt_flags[idx] = 0
 
         type(self).flt_flags = flt_flags
         return flt_flags, flt_neworder
 
-    def draw_item(
-        self, context, layout, data, item, _icon_value, _active_data, _active_propname
-    ):
+    def draw_item(self, context, layout, data, item, _icon_value, _active_data, _active_propname):
         ui_bone_set = item
         component = data
         bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
@@ -421,7 +412,7 @@ class CLOUDRIG_UL_bone_sets(UIList):
         row = layout.row()
         icon = 'BLANK1'
         if bone_set.is_advanced:
-            icon='SETTINGS'
+            icon = 'SETTINGS'
         split = row.split(factor=0.3, align=True)
         split.prop(bone_set, 'color_palette', text="")
         if prefs.bone_set_show_advanced:
@@ -441,12 +432,8 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
         component = get_component_in_ui(context)
         bone_set = component.active_bone_set
         bone_set.collections.add()
-        bone_set.collections_active_index = len(bone_set.collections)-1
-        self.report(
-            {'INFO'},
-            "Added collection slot to {bone_set}."
-            .format(bone_set=iface_(bone_set.ui_name))
-        )
+        bone_set.collections_active_index = len(bone_set.collections) - 1
+        self.report({'INFO'}, "Added collection slot to {bone_set}.".format(bone_set=iface_(bone_set.ui_name)))
         return {'FINISHED'}
 
 
@@ -462,11 +449,9 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
         component = get_component_in_ui(context)
         bone_set = component.active_bone_set
         if len(bone_set.collections) == 1:
-            cls.poll_message_set(
-                "Collection list cannot be empty. You can reset it with the button below."
-            )
+            cls.poll_message_set("Collection list cannot be empty. You can reset it with the button below.")
             return False
-        if len(bone_set.collections)-1 < bone_set.collections_active_index:
+        if len(bone_set.collections) - 1 < bone_set.collections_active_index:
             cls.poll_message_set("No active collection slot.")
             return False
         return True
@@ -478,9 +463,9 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
         bone_set.collections.remove(bone_set.collections_active_index)
         self.report(
             {'INFO'},
-            "{bone_set} will not be assigned to '{collection}' collection."
-            .format(bone_set=iface_(bone_set.ui_name), collection=coll_name)
-            ,
+            "{bone_set} will not be assigned to '{collection}' collection.".format(
+                bone_set=iface_(bone_set.ui_name), collection=coll_name
+            ),
         )
         bone_set.collections_active_index -= 1
         return {'FINISHED'}
@@ -498,8 +483,9 @@ class CLOUDRIG_OT_bone_set_collection_reset(Operator):
         component.reset_collections_of_bone_set(component.active_bone_set)
         self.report(
             {'INFO'},
-            "{bone_set} collection assignments reset to default."
-            .format(bone_set=iface_(component.active_bone_set.ui_name)),
+            "{bone_set} collection assignments reset to default.".format(
+                bone_set=iface_(component.active_bone_set.ui_name)
+            ),
         )
         bone_set = component.active_bone_set
         if bone_set:

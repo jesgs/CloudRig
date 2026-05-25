@@ -37,7 +37,9 @@ class Component_Eyelid(Component_FaceChain):
         # Parent component must be an Aim component!
         parent_component = self.parent_component
         if not parent_component or not isinstance(parent_component, Component_Aim):
-            self.raise_generation_error(rpt_('Parent bone of a "Chain: Eyelid" component must be an "Aim" component (ie. the eye bone).'))
+            self.raise_generation_error(
+                rpt_('Parent bone of a "Chain: Eyelid" component must be an "Aim" component (ie. the eye bone).')
+            )
 
         sticky_prop_name = "sticky_eyelids_" + parent_component.params.aim.group.lower().replace(" ", "_")
         self.__create_sticky_property(parent_component, sticky_prop_name)
@@ -70,14 +72,10 @@ class Component_Eyelid(Component_FaceChain):
                 subtarget=eye_bone.name,
                 use_xyz=[True, False, False],
             )
-            eyelid_width = (
-                self.bones_org[0].head - self.bones_org[-1].tail
-            ).length * 0.55
+            eyelid_width = (self.bones_org[0].head - self.bones_org[-1].tail).length * 0.55
 
             # Reject the ROT bone tail onto the eye bone Z axis
-            rejection_z = project_vector_on_plane(
-                rot_ctr.vector, parent_component.metarig_base_pbone.z_axis
-            )
+            rejection_z = project_vector_on_plane(rot_ctr.vector, parent_component.metarig_base_pbone.z_axis)
             # Take the distance between that and the base bone's vector
             # to determine the constraints' influence.
             distance = (eye_bone.vector - rejection_z).length
@@ -100,7 +98,7 @@ class Component_Eyelid(Component_FaceChain):
             copyrot_z.drivers.append(
                 {
                     'prop': 'influence',
-                    'expression': f"var*{sticky_strength*0.5}",
+                    'expression': f"var*{sticky_strength * 0.5}",
                     'variables': [(parent_component.properties_bone.name, sticky_prop_name)],
                 }
             )
@@ -117,7 +115,7 @@ class Component_Eyelid(Component_FaceChain):
                 'default': 0.1,
                 'description': tip_('How much the eyelids should follow the movements of the eyeball'),
             },
-            context_bones = [eye_component.target_bone, eye_component.ctr_bone, eye_component.group_master],
+            context_bones=[eye_component.target_bone, eye_component.ctr_bone, eye_component.group_master],
         )
 
     ##############################
@@ -127,9 +125,7 @@ class Component_Eyelid(Component_FaceChain):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set(
-            n_("Eyelid Mechanism"), collections=['Mechanism Bones'], is_advanced=True
-        )
+        cls.define_bone_set(n_("Eyelid Mechanism"), collections=['Mechanism Bones'], is_advanced=True)
 
 
 RIG_COMPONENT_CLASS = Component_Eyelid

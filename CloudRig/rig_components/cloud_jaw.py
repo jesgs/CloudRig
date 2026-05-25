@@ -90,9 +90,7 @@ class Component_Jaw(Component_CopyBone):
         face_squash_bi = self.generator.find_bone_info(self.params.jaw.squash_bone)
         if not face_squash_bi:
             self.raise_generation_error("Squash Bone not found!")
-        lower_face_squasher = self.__make_face_squasher(
-            face_squash_bi, lower_face_bi, jaw_bi
-        )
+        lower_face_squasher = self.__make_face_squasher(face_squash_bi, lower_face_bi, jaw_bi)
         chin_bi = self.generator.find_bone_info(self.params.jaw.chin_bone)
         if not chin_bi:
             self.raise_generation_error("Chin Bone not found!")
@@ -126,9 +124,7 @@ class Component_Jaw(Component_CopyBone):
             custom_shape_name='Handle',
         )
         lower_face_squasher.reverse()
-        stretch_con = lower_face_squasher.add_constraint(
-            'STRETCH_TO', subtarget=face_squash_bi
-        )
+        stretch_con = lower_face_squasher.add_constraint('STRETCH_TO', subtarget=face_squash_bi)
         # Store UI info & create custom prop for face squash volume preservation (a toggle for now)
         self.rig_ui__add_bone_property(
             prop_bone=jaw_bi,
@@ -161,14 +157,10 @@ class Component_Jaw(Component_CopyBone):
                 'default': 1.0,
             },
         )
-        teeth_upper_root = self.generator.find_bone_info(
-            self.params.jaw.teeth_upper_bone
-        )
+        teeth_upper_root = self.generator.find_bone_info(self.params.jaw.teeth_upper_bone)
         if not teeth_upper_root:
             self.raise_generation_error("Upper Teeth not found!")
-        teeth_lower_root = self.generator.find_bone_info(
-            self.params.jaw.teeth_lower_bone
-        )
+        teeth_lower_root = self.generator.find_bone_info(self.params.jaw.teeth_lower_bone)
         if not teeth_lower_root:
             self.raise_generation_error("Lower Teeth not found!")
         teeth = [teeth_upper_root, teeth_lower_root]
@@ -208,9 +200,7 @@ class Component_Jaw(Component_CopyBone):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set(
-            n_("Jaw Controls"), color_palette='THEME12', collections=['Face Main']
-        )
+        cls.define_bone_set(n_("Jaw Controls"), color_palette='THEME12', collections=['Face Main'])
 
     @classmethod
     def draw_control_params(cls, layout, context, component):

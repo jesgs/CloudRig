@@ -1,12 +1,16 @@
 {
     "python.analysis.diagnosticSeverityOverrides": {
         "reportOptionalMemberAccess": "none",
-        "reportInvalidTypeForm": "none"
+        "reportInvalidTypeForm": "none",
+        "reportReturnType": "none",
+        "reportAssignmentType": "none",
+        "reportOptionalIterable": "none",
     },
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
     "[python]": {
-        "editor.defaultFormatter": "eeyore.yapf"
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.rulers": [120]
     },
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {

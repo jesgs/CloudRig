@@ -35,20 +35,14 @@ class Component_Finger(Component_Chain_IKFK):
 
     @no_overlay
     def rig_ui__add_bone_property(
-        self,
-        prop_bone: BoneInfo,
-        prop_id: str,
-        panel_name: str,
-        label_name="",
-        custom_prop_settings={},
-        **kwargs
+        self, prop_bone: BoneInfo, prop_id: str, panel_name: str, label_name="", custom_prop_settings={}, **kwargs
     ):
         # TODO: This should be restructured, we shouldn't be overriding this function.
         if panel_name == "FK/IK Switch":
-            label_name=n_("FK/IK Switch")
+            label_name = n_("FK/IK Switch")
             custom_prop_settings['default'] = 0.0
 
-        panel_name=n_("Fingers")
+        panel_name = n_("Fingers")
         if label_name == "IK Pole Follow":
             return
 
@@ -58,14 +52,14 @@ class Component_Finger(Component_Chain_IKFK):
             panel_name=panel_name,
             label_name=label_name,
             custom_prop_settings=custom_prop_settings,
-            **kwargs
+            **kwargs,
         )
 
     def ik_chain__make_ik_chain(
         self,
         org_chain: list[BoneInfo],
         ik_mstr: BoneInfo,
-        pole_target: BoneInfo=None,
+        pole_target: BoneInfo = None,
     ) -> list[BoneInfo]:
         ik_chain = super().ik_chain__make_ik_chain(org_chain, ik_mstr, pole_target)
         ik_mstr.parent = self.root_bone
@@ -99,9 +93,7 @@ class Component_Finger(Component_Chain_IKFK):
 
     @no_overlay(return_value={})
     def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
-        ui_data = super().ik_chain__get_ik_switch_ui_data(
-            fk_chain, ik_chain, ik_mstr, ik_pole
-        )
+        ui_data = super().ik_chain__get_ik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 
         # It's quite strange to be creating an extra helper bone in this function,
         # but we need it for correct snapping in this case.
@@ -136,9 +128,9 @@ class Component_Finger(Component_Chain_IKFK):
                             "prop": "influence",
                             "variables": {
                                 "ik": (self.properties_bone.name, self.ikfk_name),
-                                "ik_full": (self.properties_bone.name, self.full_length_ik_name)
+                                "ik_full": (self.properties_bone.name, self.full_length_ik_name),
                             },
-                            "expression": "ik * ik_full"
+                            "expression": "ik * ik_full",
                         }
                     )
                     break
@@ -156,9 +148,9 @@ class Component_Finger(Component_Chain_IKFK):
                     "prop": "influence",
                     "variables": {
                         "ik": (self.properties_bone.name, self.ikfk_name),
-                        "ik_full": (self.properties_bone.name, self.full_length_ik_name)
+                        "ik_full": (self.properties_bone.name, self.full_length_ik_name),
                     },
-                    "expression": "ik * (1-ik_full)"
+                    "expression": "ik * (1-ik_full)",
                 }
             )
 
@@ -210,10 +202,10 @@ class Component_Finger(Component_Chain_IKFK):
                 'default': 1.0,
                 'description': tip_('When enabled, the last bone in the chain is also considered part of the IK chain'),
             },
-            context_bones = [ik_mstr, pole_target]
+            context_bones=[ik_mstr, pole_target],
         )
 
-        for ik_bone in ik2_chain[:self.ik_chain_count]:
+        for ik_bone in ik2_chain[: self.ik_chain_count]:
             ik_bone.drivers.append(
                 {
                     "prop": "ik_stretch",
@@ -226,5 +218,6 @@ class Component_Finger(Component_Chain_IKFK):
 
     ##############################
     # No additional parameters for this component type.
+
 
 RIG_COMPONENT_CLASS = Component_Finger

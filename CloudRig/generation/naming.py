@@ -28,6 +28,7 @@ SIDE_INDICATORS = [
 ### Symmetry ###################
 #################################
 
+
 def flip_name(thing: Any) -> str:
     return bpy_flip_name(get_name(thing))
 
@@ -116,6 +117,7 @@ def side_is_left(thing: Any) -> bool | None:
 #################################
 # TODO: These functions are all over the place and should be unified.
 
+
 def increment_name(thing: Any, increment=1, default_zfill=1) -> str:
     # Increment LAST number in the name.
     # Negative numbers will be clamped to 0.
@@ -194,6 +196,7 @@ def get_blender_zeroes(thing: Any) -> str:
 ### New Bones ###################
 #################################
 
+
 def get_name_parts(thing: Any) -> tuple[str, str, str, str]:
     """Return side_prefix, base, side_suffix, blender_zeroes.
 
@@ -204,40 +207,40 @@ def get_name_parts(thing: Any) -> tuple[str, str, str, str]:
     base = get_name(thing)
     blender_zeroes = get_blender_zeroes(base)
     if blender_zeroes:
-        base = base[:-len(blender_zeroes)]
+        base = base[: -len(blender_zeroes)]
     prefix = ""
     suffix = ""
 
     def get_prefix(name: str, possible_prefixes: list[str]) -> tuple[str, str]:
         for possible_prefix in possible_prefixes:
             if name.lower().startswith(possible_prefix.lower()):
-                prefix = name[:len(possible_prefix)]
-                base_name = name[len(possible_prefix):]
+                prefix = name[: len(possible_prefix)]
+                base_name = name[len(possible_prefix) :]
                 return base_name, prefix
         return name, ""
 
     def get_suffix(name: str, possible_suffixes: list[str]) -> tuple[str, str]:
         for possible_suffix in possible_suffixes:
             if name.lower().endswith(possible_suffix.lower()):
-                suffix = name[-len(possible_suffix):]
-                base_name = name[:-len(possible_suffix)]
+                suffix = name[-len(possible_suffix) :]
+                base_name = name[: -len(possible_suffix)]
                 return base_name, suffix
         return name, ""
 
     # Prio #1: Short suffix (.L/.R)
-    base, suffix = get_suffix(base, [sep+"l" for sep in SEPARATORS] + [sep+"r" for sep in SEPARATORS])
+    base, suffix = get_suffix(base, [sep + "l" for sep in SEPARATORS] + [sep + "r" for sep in SEPARATORS])
 
     # Prio #2: Short prefix (L_, R_)
     if not suffix:
-        base, prefix = get_prefix(base, ["l"+sep for sep in SEPARATORS] + ["r"+sep for sep in SEPARATORS])
+        base, prefix = get_prefix(base, ["l" + sep for sep in SEPARATORS] + ["r" + sep for sep in SEPARATORS])
 
     # Prio #3: Long prefix (Left_, Right_)
     if not (suffix or prefix):
-        base, prefix = get_prefix(base, [word+sep for word in ["left", "right"] for sep in list(SEPARATORS)+[""]])
+        base, prefix = get_prefix(base, [word + sep for word in ["left", "right"] for sep in list(SEPARATORS) + [""]])
 
     # Prio #4: Long suffix (_Left, _Right)
     if not (suffix or prefix):
-        base, suffix = get_suffix(base, [sep+word for word in ["left", "right"] for sep in list(SEPARATORS)+[""]])
+        base, suffix = get_suffix(base, [sep + word for word in ["left", "right"] for sep in list(SEPARATORS) + [""]])
 
     if prefix.lower() in ("left", "right") and base[0] in SEPARATORS:
         # If a full-word side prefix is followed by a separator character,
@@ -271,14 +274,15 @@ def suffix_base_name(thing: Any, addition: str) -> str:
 
 
 def add_prefix(thing: Any, new_prefix: str) -> str:
-    return prepend_base_name(thing, new_prefix+PREFIX_SEPARATOR)
+    return prepend_base_name(thing, new_prefix + PREFIX_SEPARATOR)
 
 
 #################################
 ### Uniqueness ##################
 #################################
 
-def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
+
+def uniqify(thing: Any, collprop: list = None, strip_first=True, id=None) -> str:
     if not collprop:
         if isinstance(thing, PoseBone):
             collprop = thing.id_data.pose.bones
@@ -302,6 +306,7 @@ def uniqify(thing: Any, collprop: list=None, strip_first=True, id=None) -> str:
 
 def sanitize_python(thing: Any) -> str:
     return re.sub(r'\W|^(?=\d)', '_', get_name(thing))
+
 
 #################################
 ### Misc ########################
@@ -350,7 +355,7 @@ def combine_names(things: list[Any]) -> str:
     # If matching pairs of side suffixes are in the suffix list, remove both.
     # For example, if L and R are both present, remove them.
     for suf in suffixes:
-        flip_suf = flip_name("A."+suf)[2:]
+        flip_suf = flip_name("A." + suf)[2:]
         if flip_suf != suf and flip_suf in suffixes:
             suffixes.remove(suf)
             suffixes.remove(flip_suf)

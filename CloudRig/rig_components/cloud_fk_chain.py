@@ -103,9 +103,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
         if self.params.fk_chain.counter_rotate_stretch_bones > 0:
             self.fk_chain__counter_rotate_str_bones(
-                self.fk_chain,
-                self.main_str_bones,
-                self.params.fk_chain.counter_rotate_stretch_bones
+                self.fk_chain, self.main_str_bones, self.params.fk_chain.counter_rotate_stretch_bones
             )
 
         self.fk_chain__attach_org_to_fk(self.bones_org, self.fk_chain)
@@ -119,7 +117,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     def __check_correct_chain_length(self):
         req_len = type(self).required_chain_length
         if req_len != -1 and self.bone_count != req_len:
-            self.raise_generation_error(rpt_("Chain must be exactly {req_len} connected bones.").format(req_len=req_len))
+            self.raise_generation_error(
+                rpt_("Chain must be exactly {req_len} connected bones.").format(req_len=req_len)
+            )
 
     def fk_chain__make_root_bone(self):
         # Socket/Root bone to parent IK and FK to.
@@ -215,7 +215,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         bone_set=None,
         panel_name=n_("FK"),
         label_name=n_("Hinge"),
-        fk_chain: list[BoneInfo]=[]
+        fk_chain: list[BoneInfo] = [],
     ):
         """Create a hinge toggle for a bone.
         Bone is usually the first bone in an FK chain.
@@ -256,7 +256,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             op_kwargs={
                 "bone_names": [bone.name],
             },
-            context_bones=fk_chain + [self.root_bone]
+            context_bones=fk_chain + [self.root_bone],
         )
 
         self.create_driven_armature_constraint(
@@ -268,9 +268,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
 
         # Hinge Copy Location & Scale constraints
-        hng_bone.add_constraint(
-            "COPY_LOCATION", space="WORLD", subtarget=str(parent_bone)
-        )
+        hng_bone.add_constraint("COPY_LOCATION", space="WORLD", subtarget=str(parent_bone))
         hng_bone.add_constraint("COPY_SCALE", space="WORLD", subtarget=str(parent_bone))
 
         # Parenting
@@ -312,16 +310,20 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                     subtarget=curl_control,
                 )
                 for axis in "xyz":
-                    transcon.drivers.append({
-                        "prop": f"to_min_{axis}_rot",
-                        "expression": f"curl / {len(fk_chain)}",
-                        "variables": {
-                            "curl": {
-                                "type": "SINGLE_PROP",
-                                "targets": [{"data_path": f'pose.bones["{curl_control.name}"].rotation_euler.{axis}'}],
+                    transcon.drivers.append(
+                        {
+                            "prop": f"to_min_{axis}_rot",
+                            "expression": f"curl / {len(fk_chain)}",
+                            "variables": {
+                                "curl": {
+                                    "type": "SINGLE_PROP",
+                                    "targets": [
+                                        {"data_path": f'pose.bones["{curl_control.name}"].rotation_euler.{axis}'}
+                                    ],
+                                },
                             },
-                        },
-                    })
+                        }
+                    )
             elif i == 0:
                 fk_bone.add_constraint('COPY_ROTATION', mix_mode='ADD', subtarget=curl_control)
 
@@ -334,7 +336,9 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             )
 
     @no_overlay
-    def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5):
+    def fk_chain__counter_rotate_str_bones(
+        self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5
+    ):
         for fk_bone, main_str_bone in zip(fk_chain, main_str_bones):
             main_str_bone.add_constraint(
                 "COPY_ROTATION",
@@ -373,9 +377,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             return start_frame
 
         # Create FCurves
-        curve_map = self.test_action_create_fcurves(
-            action, slot, self.bone_sets["FK Controls"], "rotation_euler"
-        )
+        curve_map = self.test_action_create_fcurves(action, slot, self.bone_sets["FK Controls"], "rotation_euler")
 
         # Populate FCurves with keyframes
         min_rot = self.params.fk_chain.test_animation_rotation_range[0]
@@ -515,8 +517,7 @@ class Params(PropertyGroup):
     display_center: BoolProperty(
         name="Display Centered",
         description=(
-            "Display all FK controls' shapes in the center of the bone, "
-            "rather than the beginning of the bone"
+            "Display all FK controls' shapes in the center of the bone, rather than the beginning of the bone"
         ),
         default=True,
     )
@@ -536,9 +537,7 @@ class Params(PropertyGroup):
         default=False,
     )
 
-    root: BoolProperty(
-        name="Create Root", description="Create a root control", default=False
-    )
+    root: BoolProperty(name="Create Root", description="Create a root control", default=False)
     hinge: BoolProperty(
         name="Hinge",
         description=(
@@ -585,14 +584,8 @@ class Params(PropertyGroup):
         default=(True, True, True),
     )
 
-    shape_fk: Component_ToonChain.make_custom_shape_params(
-        identifier="FK",
-        default="Square 2"
-    )
-    shape_fk_root: Component_ToonChain.make_custom_shape_params(
-        identifier="FK Root",
-        default="Cube"
-    )
+    shape_fk: Component_ToonChain.make_custom_shape_params(identifier="FK", default="Square 2")
+    shape_fk_root: Component_ToonChain.make_custom_shape_params(identifier="FK Root", default="Cube")
 
 
 RIG_COMPONENT_CLASS = Component_Chain_FK

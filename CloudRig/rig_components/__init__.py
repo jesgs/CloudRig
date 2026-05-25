@@ -7,6 +7,7 @@ import bpy
 
 ALL_COMPONENT_MODULES = {}
 
+
 def load_components(dir_path: str, relative=True) -> dict[str, ModuleType]:
     """Import the rig_components modules dynamically (and recursively).
     Users can even symlink a subfolder in there with external component types.
@@ -17,19 +18,14 @@ def load_components(dir_path: str, relative=True) -> dict[str, ModuleType]:
         if module_name.startswith("_") or module_filepath.endswith("__init__"):
             continue
         if relative:
-            delta = (
-                module_filepath.replace(dir_path, "")
-                .replace(os.sep, ".")
-                .replace(".py", "")
-            )
+            delta = module_filepath.replace(dir_path, "").replace(os.sep, ".").replace(".py", "")
             module = importlib.import_module(delta, __package__)
             importlib.reload(module)
         else:
             for file in os.listdir(dir_path):
                 if file.endswith(".py"):
                     module = import_from_path(
-                        "CloudRig.rig_components."+file.replace(".py", ""),
-                        os.sep.join([dir_path, file])
+                        "CloudRig.rig_components." + file.replace(".py", ""), os.sep.join([dir_path, file])
                     )
         if not hasattr(module, 'RIG_COMPONENT_CLASS'):
             continue

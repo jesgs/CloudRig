@@ -135,11 +135,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
 
     def execute(self, context):
         affected = self.affect_bones(context)
-        self.report(
-            {'INFO'},
-            rpt_("Unparented {num_bones}.")
-            .format(num_bones=len(affected))
-        )
+        self.report({'INFO'}, rpt_("Unparented {num_bones}.").format(num_bones=len(affected)))
         return {'FINISHED'}
 
 
@@ -189,8 +185,9 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
 
         self.report(
             {'INFO'},
-            rpt_('Parented "{bone}" to {count} bones using Armature constraint.')
-            .format(bone=pbone.name, count=len(arm_con.targets)),
+            rpt_('Parented "{bone}" to {count} bones using Armature constraint.').format(
+                bone=pbone.name, count=len(arm_con.targets)
+            ),
         )
 
     def execute(self, context):
@@ -282,7 +279,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
                 affected_bones_names |= set([t[1].name for t in flipped_bone_tuples_to_parent])
 
         plural = "s" if len(bone_tuples_to_parent) != 1 else ""
-        message = (f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".')
+        message = f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".'
         if rig.data.use_mirror_x and flipped_bone_tuples_to_parent:
             message += "(Symmetrized!)"
         self.report(
@@ -365,8 +362,9 @@ class POSE_OT_parent_object_to_selected_bones(Operator):
 
         self.report(
             {'INFO'},
-            "Parented {num_objects} objects to {num_bones} bones."
-            .format(num_objects=len(target_objs), num_bones=len(pbones))
+            "Parented {num_objects} objects to {num_bones} bones.".format(
+                num_objects=len(target_objs), num_bones=len(pbones)
+            ),
         )
         return {'FINISHED'}
 
@@ -485,10 +483,7 @@ def register():
     for keymap_name in ('Pose', 'Weight Paint', 'Armature'):
         register_hotkey(
             'wm.call_menu_pie',
-            hotkey_kwargs={
-                'type': "P",
-                'value': "PRESS"
-            },
+            hotkey_kwargs={'type': "P", 'value': "PRESS"},
             keymap_name=keymap_name,
             op_kwargs={'name': 'CLOUDRIG_MT_PIE_bone_parenting'},
         )

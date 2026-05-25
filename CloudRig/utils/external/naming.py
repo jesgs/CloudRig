@@ -2,9 +2,7 @@ import collections
 import enum
 import re
 
-NameParts = collections.namedtuple(
-    'NameParts', ['prefix', 'base', 'side_z', 'side', 'number']
-)
+NameParts = collections.namedtuple('NameParts', ['prefix', 'base', 'side_z', 'side', 'number'])
 
 
 class Side(enum.IntEnum):
@@ -87,18 +85,14 @@ def get_name_side(name: str):
     return Side.from_parts(split_name(name))
 
 
-def change_name_side(
-    name: str, side: Side | None = None, *, side_z: SideZ | None = None
-):
+def change_name_side(name: str, side: Side | None = None, *, side_z: SideZ | None = None):
     parts = split_name(name)
     new_side = None if side is None else Side.to_string(parts, side)
     new_side_z = None if side_z is None else SideZ.to_string(parts, side_z)
     return combine_name(parts, side=new_side, side_z=new_side_z)
 
 
-def combine_name(
-    parts: NameParts, *, prefix=None, base=None, side_z=None, side=None, number=None
-):
+def combine_name(parts: NameParts, *, prefix=None, base=None, side_z=None, side=None, number=None):
     eff_prefix = prefix if prefix is not None else parts.prefix
     eff_number = number if number is not None else parts.number
     if isinstance(eff_number, int):
@@ -116,7 +110,5 @@ def combine_name(
 
 
 def split_name(name: str):
-    name_parts = re.match(
-        r'^(?:(ORG|MCH|DEF)-)?(.*?)([._-][tTbB])?([._-][lLrR])?(?:\.(\d+))?$', name
-    )
+    name_parts = re.match(r'^(?:(ORG|MCH|DEF)-)?(.*?)([._-][tTbB])?([._-][lLrR])?(?:\.(\d+))?$', name)
     return NameParts(*name_parts.groups())

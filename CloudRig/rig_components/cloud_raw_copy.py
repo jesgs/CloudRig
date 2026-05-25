@@ -11,7 +11,6 @@ class Component_RawCopy(Component_Base):
 
     ui_name = "Raw Copy"
 
-
     def create_bone_infos(self, context):
         super().create_bone_infos(context)
         metarig_pbone = self.get_metarig_pbone(self.bones_org[0].name)
@@ -36,5 +35,6 @@ class Component_RawCopy(Component_Base):
     @classmethod
     def poll_draw_appearance_params(cls, **kwargs):
         return False
+
 
 RIG_COMPONENT_CLASS = Component_RawCopy

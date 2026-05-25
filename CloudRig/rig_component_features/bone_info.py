@@ -136,7 +136,7 @@ class BoneInfo:
         bone_set: BoneSet,
         name: str,
         source: (PoseBone | BoneInfo | None),
-        allow_pose_transforms = False,
+        allow_pose_transforms=False,
         owner_component: Component_Base = None,
         keep_collections=False,
         keep_colors=False,
@@ -207,22 +207,19 @@ class BoneInfo:
                     self.collections = source.collections.copy()
             else:
                 # Copy data from PoseBone and Bone.
-                assert isinstance(source, PoseBone), f"BoneInfo can only use a PoseBone or another BoneInfo as source, not {type(source)}."
+                assert isinstance(source, PoseBone), (
+                    f"BoneInfo can only use a PoseBone or another BoneInfo as source, not {type(source)}."
+                )
                 self.__load_data_from_real_pbone(
                     source,
                     allow_pose_transforms=allow_pose_transforms,
                     keep_collections=keep_collections,
-                    keep_colors=keep_colors
+                    keep_colors=keep_colors,
                 )
 
         # Apply property values from arbitrary keyword arguments if any were passed.
         for key, value in kwargs.items():
-            if (
-                isinstance(value, Vector)
-                or isinstance(value, Matrix)
-                or type(value) is dict
-                or type(value) is list
-            ):
+            if isinstance(value, Vector) or isinstance(value, Matrix) or type(value) is dict or type(value) is list:
                 value = value.copy()
             setattr(self, key, value)
 
@@ -318,27 +315,19 @@ class BoneInfo:
             driver_map = self.owner_component.generator.driver_map
             if self.name in driver_map:
                 for data_path, array_index in driver_map[self.name]:
-                    fcurve = rig_ob.animation_data.drivers.find(
-                        data_path, index=array_index
-                    )
+                    fcurve = rig_ob.animation_data.drivers.find(data_path, index=array_index)
                     if 'constraints' in fcurve.data_path:
                         con_name = data_path.split('constraints["')[-1].split('"]')[0]
                         constraint_info = self.get_constraint(con_name)
                         if constraint_info:
-                            constraint_info.drivers_to_copy.append(
-                                (data_path, array_index)
-                            )
+                            constraint_info.drivers_to_copy.append((data_path, array_index))
                             continue
 
                     self.drivers_to_copy.append((data_path, array_index))
 
         # Load Custom Properties.
         if rna_idprop_has_properties(pose_bone):
-            rna_properties = {
-                prop.identifier
-                for prop in pose_bone.bl_rna.properties
-                if prop.is_runtime
-            }
+            rna_properties = {prop.identifier for prop in pose_bone.bl_rna.properties if prop.is_runtime}
             for prop_name in pose_bone.keys():
                 if prop_name in rna_properties:
                     # We don't want to copy addon-defined properties.
@@ -366,9 +355,7 @@ class BoneInfo:
                     prop_data['default'] = None
 
                 prop_data['value'] = value
-                prop_data['overridable'] = pose_bone.is_property_overridable_library(
-                    f'["{prop_name}"]'
-                )
+                prop_data['overridable'] = pose_bone.is_property_overridable_library(f'["{prop_name}"]')
 
                 if 'description' not in prop_data:
                     prop_data['description'] = ""
@@ -460,7 +447,7 @@ class BoneInfo:
     def parent_armature_constraint(self) -> ConstraintInfo | None:
         """Return the Armature constraint of the parent helper, if both exist."""
         if self.parent_helper:
-            return next((con for con in self.parent_helper.constraint_infos if con.type=='ARMATURE'), None)
+            return next((con for con in self.parent_helper.constraint_infos if con.type == 'ARMATURE'), None)
 
     @property
     def bbone_width(self) -> float:
@@ -508,7 +495,11 @@ class BoneInfo:
     def length(self) -> float:
         lgt = (self.tail - self.head).length
         if lgt <= 0:
-            raise ValueError(rpt_("Length of bone must not be 0: {bone}, {head}, {tail}").format(bone=self.name, head=self.head, tail=self.tail))
+            raise ValueError(
+                rpt_("Length of bone must not be 0: {bone}, {head}, {tail}").format(
+                    bone=self.name, head=self.head, tail=self.tail
+                )
+            )
         return lgt
 
     @length.setter
@@ -524,11 +515,9 @@ class BoneInfo:
         """Flip the head and the tail."""
         old_z_axis = self.z_axis.copy()
         self.head, self.tail = self.tail, self.head
-        self.roll_align_vector(self.head+old_z_axis)
+        self.roll_align_vector(self.head + old_z_axis)
 
-    def put(
-        self, loc=None, length=None, width=None, scale_length=None, scale_width=None
-    ):
+    def put(self, loc=None, length=None, width=None, scale_length=None, scale_width=None):
         if not loc:
             loc = self.head
 
@@ -591,10 +580,10 @@ class BoneInfo:
             )
 
     def roll_align_other(self, other: BoneInfo, axis='+Z'):
-        self.roll_align_vector(self.head+other.z_axis, axis=axis)
+        self.roll_align_vector(self.head + other.z_axis, axis=axis)
 
     def roll_flip(self):
-        self.roll = wrap_angle_pi(self.roll+pi)
+        self.roll = wrap_angle_pi(self.roll + pi)
 
     @property
     def matrix(self) -> Matrix:
@@ -674,7 +663,7 @@ class BoneInfo:
     def add_constraint_from_real(self, constraint: Constraint) -> ConstraintInfo:
         kwargs = {}
         for prop in constraint.bl_rna.properties:
-            if prop.is_readonly and prop.type!='COLLECTION':
+            if prop.is_readonly and prop.type != 'COLLECTION':
                 continue
             key = prop.identifier
             value = getattr(constraint, key)
@@ -686,12 +675,11 @@ class BoneInfo:
                         'target': t.target,
                         'subtarget': t.subtarget,
                         'weight': t.weight,
-                    } for t in constraint.targets
+                    }
+                    for t in constraint.targets
                 ]
                 continue
-            elif (
-                constraint.type == 'STRETCH_TO' and key == 'rest_length' and value == 0
-            ):
+            elif constraint.type == 'STRETCH_TO' and key == 'rest_length' and value == 0:
                 continue
 
             kwargs[key] = value
@@ -709,9 +697,7 @@ class BoneInfo:
             return
 
         armature = generator.target_rig
-        assert (
-            armature.mode == 'EDIT'
-        ), "Armature must be in Edit Mode when writing edit bone data."
+        assert armature.mode == 'EDIT', "Armature must be in Edit Mode when writing edit bone data."
 
         # Check for 0-length bones.
         if (self.head - self.tail).length == 0:
@@ -720,11 +706,12 @@ class BoneInfo:
                 trouble_bone=self.name,
                 note=self.name,
                 note_icon='BONE_DATA',
-                description=rpt_('Bone "{bone}" had zero length. Its length was set to 1 to avoid a fatal error.').format(bone=self.name),
+                description=rpt_(
+                    'Bone "{bone}" had zero length. Its length was set to 1 to avoid a fatal error.'
+                ).format(bone=self.name),
             )
             self.tail.y += 1
         assert (self.head - self.tail).length > 0, f'Bone "{edit_bone.name}" cannot be created with a length of 0.'
-
 
         ### Edit Bone properties
         for key in edit_bone_properties:
@@ -744,7 +731,9 @@ class BoneInfo:
                 self.bone_set.rig_component.add_log(
                     rpt_("Parent not found"),
                     trouble_bone=self.name,
-                    description=rpt_('Parent bone "{bone}" does not exist or is a child of this bone.').format(bone=self.parent),
+                    description=rpt_('Parent bone "{bone}" does not exist or is a child of this bone.').format(
+                        bone=self.parent
+                    ),
                 )
 
         # Custom Properties.
@@ -758,16 +747,12 @@ class BoneInfo:
 
         arm_ob = pose_bone.id_data
 
-        assert (
-            arm_ob.mode != 'EDIT'
-        ), "Armature cannot be in Edit Mode when writing pose data"
+        assert arm_ob.mode != 'EDIT', "Armature cannot be in Edit Mode when writing pose data"
 
         generator = self.owner_component.generator
-        preserve_shapes = (generator.params.preserve_shapes_properties and generator.params.preserve_custom_shapes)
+        preserve_shapes = generator.params.preserve_shapes_properties and generator.params.preserve_custom_shapes
         if self.custom_shape_name and not preserve_shapes:
-            self.custom_shape = self.owner_component.generator.ensure_widget(
-                context, self.custom_shape_name
-            )
+            self.custom_shape = self.owner_component.generator.ensure_widget(context, self.custom_shape_name)
 
         # Pose bone data
         for key in pose_bone_properties:
@@ -827,9 +812,7 @@ class BoneInfo:
         # This is because we dropped support for custom colors expecting better
         # theme colors to drop in 4.0, but that didn't happen.
         if self.color_palette_base not in {'DEFAULT', 'CUSTOM'}:
-            theme_color = context.preferences.themes[0].bone_color_sets[
-                int(self.color_palette_base[-2:]) - 1
-            ]
+            theme_color = context.preferences.themes[0].bone_color_sets[int(self.color_palette_base[-2:]) - 1]
             self.color_palette_base = 'CUSTOM'
             bone.color.palette = 'CUSTOM'
             bone.color.custom.normal = theme_color.normal
@@ -840,8 +823,10 @@ class BoneInfo:
             self.bone_set.rig_component.add_log(
                 rpt_("Non-deforming DEF bone"),
                 trouble_bone=self.name,
-                description=rpt_('Bone name "{bone}" begins with "DEF" but Deform checkbox is not enabled. ' \
-                            'This bone will not be keyframed by the "Whole Character" keying set!').format(bone=self.name),
+                description=rpt_(
+                    'Bone name "{bone}" begins with "DEF" but Deform checkbox is not enabled. '
+                    'This bone will not be keyframed by the "Whole Character" keying set!'
+                ).format(bone=self.name),
                 operator='object.cloudrig_rename_bone',
                 op_kwargs={'old_name': bone.name},
             )
@@ -878,19 +863,13 @@ class BoneInfo:
                 make_driver_safe(arm_ob, target_id=arm_ob, **driver_info)
             # Copied constraint drivers
             for data_path, array_index in con_info.drivers_to_copy:
-                fcurve = metarig.animation_data.drivers.find(
-                    data_path, index=array_index
-                )
+                fcurve = metarig.animation_data.drivers.find(data_path, index=array_index)
                 if f'bones["{self.name}"]' not in data_path:
                     # If the bone's name has changed, fix it in the data path.
-                    data_path = re.sub(
-                        r'bones\[".*?"\]', f'bones["{self.name}"]', data_path
-                    )
+                    data_path = re.sub(r'bones\[".*?"\]', f'bones["{self.name}"]', data_path)
                 if f'constraints["{con_info.name}"]' not in data_path:
                     # If the constraint's name has changed, fix it in the data path.
-                    data_path = re.sub(
-                        r'constraints\[".*?"\]', f'constraints["{con_info.name}"]', data_path
-                    )
+                    data_path = re.sub(r'constraints\[".*?"\]', f'constraints["{con_info.name}"]', data_path)
 
                 copy_relink_real_driver(metarig, arm_ob, fcurve, data_path, array_index)
 
@@ -900,16 +879,12 @@ class BoneInfo:
 
         # Pose Bone Drivers.
         for driver_info in self.drivers:
-            driver_info['prop'] = (
-                f'pose.bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
-            )
+            driver_info['prop'] = f'pose.bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
             make_driver_safe(arm_ob, target_id=arm_ob, **driver_info)
 
         # Data Bone Drivers.
         for driver_info in self.drivers_data:
-            driver_info['prop'] = (
-                f'bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
-            )
+            driver_info['prop'] = f'bones["{pose_bone.name}"]{fixed_path(driver_info["prop"])}'
             make_driver_safe(arm_ob.data, target_id=arm_ob, **driver_info)
 
         # Copied drivers
@@ -917,17 +892,13 @@ class BoneInfo:
             fcurve = metarig.animation_data.drivers.find(data_path, index=array_index)
             if self.name not in data_path:
                 # If the bone's name has changed, fix it in the data path.
-                data_path = re.sub(
-                    r'bones\[".*?"\]', f'bones["{self.name}"]', data_path
-                )
+                data_path = re.sub(r'bones\[".*?"\]', f'bones["{self.name}"]', data_path)
             copy_relink_real_driver(metarig, arm_ob, fcurve, data_path=data_path, index=array_index)
 
-    def clone(self, new_name: str=None, bone_set: BoneSet=None) -> BoneInfo:
+    def clone(self, new_name: str = None, bone_set: BoneSet = None) -> BoneInfo:
         """Return a clone of self."""
         if not new_name:
-            new_name = naming.uniqify(
-                self.name, list(self.owner_component.generator.bone_infos)
-            )
+            new_name = naming.uniqify(self.name, list(self.owner_component.generator.bone_infos))
 
         if not bone_set:
             bone_set = self.bone_set
@@ -965,6 +936,7 @@ class BoneInfo:
 
     def __repr__(self) -> str:
         return str(self)
+
 
 class ConstraintInfo(dict):
     """Abstracts away Blender's constraints, allowing less verbose ways to set properties,
@@ -1013,9 +985,11 @@ class ConstraintInfo(dict):
             if self.type == 'ARMATURE':
                 if len(subtargets) != len(targets):
                     self.bone_info.owner_component.raise_generation_error(
-                        rpt_("Armature constraint using @ syntax specifies {count} names, " \
-                        "but has {tar_count} targets. They must be equal.").format(count=len(subtargets), tar_count=len(targets)),
-                        trouble_bone = self.bone_info.name
+                        rpt_(
+                            "Armature constraint using @ syntax specifies {count} names, "
+                            "but has {tar_count} targets. They must be equal."
+                        ).format(count=len(subtargets), tar_count=len(targets)),
+                        trouble_bone=self.bone_info.name,
                     )
                 self.targets = [
                     (targets[i]['target'], subtarget, targets[i]['weight'])
@@ -1106,7 +1080,7 @@ class ConstraintInfo(dict):
         return self['targets']
 
     @targets.setter
-    def targets(self, value: list[dict|str]):
+    def targets(self, value: list[dict | str]):
         """Allow a few different syntaxes, always coerce them to a dict."""
         _targets: list[dict] = []
         for tar in value:
@@ -1258,14 +1232,14 @@ class ConstraintInfo(dict):
             'target_space',
             'owner_space',
         ]
-        order_idx = {key:i for i, key in enumerate(order)}
+        order_idx = {key: i for i, key in enumerate(order)}
 
         sorted_props = sorted(con.bl_rna.properties, key=lambda p: order_idx.get(p.identifier, len(order)))
         for prop in sorted_props:
             if prop.identifier == 'rest_length':
                 con.rest_length = pose_bone.bone.length
                 continue
-            if prop.is_readonly and prop.type!='COLLECTION':
+            if prop.is_readonly and prop.type != 'COLLECTION':
                 continue
             if hasattr(self, prop.identifier):
                 value = getattr(self, prop.identifier)
@@ -1286,7 +1260,7 @@ class ConstraintInfo(dict):
                     setattr(con, prop.identifier, value)
                 except TypeError:
                     assert False, (
-                        f"Cannot set value `{value}` on constraint '{self.name}' of bone '{self.bone_info.name}' " \
+                        f"Cannot set value `{value}` on constraint '{self.name}' of bone '{self.bone_info.name}' "
                         f"of type '{self.type}' for property '{prop.identifier}'"
                     )
 

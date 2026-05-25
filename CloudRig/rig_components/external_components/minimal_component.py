@@ -39,9 +39,8 @@ class MinimalComponentExample(Component_Base):
 
 
 class Params(bpy.types.PropertyGroup):
-    create_control: bpy.props.BoolProperty(
-        name="Create Control", description="Create a Control bone", default=True
-    )
+    create_control: bpy.props.BoolProperty(name="Create Control", description="Create a Control bone", default=True)
+
 
 # Un-comment the below line to make this component appear in Blender.
 # RIG_COMPONENT_CLASS = MinimalComponentExample

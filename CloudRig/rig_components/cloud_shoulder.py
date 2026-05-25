@@ -67,6 +67,7 @@ class Component_Shoulder(Component_Chain_FK):
     def set_param_defaults(cls, component):
         component.params.fk_chain.shape_fk.name = "Shoulder"
 
+
 class Params(PropertyGroup):
     up_axis: EnumProperty(
         name="Custom Shape Up Axis",

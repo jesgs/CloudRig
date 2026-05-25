@@ -91,9 +91,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             # bone, but in this case we must snap the IK master control PLUS the IK pole control.
             op_kwargs["bone_names"].append(self.pole_ctrl.name)
 
-        super().rig_ui__add_bone_property(
-            operator=operator, op_kwargs=op_kwargs, **kwargs
-        )
+        super().rig_ui__add_bone_property(operator=operator, op_kwargs=op_kwargs, **kwargs)
 
     @no_overlay
     def gizmos__add_interactions(self):
@@ -106,18 +104,14 @@ class Component_Chain_IKFK(Component_Chain_FK):
         fk_names = [fk.name for fk in self.bone_sets["FK Controls"]]
         op_kwargs["bones"] = fk_names
         # When FK is interacted, switch to FK and snap IK to FK.
-        self.gizmos__add_interaction(
-            bone_names=fk_names, operator=op_name, op_kwargs=op_kwargs
-        )
+        self.gizmos__add_interaction(bone_names=fk_names, operator=op_name, op_kwargs=op_kwargs)
 
         # When IK is interacted, switch to IK and snap FK to IK.
         op_kwargs = op_kwargs.copy()
         op_kwargs["prop_value"] = 1
         ik_names = [ik.name for ik in self.ik_controls]
         op_kwargs["bones"] = ik_names
-        self.gizmos__add_interaction(
-            bone_names=ik_names, operator=op_name, op_kwargs=op_kwargs
-        )
+        self.gizmos__add_interaction(bone_names=ik_names, operator=op_name, op_kwargs=op_kwargs)
 
     @no_overlay
     def fk_chain__add_test_animation(
@@ -132,8 +126,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         req_len = 2
         if len(self.bones_org) < 2:
             self.raise_generation_error(
-                rpt_("Must be a chain of at least {req_len} connected bones!")
-                .format(req_len=req_len)
+                rpt_("Must be a chain of at least {req_len} connected bones!").format(req_len=req_len)
             )
 
         self.ik_chain__prevent_straight_chain()
@@ -204,14 +197,16 @@ class Component_Chain_IKFK(Component_Chain_FK):
             if not is_ideal_ik_chain(self.bones_org):
                 self.add_log(
                     rpt_("IK mismatched with FK"),
-                    description=rpt_("For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be " \
-                        "perfectly flat along a plane, and its bone rolls should align towards the pole vector. " \
-                        "Simply use the button below."),
+                    description=rpt_(
+                        "For perfect IK Pole and IK/FK snapping behaviour, the IK chain should be "
+                        "perfectly flat along a plane, and its bone rolls should align towards the pole vector. "
+                        "Simply use the button below."
+                    ),
                     operator="armature.flatten_ik_chain",
                     op_kwargs={
                         "remove_active_log": True,
                         "start_bone": self.metarig_base_pbone.name,
-                        "limit_count": self.required_chain_length
+                        "limit_count": self.required_chain_length,
                     },
                 )
             return
@@ -233,7 +228,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             op_kwargs={
                 'bone_name': self.bones_org[0].name,
                 'selection': 'TAIL',
-                'offset': [0, y_offset*1.1, 0],
+                'offset': [0, y_offset * 1.1, 0],
             },
         )
 
@@ -280,9 +275,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         meta_first = self.bones_org[0]
         meta_second = self.bones_org[1]
 
-        pole_angle_deg, pole_vector, pole_location = calculate_ik_pole_vector(
-            meta_first, meta_second
-        )
+        pole_angle_deg, pole_vector, pole_location = calculate_ik_pole_vector(meta_first, meta_second)
         self.pole_angle_deg = pole_angle_deg
         self.pole_vector = pole_vector
 
@@ -291,7 +284,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
     def __make_pole_control(self):
         # Create IK Pole Control
         prefix, base_name, suffix, blender_zeroes = self.naming.get_name_parts(self.bones_org[0])
-        base_name = prefix+self.base_name+suffix+blender_zeroes
+        base_name = prefix + self.base_name + suffix + blender_zeroes
         pole_ctrl = self.pole_ctrl = self.create_ik_pole_control(
             bone_set=self.bone_sets["IK Controls"],
             name=self.naming.add_prefix(base_name, "POLE"),
@@ -309,7 +302,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self,
         org_chain: list[BoneInfo],
         ik_mstr: BoneInfo,
-        pole_target: BoneInfo=None,
+        pole_target: BoneInfo = None,
     ) -> list[BoneInfo]:
         """Based on a chain of ORG bones, create an IK chain, optionally with a pole target."""
         ik_chain = []
@@ -328,7 +321,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 ik_bone.parent = self.root_bone
                 ik_bone.custom_shape_name = self.params.ik_chain.shape_ik_first.shape_name
                 ik_bone.custom_shape_translation = Vector((0, 0, 0))
-                ik_bone.custom_shape_scale_xyz = Vector((0.66, 1, org_bone.custom_shape_scale*0.66))
+                ik_bone.custom_shape_scale_xyz = Vector((0.66, 1, org_bone.custom_shape_scale * 0.66))
                 ik_bone.custom_shape_rotation_euler = Vector((0, 0, 0))
                 self.ik_controls.append(ik_bone)
             else:
@@ -377,15 +370,15 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 "step": 10,
             },
             context_bones=(
-                ik_chain +
-                self.bone_sets['IK Controls'] +
-                self.bone_sets.get('IK Child Controls', []) +
-                [self.root_bone]
+                ik_chain
+                + self.bone_sets['IK Controls']
+                + self.bone_sets.get('IK Child Controls', [])
+                + [self.root_bone]
             ),
         )
 
         # That property drives a Limit Distance constraint.
-        distance = sum([b.length for b in ik_chain[:self.ik_chain_count]])
+        distance = sum([b.length for b in ik_chain[: self.ik_chain_count]])
         limit_con = self.ik_tgt_bone.add_constraint(
             'LIMIT_DISTANCE',
             subtarget=self.root_bone,
@@ -404,33 +397,32 @@ class Component_Chain_IKFK(Component_Chain_FK):
         # we create helpers to inherit scale from the limb's root.
         scale_bones = []
         next_parent = self.root_bone
-        for org_bone in org_chain[:self.ik_chain_count]:
+        for org_bone in org_chain[: self.ik_chain_count]:
             scale_bone = self.bone_sets["IK Mechanism"].new(
                 source=org_bone,
                 name=self.naming.add_prefix(org_bone, "SCALE"),
                 parent=next_parent,
             )
-            next_parent=scale_bone
+            next_parent = scale_bone
             scale_bones.append(scale_bone)
         distance_driver = {
-                "prop": 'distance',
-                "variables": {
-                    self.naming.sanitize_python(bone.name)
-                    :
-                    {
-                        'type':'SINGLE_PROP',
-                        'targets': [
-                            {
-                                'data_path': f'pose.bones["{bone.name}"].length',
-                            }
-                        ]
-                    } for bone in scale_bones
-                },
-            }
+            "prop": 'distance',
+            "variables": {
+                self.naming.sanitize_python(bone.name): {
+                    'type': 'SINGLE_PROP',
+                    'targets': [
+                        {
+                            'data_path': f'pose.bones["{bone.name}"].length',
+                        }
+                    ],
+                }
+                for bone in scale_bones
+            },
+        }
         limit_con.drivers.append(distance_driver.copy())
 
         # Add IK stretch toggle driver to the IK Stretch properties of the IK chain.
-        for ik_bone in ik_chain[:self.ik_chain_count]:
+        for ik_bone in ik_chain[: self.ik_chain_count]:
             ik_bone.drivers.append(
                 {
                     "prop": "ik_stretch",
@@ -489,8 +481,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "slider_name": self.limb_ui_name,
             "custom_prop_settings": {
                 "default": self.params.ik_chain.default_fkik,
-                "description": tip_("Switch {bone} to Inverse Kinematics posing mode")
-                .format(bone=self.base_name),
+                "description": tip_("Switch {bone} to Inverse Kinematics posing mode").format(bone=self.base_name),
             },
             "operator": "pose.cloudrig_toggle_ikfk_bake",
             "op_icon": "FILE_REFRESH",
@@ -562,8 +553,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
             slider_name=self.limb_ui_name,
             custom_prop_settings={
                 "default": default,
-                "description": tip_('Make "{ik_pole}" follow "{ik_mstr}"')
-                .format(ik_pole=ik_pole.name, ik_mstr=ik_mstr.name),
+                "description": tip_('Make "{ik_pole}" follow "{ik_mstr}"').format(
+                    ik_pole=ik_pole.name, ik_mstr=ik_mstr.name
+                ),
             },
             operator="pose.cloudrig_snap_bake",
             op_icon="FILE_REFRESH",
@@ -571,10 +563,10 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 "bone_names": [ik_pole.name],
             },
             context_bones=(
-                self.ik_chain +
-                self.bone_sets['IK Controls'] +
-                self.bone_sets.get('IK Child Controls', [])+
-                [self.root_bone]
+                self.ik_chain
+                + self.bone_sets['IK Controls']
+                + self.bone_sets.get('IK Child Controls', [])
+                + [self.root_bone]
             ),
         )
 
@@ -617,8 +609,12 @@ class Component_Chain_IKFK(Component_Chain_FK):
         cls.draw_prop(context, layout, params.ik_chain, "at_tip")
 
         if cls.is_advanced_mode(context):
-            cls.draw_prop(context, layout, params.ik_chain, "world_align", enabled=(not params.ik_chain.flatten_controls))
-            cls.draw_prop(context, layout, params.ik_chain, "flatten_controls", enabled=(not params.ik_chain.world_align))
+            cls.draw_prop(
+                context, layout, params.ik_chain, "world_align", enabled=(not params.ik_chain.flatten_controls)
+            )
+            cls.draw_prop(
+                context, layout, params.ik_chain, "flatten_controls", enabled=(not params.ik_chain.world_align)
+            )
 
         split = label_split(layout, text="")
         split.operator("armature.flatten_ik_chain")
@@ -640,6 +636,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         layout.separator()
         cls.draw_prop(context, layout, component.params.ik_chain, 'default_fkik', slider=True)
         cls.draw_prop(context, layout, component.params.ik_chain, 'default_stretch', slider=True)
+
 
 class Params(PropertyGroup):
     at_tip: BoolProperty(
@@ -669,31 +666,35 @@ class Params(PropertyGroup):
         name="Pole Parent Switching",
         description="How the IK Pole's parent switching options should be determined.",
         items=[
-            ('FOLLOW', "Follow", "The IK Pole is parented always to the same bone as the IK master, or to the IK master itself, determined by a single slider."),
-            ('INDIVIDUAL', "Individual", "The IK Pole gets the same parenting options as the IK Master, plus the IK Master itself as a parent option.")
+            (
+                'FOLLOW',
+                "Follow",
+                "The IK Pole is parented always to the same bone as the IK master, or to the IK master itself, determined by a single slider.",
+            ),
+            (
+                'INDIVIDUAL',
+                "Individual",
+                "The IK Pole gets the same parenting options as the IK Master, plus the IK Master itself as a parent option.",
+            ),
         ],
     )
 
     default_fkik: FloatProperty(
         name="Default FK/IK",
-        min=0, max=1, default=1,
+        min=0,
+        max=1,
+        default=1,
     )
     default_stretch: FloatProperty(
         name="Default IK Stretch",
-        min=0, max=1, default=0,
+        min=0,
+        max=1,
+        default=0,
     )
 
-    shape_ik_master: Component_Chain_FK.make_custom_shape_params(
-        identifier="IK Master",
-        default="Saddle"
-    )
-    shape_ik_first: Component_Chain_FK.make_custom_shape_params(
-        identifier="First IK",
-        default="IK First"
-    )
-    shape_pole: Component_Chain_FK.make_custom_shape_params(
-        identifier="IK Pole",
-        default="Pole"
-    )
+    shape_ik_master: Component_Chain_FK.make_custom_shape_params(identifier="IK Master", default="Saddle")
+    shape_ik_first: Component_Chain_FK.make_custom_shape_params(identifier="First IK", default="IK First")
+    shape_pole: Component_Chain_FK.make_custom_shape_params(identifier="IK Pole", default="Pole")
+
 
 RIG_COMPONENT_CLASS = Component_Chain_IKFK

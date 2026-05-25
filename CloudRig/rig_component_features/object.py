@@ -70,6 +70,7 @@ class CloudObjectUtilitiesMixin:
         """
         if not object:
             return True
+
         def complain():
             if create_log and not self.painter:
                 self.add_log(
@@ -85,12 +86,10 @@ class CloudObjectUtilitiesMixin:
             complain()
         return life is good
 
+
 def lock_transforms(
-        obj: Object,
-        loc: bool|list[bool]=True,
-        rot: bool|list[bool]=True,
-        scale: bool|list[bool]=True
-    ):
+    obj: Object, loc: bool | list[bool] = True, rot: bool | list[bool] = True, scale: bool | list[bool] = True
+):
     if type(loc) is bool:
         obj.lock_location = [loc, loc, loc]
     else:
@@ -126,9 +125,7 @@ def set_enum_property_by_integer(owner: ID, key: str, value: str) -> str | bool:
     return False
 
 
-def recursive_search_layer_collection(
-    coll_name: str, layer_coll: LayerCollection
-) -> LayerCollection | None:
+def recursive_search_layer_collection(coll_name: str, layer_coll: LayerCollection) -> LayerCollection | None:
     # Recursivly transverse layer_collection for a particular name
     # This is the only way to set active collection as of 14-04-2020.
     found = None

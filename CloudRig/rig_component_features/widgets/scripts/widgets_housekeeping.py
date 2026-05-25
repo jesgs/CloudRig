@@ -28,7 +28,9 @@ def pre_save(scene, context):
         obj.rotation_euler = (0, 0, 0)
         obj.scale = (1, 1, 1)
         if max(obj.dimensions) - 1.0 > 0.01:
-            print("CloudRig Widgets Warning: Widget object's longest dimension should be 1m: ", obj.name, obj.dimensions)
+            print(
+                "CloudRig Widgets Warning: Widget object's longest dimension should be 1m: ", obj.name, obj.dimensions
+            )
 
         # Nuke attributes
         if obj.data and hasattr(obj.data, 'attributes'):
@@ -45,6 +47,7 @@ def pre_save(scene, context):
         # Sort mesh topologies
         rebuild_mesh_topology(obj)
         obj.data.name = "Data_" + obj.name
+
 
 def rebuild_mesh_topology(obj: bpy.types.Object):
     """
@@ -174,15 +177,18 @@ def rebuild_mesh_topology(obj: bpy.types.Object):
     new_mesh.update()
     obj.data = new_mesh
 
+
 def set_filebrowser_path():
-    file_browser = next((a for a in bpy.context.screen.areas if a.type=='FILE_BROWSER'), None)
+    file_browser = next((a for a in bpy.context.screen.areas if a.type == 'FILE_BROWSER'), None)
     if not file_browser:
         return 0.2
     thumb_dir = Path(bpy.data.filepath).parent / Path("thumbnails")
     file_browser.spaces.active.params.directory = thumb_dir.as_posix().encode("utf-8")
 
+
 def load_post(scene, context):
     bpy.app.timers.register(set_filebrowser_path, first_interval=0.2)
+
 
 bpy.app.handlers.save_pre.append(pre_save)
 bpy.app.handlers.load_post.append(load_post)

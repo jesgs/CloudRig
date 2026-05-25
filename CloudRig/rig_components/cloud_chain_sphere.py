@@ -42,15 +42,12 @@ class Component_SphereChain(Component_ToonChain):
             source=str_bone,
             parent=str_bone.source,
             name=str_bone.name.replace("STR-", "SPH-"),
-
             head=sphere_ctrl.head.copy(),
             tail=str_bone.head.copy(),
-
             custom_shape_name=self.params.chain_sphere.shape_sphere_control.shape_name,
             custom_shape_along_length=1.0,
             use_custom_shape_bone_size=False,
             display_type='WIRE',
-
             rotation_mode='YZX',
         )
         sph_ctrl.roll_align_vector(str_bone.tail)
@@ -115,9 +112,7 @@ class Params(PropertyGroup):
         description="Mesh object to shrinkwrap to using Shrinkwrap Constraints.",
     )
 
-    shape_sphere_control: Component_ToonChain.make_custom_shape_params(
-        identifier="Sphere Control",
-        default="Square"
-    )
+    shape_sphere_control: Component_ToonChain.make_custom_shape_params(identifier="Sphere Control", default="Square")
+
 
 RIG_COMPONENT_CLASS = Component_SphereChain

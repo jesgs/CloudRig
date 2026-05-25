@@ -45,9 +45,7 @@ class Component_Limb(Component_Chain_IKFK):
         if self.params.limb.auto_hose and segments > 1:
             upper_section = self.main_str_bones[0].sub_bones
             lower_section = self.main_str_bones[1].sub_bones
-            self.__make_rubber_hose(
-                self.bones_org[0], self.bones_org[1], upper_section, lower_section
-            )
+            self.__make_rubber_hose(self.bones_org[0], self.bones_org[1], upper_section, lower_section)
 
     @no_overlay
     def base__apply_parent_switching(
@@ -111,8 +109,9 @@ class Component_Limb(Component_Chain_IKFK):
             if self.pole_angle_deg in {180, 0}:
                 self.add_log(
                     rpt_("Locked IK must bend on X"),
-                    description=rpt_('To use the "Limit Elbow Axes" parameter, the bone rolls of this limb should ' \
-                        'be rotated 90 degrees, so it bends on X instead of Z axis. ' \
+                    description=rpt_(
+                        'To use the "Limit Elbow Axes" parameter, the bone rolls of this limb should '
+                        'be rotated 90 degrees, so it bends on X instead of Z axis. '
                         'Currently, this limbn will not bend properly.'
                     ),
                 )
@@ -141,15 +140,11 @@ class Component_Limb(Component_Chain_IKFK):
 
     @no_overlay(return_value={})
     def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
-        ui_data = super().ik_chain__get_ik_switch_ui_data(
-            fk_chain, ik_chain, ik_mstr, ik_pole
-        )
+        ui_data = super().ik_chain__get_ik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 
         if self.params.limb.double_ik:
             # Need to insert IK master parent->last FK bone switching BEFORE IK master parent.
-            ui_data['op_kwargs']['map_ik_to_fk'].insert(
-                0, (ik_mstr.parent.name, fk_chain[-1].name)
-            )
+            ui_data['op_kwargs']['map_ik_to_fk'].insert(0, (ik_mstr.parent.name, fk_chain[-1].name))
             ui_data['context_bones'] += [self.ik_mstr.parent]
 
         return ui_data
@@ -239,17 +234,18 @@ class Component_Limb(Component_Chain_IKFK):
                 panel_name=n_("Auto Rubber Hose"),
                 custom_prop_settings={
                     'default': 0.0,
-                    'description': tip_("Automatically smoothen the curvature of the limb "
-                    "and avoid sharp angles, for a cartoony effect"),
+                    'description': tip_(
+                        "Automatically smoothen the curvature of the limb and avoid sharp angles, for a cartoony effect"
+                    ),
                 },
                 row_name=self.base_name,
                 slider_name=self.limb_ui_name,
                 context_bones=(
-                    self.ik_chain +
-                    self.fk_chain +
-                    self.bone_sets['IK Controls'] +
-                    self.bone_sets['IK Child Controls'] +
-                    [rubberhose_ctr, self.root_bone]
+                    self.ik_chain
+                    + self.fk_chain
+                    + self.bone_sets['IK Controls']
+                    + self.bone_sets['IK Child Controls']
+                    + [rubberhose_ctr, self.root_bone]
                 ),
             )
 
@@ -263,10 +259,7 @@ class Component_Limb(Component_Chain_IKFK):
         )
 
     def __make_rubber_hose_control(self, org_lower: BoneInfo) -> BoneInfo:
-        head = (
-            org_lower.head
-            + self.pole_vector.normalized() * org_lower.length * 0.3
-        )
+        head = org_lower.head + self.pole_vector.normalized() * org_lower.length * 0.3
         control_bone = self.bone_sets['FK Controls Extra'].new(
             name=self.naming.add_prefix(org_lower, "RubberHose"),
             source=org_lower,
@@ -281,9 +274,7 @@ class Component_Limb(Component_Chain_IKFK):
             return
 
         self.lock_transforms(control_bone, scale=[True, False, True])
-        control_bone.add_constraint(
-            'LIMIT_SCALE', use_max_y=True, max_y=2, use_min_y=True, min_y=1
-        )
+        control_bone.add_constraint('LIMIT_SCALE', use_max_y=True, max_y=2, use_min_y=True, min_y=1)
 
         dsp_bone = self.create_dsp_bone(control_bone)
         dsp_bone.add_constraint(
@@ -370,9 +361,7 @@ class Component_Limb(Component_Chain_IKFK):
                 driver_to_min_z = deepcopy(driver_to_min_x)
                 driver_to_min_z['prop'] = 'to_min_z'
                 driver_to_min_z['expression'] += " * -1"
-                driver_to_min_z['variables'][0]['targets'][0][
-                    'transform_type'
-                ] = 'ROT_X'
+                driver_to_min_z['variables'][0]['targets'][0]['transform_type'] = 'ROT_X'
                 trans_con.drivers.append(driver_to_min_z)
 
             # Scale the main STR bone on local Y to get a smooth curve
@@ -452,7 +441,7 @@ class Component_Limb(Component_Chain_IKFK):
                 var_z['targets'][0]['transform_type'] = 'ROT_Z'
                 driver_to_min_y = {
                     'prop': 'to_min_y',
-                    'expression': f"(abs(x + z)/pi) * {org_lower.length/4}",
+                    'expression': f"(abs(x + z)/pi) * {org_lower.length / 4}",
                     'variables': {
                         'x': var_x,
                         'z': var_z,
@@ -463,12 +452,12 @@ class Component_Limb(Component_Chain_IKFK):
 
                 driver_to_min_z = deepcopy(driver_to_min_y)
                 driver_to_min_z['prop'] = 'to_min_z'
-                driver_to_min_z['expression'] = f"(x/pi) * {org_lower.length/4}"
+                driver_to_min_z['expression'] = f"(x/pi) * {org_lower.length / 4}"
                 trans_con.drivers.append(driver_to_min_z)
 
                 driver_to_min_x = deepcopy(driver_to_min_y)
                 driver_to_min_x['prop'] = 'to_min_x'
-                driver_to_min_x['expression'] = f"(-z/pi) * {org_lower.length/4}"
+                driver_to_min_x['expression'] = f"(-z/pi) * {org_lower.length / 4}"
                 trans_con.drivers.append(driver_to_min_x)
 
     ##############################
@@ -504,9 +493,7 @@ class Component_Limb(Component_Chain_IKFK):
             cls.draw_prop(context, split.row(), params.limb, 'auto_hose_control')
             split = layout.split(factor=0.1)
             split.row()
-            cls.draw_prop(
-                context, split.row(), params.limb, 'auto_hose_type', expand=True
-            )
+            cls.draw_prop(context, split.row(), params.limb, 'auto_hose_type', expand=True)
 
     @classmethod
     def draw_appearance_params(cls, layout, context, component):
@@ -548,7 +535,7 @@ class Params(PropertyGroup):
     limit_elbow_axes: BoolProperty(
         name="Limit Elbow Axes",
         description="Lock the Y and Z rotation of the elbow/knee bone, only allowing realistic rotations. This is limiting for cartoony characters, but it's necessary for accurate FK->IK snapping. For realistic characters, this should be enabled. This also requires that the elbow bends along its local X axis",
-        default=True
+        default=True,
     )
 
     double_ik: BoolProperty(
@@ -557,10 +544,7 @@ class Params(PropertyGroup):
         default=False,
     )
 
-    shape_rubberhose: Component_Chain_IKFK.make_custom_shape_params(
-        identifier="Rubber Hose",
-        default="Slider"
-    )
+    shape_rubberhose: Component_Chain_IKFK.make_custom_shape_params(identifier="Rubber Hose", default="Slider")
 
 
 RIG_COMPONENT_CLASS = Component_Limb

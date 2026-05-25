@@ -58,9 +58,11 @@ BONEINFO_GEOS: dict[str, Geo] = {}
 
 ### Overlay drawing.
 
+
 def force_full_update():
     global BATCH_CACHE
     BATCH_CACHE = {}
+
 
 class OverlayPainter:
     def __init__(self):
@@ -87,14 +89,14 @@ class OverlayPainter:
 
         color_set = color_sets[idx]
         color_type = color_type.lower()
-        assert hasattr(
-            color_set, color_type
-        ), f"Color sets have no attribute {color_type}. Must be one of ('normal', 'select', 'active')."
+        assert hasattr(color_set, color_type), (
+            f"Color sets have no attribute {color_type}. Must be one of ('normal', 'select', 'active')."
+        )
 
         color = getattr(color_set, color_type)
         if color_type == 'normal':
             # For some reason Blender darkens the normal color by an arbitrary amount...
-            n = 50/255
+            n = 50 / 255
             color = Color((color.r - n, color.g - n, color.b - n))
 
         return color
@@ -123,9 +125,9 @@ class OverlayPainter:
         prefs = get_addon_prefs(context)
         if prefs.overlay_use_dashed:
             scale = transform.to_scale()
-            points = [p*scale for line in edge_lines for p in line]
+            points = [p * scale for line in edge_lines for p in line]
             size = bounding_box_diagonal_size(points)
-            dash_length = prefs.overlay_dash_length*0.1 * size
+            dash_length = prefs.overlay_dash_length * 0.1 * size
         else:
             dash_length = 0
 
@@ -217,9 +219,12 @@ class OverlayPainter:
         transform = get_bone_display_matrix(bone_info)
         geo = Geo(
             'LINES',
-            positions = self.object_wireframe_3d(context, wgt_ob, transform),
-            color = (*self.theme_bone_color(context, theme_color=bone_info.color_palette_base)[:3], prefs.overlay_opacity),
-            line_width = bone_info.custom_shape_wire_width,
+            positions=self.object_wireframe_3d(context, wgt_ob, transform),
+            color=(
+                *self.theme_bone_color(context, theme_color=bone_info.color_palette_base)[:3],
+                prefs.overlay_opacity,
+            ),
+            line_width=bone_info.custom_shape_wire_width,
         )
 
         BONEINFO_GEOS[bone_info.name] = geo
@@ -228,10 +233,11 @@ class OverlayPainter:
 
 class Geo:
     """Data that can be fed into a GPUBatch for drawing"""
+
     def __init__(
         self,
         data_layout='LINES',
-        positions: list[Vector]=[],
+        positions: list[Vector] = [],
         line_width=1.5,
         color=(1, 1, 1, 1),
     ):
@@ -310,12 +316,12 @@ def draw_rig_preview():
         painter.space = metarig.matrix_world
 
         from ..generation.cloud_generator import CloudGeneratorError, CloudRig_Generator
+
         generator = CloudRig_Generator(context, metarig, painter)
         # Generate the abstraction layer (ie. BoneInfos) of ONLY the changed/missing components.
         try:
             generator.generate_abstraction_layer(
-                context,
-                comp_pbone_subset=[comp.component_pbone for comp in components_to_regenerate]
+                context, comp_pbone_subset=[comp.component_pbone for comp in components_to_regenerate]
             )
         except CloudGeneratorError:
             # If generation of the abstraction layer raises an error,
@@ -342,7 +348,7 @@ def draw_rig_preview():
 
     draw_batch_cache()
 
-    view_3d.shading.cloudrig_eval_time = (time() - start)
+    view_3d.shading.cloudrig_eval_time = time() - start
 
 
 def overlay_poll(context) -> bool:
@@ -350,7 +356,7 @@ def overlay_poll(context) -> bool:
     we shouldn't be drawing or generating ANY rig preview.
     """
     prefs = get_addon_prefs(context)
-    if not prefs or prefs.overlay_mode=='NONE' or prefs.overlay_opacity == 0:
+    if not prefs or prefs.overlay_mode == 'NONE' or prefs.overlay_opacity == 0:
         return False
     view3d = context.area.spaces.active
     if not view3d.overlay.show_overlays:
@@ -375,7 +381,7 @@ def is_modal_navi_running(context) -> bool:
 def get_components_to_draw(context) -> set[RigComponent]:
     """Whether rig preview should be drawn for a given component."""
     prefs = get_addon_prefs(context)
-    metarig = context.active_object # (We don't care about WP mode, so this is fine!)
+    metarig = context.active_object  # (We don't care about WP mode, so this is fine!)
 
     potential_components = set()
 
@@ -466,7 +472,7 @@ def components_to_batches(component_geos) -> dict[str, dict[float, GPUBatch]]:
             geo_data = {"pos": [], "color": []}
             for geo in geos:
                 geo_data["pos"].extend(geo.positions)
-                geo_data["color"].extend([geo.color]*len(geo.positions))
+                geo_data["color"].extend([geo.color] * len(geo.positions))
 
             batch = batch_for_shader(shader, 'LINES', geo_data)
             comp_batches[line_width] = batch
@@ -528,40 +534,46 @@ def no_overlay(_func=None, *, return_value=None):
 
 ### Hashing functions.
 def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> list[str]:
-    return [str(thing) for thing in [
-        prefs.overlay_mode,
-        prefs.overlay_use_dashed,
-        prefs.overlay_opacity,
-        prefs.overlay_dash_length,
-        metarig.name,
-        metarig.matrix_world,
-        boneinfo.head,
-        boneinfo.tail,
-        boneinfo.roll,
-        boneinfo.custom_shape_name,
-        boneinfo.custom_shape.name if boneinfo.custom_shape else "",
-        get_bone_display_matrix(boneinfo),
-        boneinfo.custom_shape_wire_width,
-        boneinfo.color_palette_base,
-        boneinfo.color_palette_pose,
-        boneinfo.collections,
-    ]]
+    return [
+        str(thing)
+        for thing in [
+            prefs.overlay_mode,
+            prefs.overlay_use_dashed,
+            prefs.overlay_opacity,
+            prefs.overlay_dash_length,
+            metarig.name,
+            metarig.matrix_world,
+            boneinfo.head,
+            boneinfo.tail,
+            boneinfo.roll,
+            boneinfo.custom_shape_name,
+            boneinfo.custom_shape.name if boneinfo.custom_shape else "",
+            get_bone_display_matrix(boneinfo),
+            boneinfo.custom_shape_wire_width,
+            boneinfo.color_palette_base,
+            boneinfo.color_palette_pose,
+            boneinfo.collections,
+        ]
+    ]
 
 
 def hash_component(prefs, component) -> list[str]:
     rig = component.id_data
     pbone_chain = component.component_pbone_chain
-    return [str(thing) for thing in [
-        bpy.data.filepath,
-        prefs.overlay_mode,
-        prefs.overlay_use_dashed,
-        prefs.overlay_opacity,
-        prefs.overlay_dash_length,
-        rig.name,
-        rig.matrix_world,
-        [hash_bone(prefs, rig, pbone) for pbone in pbone_chain],
-        [coll.is_visible for coll in rig.data.collections_all],
-    ]]
+    return [
+        str(thing)
+        for thing in [
+            bpy.data.filepath,
+            prefs.overlay_mode,
+            prefs.overlay_use_dashed,
+            prefs.overlay_opacity,
+            prefs.overlay_dash_length,
+            rig.name,
+            rig.matrix_world,
+            [hash_bone(prefs, rig, pbone) for pbone in pbone_chain],
+            [coll.is_visible for coll in rig.data.collections_all],
+        ]
+    ]
 
 
 def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> list[str]:
@@ -575,19 +587,22 @@ def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> list[str]:
         transforms = [ebone.head, ebone.tail, ebone.roll]
     else:
         transforms = pbone.matrix
-    return [str(thing) for thing in [
-        pbone.name,
-        transforms,
-        pbone.select if prefs.overlay_mode != 'VISIBLE' else "",
-        pbone.custom_shape.name if pbone.custom_shape else "",
-        pbone.custom_shape_translation,
-        pbone.custom_shape_rotation_euler,
-        pbone.custom_shape_scale_xyz,
-        pbone.custom_shape_wire_width,
-        pbone.use_custom_shape_bone_size,
-        pbone.bone.color.palette,
-        pbone.color.palette,
-    ]]
+    return [
+        str(thing)
+        for thing in [
+            pbone.name,
+            transforms,
+            pbone.select if prefs.overlay_mode != 'VISIBLE' else "",
+            pbone.custom_shape.name if pbone.custom_shape else "",
+            pbone.custom_shape_translation,
+            pbone.custom_shape_rotation_euler,
+            pbone.custom_shape_scale_xyz,
+            pbone.custom_shape_wire_width,
+            pbone.use_custom_shape_bone_size,
+            pbone.bone.color.palette,
+            pbone.color.palette,
+        ]
+    ]
 
 
 def get_bone_display_matrix(bone: BoneInfo | PoseBone) -> Matrix:
@@ -626,6 +641,7 @@ def get_bone_display_matrix(bone: BoneInfo | PoseBone) -> Matrix:
 
 ### Menu buttons in the Overlays pop-over.
 
+
 def draw_overlay_toggle(self, context):
     if context.mode not in ('POSE', 'EDIT_ARMATURE'):
         return
@@ -650,6 +666,7 @@ def draw_overlay_toggle(self, context):
 
 ### Registration.
 
+
 def register():
     global HANDLER
     HANDLER = bpy.types.SpaceView3D.draw_handler_add(
@@ -666,11 +683,10 @@ def register():
     # https://blenderartists.org/t/custom-property-for-area/1208269/19?u=mets
     bpy.types.View3DShading.cloudrig_prev_view = StringProperty(
         name="Previous View Matrix",
-        description="String representation of the previous view matrix. If this changes, we know we shouldn't re-generate anything, to avoid lag."
+        description="String representation of the previous view matrix. If this changes, we know we shouldn't re-generate anything, to avoid lag.",
     )
     bpy.types.View3DShading.cloudrig_eval_time = FloatProperty(
-        name="Eval Time",
-        description="Duration of previous evaluation time."
+        name="Eval Time", description="Duration of previous evaluation time."
     )
 
 

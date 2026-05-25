@@ -24,9 +24,7 @@ class VIEW3D_MT_cloudrig(Menu):
             layout.operator('object.cloudrig_push_to_metarig', icon='IMPORT')
         elif context.mode in {'POSE', 'EDIT_ARMATURE'}:
             layout.separator()
-            layout.operator(
-                'pose.cloudrig_copy_component', icon='DUPLICATE', text="Copy Component"
-            )
+            layout.operator('pose.cloudrig_copy_component', icon='DUPLICATE', text="Copy Component")
             layout.operator(
                 'pose.cloudrig_symmetrize_components',
                 icon='MOD_MIRROR',

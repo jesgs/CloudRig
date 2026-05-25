@@ -12,6 +12,7 @@ CLOUDRIG_WIDGETS: dict[str, ImagePreview] = {}
 EXTERNAL_WIDGETS: dict[str, ImagePreview] = {}
 LOCAL_WIDGETS: dict[str, ImagePreview] = {}
 
+
 def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
     """Ensure a custom shapes exists:
     1. If the widget is in the current .blend file already, return it (unless we want to overwrite or link)
@@ -108,8 +109,10 @@ def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
 
     return new_wgt_ob
 
+
 def get_native_widgets_path() -> str:
     return os.path.realpath(__file__).replace("widgets.py", "Widgets.blend")
+
 
 def get_wgt_names_in_blend(blend_path: str) -> list[str]:
     if blend_path == bpy.data.filepath:
@@ -130,17 +133,22 @@ def get_wgt_names_in_blend(blend_path: str) -> list[str]:
 
     return wgt_names
 
+
 def load_widgets_of_blend(blend_path: str) -> dict[str, ImagePreview]:
     thumb_dir = Path(blend_path).parent / Path("thumbnails")
     wgt_names = get_wgt_names_in_blend(blend_path)
     icons = {}
     for wgt_name in wgt_names:
-        icons[wgt_name] = ensure_icon(wgt_name.replace("WGT-", ""), dir_path=thumb_dir, icon_map_name="Widget Thumbnails")
+        icons[wgt_name] = ensure_icon(
+            wgt_name.replace("WGT-", ""), dir_path=thumb_dir, icon_map_name="Widget Thumbnails"
+        )
 
     return icons
 
+
 def widget_name(name: str) -> str:
     return name.replace("WGT-", "")
+
 
 def refresh_cloudrig_widgets():
     """Build a list of custom shapes found in the Widgets.blend that ships with CloudRig.
@@ -150,6 +158,7 @@ def refresh_cloudrig_widgets():
     global CLOUDRIG_WIDGETS
     wgt_blend_path = get_native_widgets_path()
     CLOUDRIG_WIDGETS = load_widgets_of_blend(wgt_blend_path)
+
 
 def refresh_external_widgets(context=None):
     """Build a list of custom shapes found in the .blend that the user may or may not have browsed in the preferences.
@@ -165,9 +174,11 @@ def refresh_external_widgets(context=None):
         return []
     EXTERNAL_WIDGETS = load_widgets_of_blend(wgt_blend_path)
 
+
 def refresh_local_widgets():
     global LOCAL_WIDGETS
     LOCAL_WIDGETS = load_widgets_of_blend(bpy.data.filepath)
+
 
 def refresh_widget_list(force_cloudrig=False, force_external=False):
     """This is the `items` callback function for a widget selector EnumProperty.
@@ -206,6 +217,7 @@ def refresh_widget_list(force_cloudrig=False, force_external=False):
 
     return all_widgets
 
+
 def widgets_enum_items(_operator=None, context=None) -> list[tuple[str, str, str, str, int]]:
     enum_items: list[tuple[str, str, str]] = []
 
@@ -218,10 +230,12 @@ def widgets_enum_items(_operator=None, context=None) -> list[tuple[str, str, str
 
     return enum_items
 
+
 def get_nonlocal_widgets():
     ret = CLOUDRIG_WIDGETS.copy()
     ret.update(EXTERNAL_WIDGETS)
     return ret
+
 
 def get_pbone_custom_shape_data(pose_bone: PoseBone) -> dict[str]:
     """
@@ -238,16 +252,17 @@ def get_pbone_custom_shape_data(pose_bone: PoseBone) -> dict[str]:
         "show_wire": pose_bone.bone.show_wire,
     }
 
+
 def set_pbone_custom_shape_data(
-        pose_bone: PoseBone,
-        custom_shape: Object = None,
-        custom_shape_translation: Vector = None,
-        custom_shape_rotation_euler: Euler = None,
-        custom_shape_scale_xyz: Vector = None,
-        use_custom_shape_bone_size: bool = None,
-        show_wire: bool = None,
-        custom_shape_wire_width: float = None,
-        ):
+    pose_bone: PoseBone,
+    custom_shape: Object = None,
+    custom_shape_translation: Vector = None,
+    custom_shape_rotation_euler: Euler = None,
+    custom_shape_scale_xyz: Vector = None,
+    use_custom_shape_bone_size: bool = None,
+    show_wire: bool = None,
+    custom_shape_wire_width: float = None,
+):
     """Applies the passed custom shape settings to the pose bone."""
     if custom_shape:
         pose_bone.custom_shape = custom_shape
@@ -264,11 +279,10 @@ def set_pbone_custom_shape_data(
     if custom_shape_wire_width:
         pose_bone.custom_shape_wire_width = custom_shape_wire_width
 
+
 def get_custom_shape_rig_data(rig: Object) -> dict[str, dict]:
-    return {
-        pb.name: get_pbone_custom_shape_data(pb)
-        for pb in rig.pose.bones
-    }
+    return {pb.name: get_pbone_custom_shape_data(pb) for pb in rig.pose.bones}
+
 
 def apply_custom_shape_rig_data(rig: Object, custom_shape_data: dict) -> None:
     if not (rig and rig.pose):

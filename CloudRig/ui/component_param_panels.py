@@ -39,6 +39,7 @@ class CLOUDRIG_PT_rig_component(Panel):
     def draw(self, context):
         draw_rig_component_panel(context, self.layout)
 
+
 def draw_rig_component_panel(context, layout):
     layout = layout.column()
     layout.use_property_split = True
@@ -51,7 +52,7 @@ def draw_rig_component_panel(context, layout):
         return
     rig_component = active_pb.cloudrig_component
     draw_inherited_component(layout, rig_component)
-    layout.alert = rig_component.component_type!="" and not bool(rig_component.component_class)
+    layout.alert = rig_component.component_type != "" and not bool(rig_component.component_class)
     row = layout.row()
     text = "Component Type"
     if row.alert:
@@ -73,6 +74,7 @@ def draw_rig_component_panel(context, layout):
     layout.prop(prefs, 'advanced_mode')
     draw_params_subpanels(context, rig_component, layout)
 
+
 def draw_inherited_component(layout, rig_component):
     if rig_component.component_type == "":
         comp_pb = rig_component.component_pbone
@@ -91,6 +93,7 @@ def draw_inherited_component(layout, rig_component):
             op.use_target_rig = False
             op.target_bone = comp_pb.name
 
+
 @dataclass
 class CloudRigPanel:
     ui_name: str
@@ -100,14 +103,15 @@ class CloudRigPanel:
     def poll(self, context):
         comp = get_component_in_ui(context)
         component_class = comp.component_class
-        if hasattr(component_class, 'poll_'+self.func_name):
-            poll_func = getattr(component_class, 'poll_'+self.func_name)
+        if hasattr(component_class, 'poll_' + self.func_name):
+            poll_func = getattr(component_class, 'poll_' + self.func_name)
             if poll_func:
                 return poll_func(context, comp)
         return True
 
     def draw_header(self, context, layout):
         pass
+
 
 class AnimPanel(CloudRigPanel):
     def poll(self, context):
@@ -118,6 +122,7 @@ class AnimPanel(CloudRigPanel):
         params = comp.params
         layout.use_property_split = False
         layout.prop(params.fk_chain, 'test_animation_generate', text="")
+
 
 class BoneSetPanel(CloudRigPanel):
     def poll(self, context):
@@ -139,9 +144,10 @@ class BoneSetPanel(CloudRigPanel):
 
         return False
 
+
 PANEL_DATAS = OrderedDict(
-    (data.ui_name, data) for data in
-    [
+    (data.ui_name, data)
+    for data in [
         CloudRigPanel(n_("Parenting"), "draw_parenting_params"),
         CloudRigPanel(n_("Controls"), "draw_control_params"),
         AnimPanel(n_("Test Animation"), "draw_anim_params"),
@@ -152,9 +158,11 @@ PANEL_DATAS = OrderedDict(
     ]
 )
 
+
 def draw_params_subpanels(context, rig_component, layout):
     for panel_name in PANEL_DATAS:
         draw_params_subpanel_single(context, rig_component, layout, panel_name)
+
 
 def draw_params_subpanel_single(context, rig_component, layout, panel_name: str):
     panel_data = PANEL_DATAS.get(panel_name)
@@ -170,11 +178,8 @@ def draw_params_subpanel_single(context, rig_component, layout, panel_name: str)
         return
     if not hasattr(comp_class, panel_data.func_name):
         return
-    poll_func_name = "poll_"+panel_data.func_name
-    if (
-        hasattr(comp_class, poll_func_name) and
-        not getattr(comp_class, poll_func_name)(context, rig_component)
-    ):
+    poll_func_name = "poll_" + panel_data.func_name
+    if hasattr(comp_class, poll_func_name) and not getattr(comp_class, poll_func_name)(context, rig_component):
         return
     header, panel = layout.panel(f"CloudRig {panel_data.ui_name}", default_closed=True)
     panel_data.draw_header(context, header)
@@ -182,11 +187,11 @@ def draw_params_subpanel_single(context, rig_component, layout, panel_name: str)
     if panel:
         draw_component_params(context, panel.column(), rig_component, panel_data.func_name)
 
+
 def draw_component_params(context, layout, rig_component, func_name: str):
     component_class = rig_component.component_class
     draw_func = getattr(component_class, func_name)
     draw_func(layout, context, rig_component)
 
-registry = [
-    CLOUDRIG_PT_rig_component
-]
+
+registry = [CLOUDRIG_PT_rig_component]

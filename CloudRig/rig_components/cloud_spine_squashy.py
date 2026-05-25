@@ -31,9 +31,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         super().__init__(*args, **kwargs)
 
         if not self.bone_count > 1:
-            self.raise_generation_error(
-                rpt_("Component must consist of a chain of at least 2 connected bones!")
-            )
+            self.raise_generation_error(rpt_("Component must consist of a chain of at least 2 connected bones!"))
 
         self.squashy_name = "squashy_spine_" + self.base_name.lower()
         self.squashy_volume_name = "squashy_spine_volume_" + self.base_name.lower()
@@ -51,9 +49,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
         self.__make_squashy_spine()
 
         if self.params.spine_squashy.double:
-            self.root_bone = self.create_parent_bone(
-                self.root_torso, self.bone_sets['Spine Parent Controls']
-            )
+            self.root_bone = self.create_parent_bone(self.root_torso, self.bone_sets['Spine Parent Controls'])
 
     def fk_chain__make_root_bone(self):
         # Create Torso Master control
@@ -104,18 +100,14 @@ class Component_Spine_Squashy(Component_Chain_FK):
             source=chest_org,
             head=chest_org.prev.center,
             custom_shape_name="Saddle",
-            custom_shape_translation=Vector(
-                (0, chest_org.length + chest_org.prev.length / 2, 0)
-            ),
+            custom_shape_translation=Vector((0, chest_org.length + chest_org.prev.length / 2, 0)),
             custom_shape_scale=2,
             parent=self.root_torso,
         )
         self.mstr_chest.custom_shape_scale_xyz *= Vector((0.8, -1.3, 0.8))
 
         if self.params.spine_squashy.double:
-            self.create_parent_bone(
-                self.mstr_chest, self.bone_sets['Spine Parent Controls']
-            )
+            self.create_parent_bone(self.mstr_chest, self.bone_sets['Spine Parent Controls'])
 
         # Create squash helper
         self.squash_helper = self.bone_sets['Spine Mechanism'].new(
@@ -179,9 +171,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
             'prop': 'influence',
             'variables': [(self.properties_bone.name, self.squashy_name)],
         }
-        influence_driven_constraints = [
-            stretch_con
-        ]  # con_rot_counter, con_trans_fwd, con_trans_side
+        influence_driven_constraints = [stretch_con]  # con_rot_counter, con_trans_fwd, con_trans_side
         for con in influence_driven_constraints:
             con.drivers.append(squash_toggle_driver.copy())
 
@@ -205,9 +195,11 @@ class Component_Spine_Squashy(Component_Chain_FK):
             slider_name=self.base_name,
             custom_prop_settings={
                 'default': 1.0,
-                'description': tip_("Switch to an IK-like posing mode. "
-                "Instead of posing the spine from bottom to top, this lets you "
-                "control the two end points in an intuitive way"),
+                'description': tip_(
+                    "Switch to an IK-like posing mode. "
+                    "Instead of posing the spine from bottom to top, this lets you "
+                    "control the two end points in an intuitive way"
+                ),
             },
             context_bones=[self.mstr_chest, self.root_torso, self.mstr_hips],
         )
@@ -220,8 +212,9 @@ class Component_Spine_Squashy(Component_Chain_FK):
             slider_name=self.base_name + " Squash & Stretch",
             custom_prop_settings={
                 'default': 0.0,
-                'description': tip_("Allow the spine to stretch beyond its normal "
-                "length while in IK mode, for a cartoony effect"),
+                'description': tip_(
+                    "Allow the spine to stretch beyond its normal length while in IK mode, for a cartoony effect"
+                ),
             },
             context_bones=[self.mstr_chest, self.root_torso, self.mstr_hips],
         )

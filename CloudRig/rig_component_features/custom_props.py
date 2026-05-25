@@ -31,9 +31,10 @@ class CloudCustomPropertiesMixin:
             self.add_log(
                 rpt_("Custom Property bone not found"),
                 trouble_bone=prop_bone_name,
-                description=rpt_('Custom Property bone named "{bone}" not found, falling back to ' \
-                            'default Properties bone. If it exists, make sure it generates before this rig.')
-                            .format(bone=prop_bone_name),
+                description=rpt_(
+                    'Custom Property bone named "{bone}" not found, falling back to '
+                    'default Properties bone. If it exists, make sure it generates before this rig.'
+                ).format(bone=prop_bone_name),
             )
             storage = 'DEFAULT'
 
@@ -77,9 +78,7 @@ class CloudCustomPropertiesMixin:
             custom_shape_translation=Vector((0, 0, 0)),
             custom_shape_rotation_euler=Vector((0, 0, 0)),
         )
-        prop_bone.collections = [
-            coll.name for coll in self.metarig_base_pbone.bone.collections
-        ]
+        prop_bone.collections = [coll.name for coll in self.metarig_base_pbone.bone.collections]
         return prop_bone
 
     @classmethod

@@ -41,13 +41,13 @@ class Component_Spine_Toon(Component_Chain_FK):
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
-            length=self.bones_org[0].length+self.bones_org[1].length/2,
+            length=self.bones_org[0].length + self.bones_org[1].length / 2,
             custom_shape_name=self.params.spine_toon.shape_torso.shape_name,
         )
         spine_toon_params = self.params.spine_toon
         if spine_toon_params.world_align:
             self.torso_ctr.world_align()
-            self.torso_ctr.custom_shape_rotation_euler.x = pi/2
+            self.torso_ctr.custom_shape_rotation_euler.x = pi / 2
         elif spine_toon_params.flatten_controls:
             self.torso_ctr.flatten()
         self.torso_ctr.custom_shape_wire_width += 1.0
@@ -92,7 +92,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             parent=self.torso_ctr,
             custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
             use_custom_shape_bone_size=False,
-            custom_shape_rotation_euler=Vector((0, pi/2, 0)),
+            custom_shape_rotation_euler=Vector((0, pi / 2, 0)),
         )
         chest.custom_shape_scale_xyz = self.fk_chain[-1].custom_shape_scale_xyz.zyx * self.fk_chain[-1].length
         chest.custom_shape_scale_xyz.y *= chest.length / self.fk_chain[-1].length
@@ -106,7 +106,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             parent=self.torso_ctr,
             custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
             use_custom_shape_bone_size=False,
-            custom_shape_rotation_euler=Vector((0, pi/2, 0)),
+            custom_shape_rotation_euler=Vector((0, pi / 2, 0)),
         )
         hips.roll_align_other(self.bones_org[0], axis='-Z')
         hips_fwd = self.bone_sets['Mechanism Bones'].new(
@@ -126,11 +126,13 @@ class Component_Spine_Toon(Component_Chain_FK):
             tail=self.bones_org[0].head,
             parent=hips,
             custom_shape_name=self.params.spine_toon.shape_ik.shape_name,
-            custom_shape_wire_width=hips.custom_shape_wire_width/2,
+            custom_shape_wire_width=hips.custom_shape_wire_width / 2,
             use_custom_shape_bone_size=False,
-            custom_shape_rotation_euler=Vector((0, pi/2, 0)),
+            custom_shape_rotation_euler=Vector((0, pi / 2, 0)),
         )
-        hips_lower.custom_shape_scale_xyz = Vector.lerp(hips.custom_shape_scale_xyz, self.bones_org[0].length*self.bones_org[0].custom_shape_scale_xyz.zyx, 0.5)
+        hips_lower.custom_shape_scale_xyz = Vector.lerp(
+            hips.custom_shape_scale_xyz, self.bones_org[0].length * self.bones_org[0].custom_shape_scale_xyz.zyx, 0.5
+        )
         hips_lower.custom_shape_scale_xyz.y *= 0.5
         hips_lower.custom_shape_translation = hips.custom_shape_translation
         hips_lower.roll_align_other(self.bones_org[0], axis='-Z')
@@ -155,7 +157,9 @@ class Component_Spine_Toon(Component_Chain_FK):
             self.main_str_bones[-1].parent = self.fk_chain[-1]
             self.main_str_bones[-1].roll_align_other(self.fk_chain[-1])
         self.main_str_bones[0].set_parent_safe(hips_lower)
-        self.main_str_bones[0].add_constraint('COPY_ROTATION', subtarget=hips_lower, influence=0.5, invert_xyz=[False, False, True])
+        self.main_str_bones[0].add_constraint(
+            'COPY_ROTATION', subtarget=hips_lower, influence=0.5, invert_xyz=[False, False, True]
+        )
 
     ##############################
     # Toon spine functions.
@@ -173,7 +177,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             panel_name=n_("FK/IK Switch"),
             slider_name='Spine',
             custom_prop_settings={
-                'default' : self.params.spine_toon.default_fkik,
+                'default': self.params.spine_toon.default_fkik,
             },
             context_bones=fk_chain + [chest, self.torso_ctr, self.hips, self.hips_lower],
         )
@@ -184,6 +188,7 @@ class Component_Spine_Toon(Component_Chain_FK):
     @no_overlay
     def __make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
         ik_chain = []
+
         def make_ik_bone(bone_name: str, parent: BoneInfo) -> BoneInfo:
             ik_hlp = self.bone_sets['Toon Spine IK Secondary'].new(
                 name=bone_name,
@@ -191,20 +196,17 @@ class Component_Spine_Toon(Component_Chain_FK):
                 parent=parent,
                 custom_shape_name=self.params.spine_toon.shape_ik_secondary.shape_name,
                 lock_rotation=(True, False, True),
-                lock_scale=(True, True, True)
+                lock_scale=(True, True, True),
             )
-            is_last = len(ik_chain)==len(fk_chain)-1
-            def_bone = self.bones_def[len(ik_chain)+(0 if is_last else 1)]
-            dsp = self.create_dsp_bone(ik_hlp,
+            is_last = len(ik_chain) == len(fk_chain) - 1
+            def_bone = self.bones_def[len(ik_chain) + (0 if is_last else 1)]
+            dsp = self.create_dsp_bone(
+                ik_hlp,
                 head=def_bone.tail if is_last else def_bone.center,
                 vector=def_bone.vector,
-                length=def_bone.length/2
+                length=def_bone.length / 2,
             )
-            dsp.add_constraint('COPY_TRANSFORMS',
-                head_tail=1.0 if is_last else 0.5,
-                subtarget=def_bone,
-                space='WORLD'
-            )
+            dsp.add_constraint('COPY_TRANSFORMS', head_tail=1.0 if is_last else 0.5, subtarget=def_bone, space='WORLD')
             ik_chain.append(ik_hlp)
             return ik_hlp
 
@@ -213,14 +215,16 @@ class Component_Spine_Toon(Component_Chain_FK):
         for i, fk_bone in enumerate(fk_chain[1:]):
             ik_name = self.naming.add_prefix(fk_bone.source, "IK")
             ik_hlp = make_ik_bone(ik_name, next_parent)
-            if 0 < i < len(fk_chain)-3:
-                unit = 1 / (len(fk_chain)-3)
-                chest_influence = unit*i
+            if 0 < i < len(fk_chain) - 3:
+                unit = 1 / (len(fk_chain) - 3)
+                chest_influence = unit * i
                 parent_helper = self.create_parent_bone(ik_hlp, bone_set=self.bone_sets['Mechanism Bones'])
                 parent_helper.put(Vector.lerp(hips.tail, chest.head, chest_influence))
-                parent_helper.vector = (chest.head-hips.tail).normalized() * parent_helper.vector.length
+                parent_helper.vector = (chest.head - hips.tail).normalized() * parent_helper.vector.length
                 parent_helper.roll_align_other(hips)
-                copy_first, _copy_last, _dt_con = self.constrain_between_bones(parent_helper, hips, chest, chest_influence)
+                copy_first, _copy_last, _dt_con = self.constrain_between_bones(
+                    parent_helper, hips, chest, chest_influence
+                )
                 copy_first.head_tail = 1.0
 
             next_parent = chest
@@ -242,7 +246,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         ik_chain: list[BoneInfo],
         hips_fwd: BoneInfo,
         chest: BoneInfo,
-        ikfk_prop_name: str
+        ikfk_prop_name: str,
     ) -> list[BoneInfo]:
         squash_prop_name = f"squash_{self.base_name}"
         self.rig_ui__add_bone_property(
@@ -250,11 +254,7 @@ class Component_Spine_Toon(Component_Chain_FK):
             prop_id=squash_prop_name,
             panel_name=n_("IK"),
             slider_name=f'{self.base_name} Squash',
-            custom_prop_settings={
-                'default' : self.params.spine_toon.default_stretch,
-                'soft_max' : 1.0,
-                'max': 2.0
-            },
+            custom_prop_settings={'default': self.params.spine_toon.default_stretch, 'soft_max': 1.0, 'max': 2.0},
             context_bones=ik_chain + [chest, self.torso_ctr, self.hips, self.hips_lower],
         )
 
@@ -266,15 +266,20 @@ class Component_Spine_Toon(Component_Chain_FK):
                 source=fk_bone,
                 head=fk_bone.head,
                 tail=ik_chain[i].head,
-                parent=next_parent
+                parent=next_parent,
             )
-            str_con = ik_str.add_constraint('STRETCH_TO', subtarget=ik_chain[i], use_bulge_min=False, use_bulge_max=True, bulge_max=2.0)
-            str_con.drivers.append({
-                'prop': 'bulge',
-                'variables': [(self.properties_bone.name, squash_prop_name)],
-            })
+            str_con = ik_str.add_constraint(
+                'STRETCH_TO', subtarget=ik_chain[i], use_bulge_min=False, use_bulge_max=True, bulge_max=2.0
+            )
+            str_con.drivers.append(
+                {
+                    'prop': 'bulge',
+                    'variables': [(self.properties_bone.name, squash_prop_name)],
+                }
+            )
             next_parent = ik_chain[i]
-            copycon = fk_bone.add_constraint('COPY_TRANSFORMS',
+            copycon = fk_bone.add_constraint(
+                'COPY_TRANSFORMS',
                 name='Copy Transform (IK)',
                 subtarget=ik_str,
                 space='WORLD',
@@ -306,19 +311,19 @@ class Component_Spine_Toon(Component_Chain_FK):
             collections=["IK Secondary"],
             wire_width=1.0,
         )
-        cls.define_bone_set(
-            n_("Toon Spine Mechanism"),
-            collections=["Mechanism Bones"],
-            is_advanced=True
-        )
+        cls.define_bone_set(n_("Toon Spine Mechanism"), collections=["Mechanism Bones"], is_advanced=True)
 
     @classmethod
     def draw_control_params(cls, layout, context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 
-        cls.draw_prop(context, layout, params.spine_toon, "world_align", enabled=(not params.spine_toon.flatten_controls))
-        cls.draw_prop(context, layout, params.spine_toon, "flatten_controls", enabled=(not params.spine_toon.world_align))
+        cls.draw_prop(
+            context, layout, params.spine_toon, "world_align", enabled=(not params.spine_toon.flatten_controls)
+        )
+        cls.draw_prop(
+            context, layout, params.spine_toon, "flatten_controls", enabled=(not params.spine_toon.world_align)
+        )
 
     @classmethod
     def draw_stretch_control_params(cls, layout, context, component):
@@ -344,6 +349,7 @@ class Component_Spine_Toon(Component_Chain_FK):
 
 class Params(PropertyGroup):
     """Defines the parameters to be registered in RNA. Must be exactly `Params`."""
+
     world_align: BoolProperty(
         name="World-Align Torso",
         description="Align the torso control with the world axes",
@@ -355,26 +361,22 @@ class Params(PropertyGroup):
         default=False,
     )
 
-    shape_ik: Component_Chain_FK.make_custom_shape_params(
-        identifier="IK",
-        default="Saddle"
-    )
-    shape_ik_secondary: Component_Chain_FK.make_custom_shape_params(
-        identifier="IK Secondary",
-        default="Square 2"
-    )
-    shape_torso: Component_Chain_FK.make_custom_shape_params(
-        identifier="Torso",
-        default="Torso"
-    )
+    shape_ik: Component_Chain_FK.make_custom_shape_params(identifier="IK", default="Saddle")
+    shape_ik_secondary: Component_Chain_FK.make_custom_shape_params(identifier="IK Secondary", default="Square 2")
+    shape_torso: Component_Chain_FK.make_custom_shape_params(identifier="Torso", default="Torso")
 
     default_fkik: FloatProperty(
         name="Default FK/IK",
-        min=0, max=1, default=1,
+        min=0,
+        max=1,
+        default=1,
     )
     default_stretch: FloatProperty(
         name="Default IK Squash",
-        min=0, max=1, default=0.7,
+        min=0,
+        max=1,
+        default=0.7,
     )
+
 
 RIG_COMPONENT_CLASS = Component_Spine_Toon

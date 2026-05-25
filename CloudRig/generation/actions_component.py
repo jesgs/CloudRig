@@ -13,7 +13,7 @@ from bpy.types import Action, Mesh, Object
 from bpy.utils import flip_name as mirror_name
 
 from ..rig_component_features.properties_ui import make_property
-from ..ui.actions_ui import ActionConstraintSetup
+from ..ui.actions_ui import ACTION_NAME_SEPARATOR, ActionConstraintSetup
 from ..utils.external.mechanism import (
     driver_var_transform,
     make_constraint,
@@ -22,7 +22,6 @@ from ..utils.external.mechanism import (
 )
 from ..utils.external.naming import Side, change_name_side, get_name_side
 from .troubleshooting import LoggerMixin
-from ..ui.actions_ui import ACTION_NAME_SEPARATOR
 
 
 class ActionConstraintSide(LoggerMixin):
@@ -44,7 +43,9 @@ class ActionConstraintSide(LoggerMixin):
             if not (action_setup.trigger_a and action_setup.trigger_b):
                 self.add_log(
                     rpt_("Missing trigger Action Setup"),
-                    description=rpt_('Action Setup "{action}" references missing trigger setup').format(action=action_setup.name)
+                    description=rpt_('Action Setup "{action}" references missing trigger setup').format(
+                        action=action_setup.name
+                    ),
                 )
                 return
             trigger_a = self.owner.action_setup_side_map[action_setup.trigger_a]
@@ -90,11 +91,7 @@ class ActionConstraintSide(LoggerMixin):
         bones = [bone for bone in self.action_setup.keyed_bone_names if bone not in controls]
 
         if self.side != Side.MIDDLE:
-            bones = [
-                name
-                for name in bones
-                if get_name_side(name) in (self.side, Side.MIDDLE)
-            ]
+            bones = [name for name in bones if get_name_side(name) in (self.side, Side.MIDDLE)]
 
         return bones
 
@@ -123,7 +120,9 @@ class ActionConstraintSide(LoggerMixin):
         if self.action_setup.is_corrective and self.used_as_trigger:
             self.add_log(
                 rpt_("Corrective cannot be trigger"),
-                description=rpt_('Corrective action "{action}" used as trigger. This is not currently supported.').format(action=self.action_setup.name)
+                description=rpt_(
+                    'Corrective action "{action}" used as trigger. This is not currently supported.'
+                ).format(action=self.action_setup.name),
             )
             # TODO: Why isn't this supported? Should be fine imo.
             return
@@ -133,7 +132,9 @@ class ActionConstraintSide(LoggerMixin):
                 rpt_("Missing Action Control"),
                 note=self.control_name,
                 note_icon='BONE_DATA',
-                description=rpt_("Control bone '{bone}' for action '{action}' not found").format(bone=self.control_name, action=self.action_setup.name),
+                description=rpt_("Control bone '{bone}' for action '{action}' not found").format(
+                    bone=self.control_name, action=self.action_setup.name
+                ),
             )
             return
 
@@ -153,7 +154,9 @@ class ActionConstraintSide(LoggerMixin):
             self.generator.logger.log(
                 rpt_("Action constraint failed"),
                 trouble_bone=bone_name,
-                description=rpt_('Bone "{bone}" was not found, so it cannot get an Action constraint for `{action}`.').format(bone=bone_name, action=self.action_setup.name),
+                description=rpt_(
+                    'Bone "{bone}" was not found, so it cannot get an Action constraint for `{action}`.'
+                ).format(bone=bone_name, action=self.action_setup.name),
             )
             return
 
@@ -223,9 +226,7 @@ class ActionConstraintSide(LoggerMixin):
         )
 
     def rig_factor_driver(self, owner, prop_name):
-        channel = self.action_setup.transform_channel.replace("LOCATION", "LOC").replace(
-            "ROTATION", "ROT"
-        )
+        channel = self.action_setup.transform_channel.replace("LOCATION", "LOC").replace("ROTATION", "ROT")
 
         make_driver(
             owner,
@@ -248,7 +249,7 @@ class ActionConstraintSide(LoggerMixin):
 
             if mesh.shape_keys:
                 for key_block in mesh.shape_keys.key_blocks[1:]:
-                    if key_block.name in (self.name, self.name.rsplit(ACTION_NAME_SEPARATOR+" ")[-1]):
+                    if key_block.name in (self.name, self.name.rsplit(ACTION_NAME_SEPARATOR + " ")[-1]):
                         self.rig_shape_key(key_block)
 
     def rig_shape_key(self, key_block):
@@ -277,7 +278,8 @@ class ActionConstraintComponent(LoggerMixin):
         self.action_setup_side_map = {}
         if self.action_setups:
             valid_setups = [
-                act_setup for act_setup in self.action_setups
+                act_setup
+                for act_setup in self.action_setups
                 if act_setup.enabled and act_setup.action and act_setup.action_slot
                 # TODO SLOTS: Probably make this an is_valid @property.
             ]
@@ -292,11 +294,7 @@ class ActionConstraintComponent(LoggerMixin):
 
     def get_child_meshes(self):
         if self.layers and self.generator.params.target_rig:
-            return [
-                child
-                for child in self.generator.params.target_rig.children_recursive
-                if child.type == 'MESH'
-            ]
+            return [child for child in self.generator.params.target_rig.children_recursive if child.type == 'MESH']
         return []
 
     @staticmethod
@@ -329,7 +327,9 @@ class ActionConstraintComponent(LoggerMixin):
             if not action_setup.trigger_a or not action_setup.trigger_b:
                 self.add_log(
                     rpt_("Missing trigger action"),
-                    description=rpt_('Action Setup "{action}" is marked as corrective but missing at least one trigger selection.').format(action=action_setup.name)
+                    description=rpt_(
+                        'Action Setup "{action}" is marked as corrective but missing at least one trigger selection.'
+                    ).format(action=action_setup.name),
                 )
                 return
 
@@ -344,6 +344,4 @@ class ActionConstraintComponent(LoggerMixin):
                 Side.RIGHT: ActionConstraintSide(self, action_setup, Side.RIGHT),
             }
         else:
-            return {
-                Side.MIDDLE: ActionConstraintSide(self, action_setup, Side.MIDDLE)
-            }
+            return {Side.MIDDLE: ActionConstraintSide(self, action_setup, Side.MIDDLE)}

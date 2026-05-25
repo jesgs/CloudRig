@@ -21,7 +21,7 @@ SAMPLE_NAMES: list[tuple[str, str]] = []
 class CLOUDRIG_OT_metarig_add(Operator):
     bl_idname = "object.cloudrig_metarig_add"
     bl_label = "Add CloudRig Meta-Rig"
-    bl_description="Load metarig preset"
+    bl_description = "Load metarig preset"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     metarig_name: StringProperty()
@@ -39,7 +39,7 @@ class CLOUDRIG_OT_metarig_add(Operator):
 class CLOUDRIG_OT_sample_add(Operator):
     bl_idname = "object.cloudrig_sample_add"
     bl_label = "Add CloudRig Sample"
-    bl_description="Load component sample"
+    bl_description = "Load component sample"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     sample_name: StringProperty()
@@ -102,9 +102,7 @@ def get_available_object_name(obj_name: str) -> str:
     return numbered_name
 
 
-def append_obj_from_file(
-    context, blend_path, obj_name, link_to_scene=True, select=True, use_cursor=True
-) -> Object:
+def append_obj_from_file(context, blend_path, obj_name, link_to_scene=True, select=True, use_cursor=True) -> Object:
     """Append an object from a .blend file and return it."""
     available_name = get_available_object_name(obj_name)
 
@@ -242,6 +240,7 @@ def draw_cloudrig_metarig_menu(self, context):
     self.layout.menu('CLOUDRIG_MT_metarigs', icon='OUTLINER_OB_ARMATURE')
     draw_cloudrig_samples_menu(self, context)
 
+
 def draw_cloudrig_samples_menu(self, context):
     if context.mode == 'EDIT_ARMATURE' and not context.active_object.cloudrig.enabled:
         return
@@ -257,11 +256,13 @@ registry = [
 
 modules = [versioning]
 
+
 # Registering is a bit tricky because we need to load a resource .blend file,
 # which is not allowed by bpy during registration, so we have to do it with a delay.
 def delayed_refresh_metarig_list(c=1, s=2):
     refresh_metarig_list()
     refresh_rig_sample_list()
+
 
 def register():
     bpy.app.timers.register(delayed_refresh_metarig_list)
@@ -269,6 +270,7 @@ def register():
     bpy.types.VIEW3D_MT_armature_add.append(draw_cloudrig_metarig_menu)
     bpy.types.TOPBAR_MT_edit_armature_add.append(draw_cloudrig_samples_menu)
     versioning.update_all_metarigs()
+
 
 def unregister():
     bpy.types.VIEW3D_MT_armature_add.remove(draw_cloudrig_metarig_menu)

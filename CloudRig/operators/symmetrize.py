@@ -54,15 +54,15 @@ class POSE_OT_symmetrize_rigging(Operator):
             if opp_pb in selected_pose_bones:
                 self.report(
                     {'ERROR'},
-                    rpt_('Bone selected on both sides: "{bone}". Select only one side to clarify symmetrizing direction.')
-                    .format(bone=pb.name),
+                    rpt_(
+                        'Bone selected on both sides: "{bone}". Select only one side to clarify symmetrizing direction.'
+                    ).format(bone=pb.name),
                 )
                 return {'CANCELLED'}
             if opp_pb == pb:
                 self.report(
                     {'WARNING'},
-                    rpt_('Bone name cannot be flipped: "{bone}". Symmetrize will have no effect.')
-                    .format(bone=pb.name),
+                    rpt_('Bone name cannot be flipped: "{bone}". Symmetrize will have no effect.').format(bone=pb.name),
                 )
                 pb.select = False
                 continue
@@ -119,8 +119,8 @@ class POSE_OT_symmetrize_rigging(Operator):
 
             copy_property_group(from_pb.cloudrig_component, to_pb.cloudrig_component, x_mirror=True)
             if to_pb.cloudrig_component.params.shoulder.is_property_set('up_axis'):
-                to_pb.cloudrig_component.params.shoulder.up_axis = str((
-                    int(to_pb.cloudrig_component.params.shoulder.up_axis) + 2) % 4
+                to_pb.cloudrig_component.params.shoulder.up_axis = str(
+                    (int(to_pb.cloudrig_component.params.shoulder.up_axis) + 2) % 4
                 )
 
             # Flip custom property names
@@ -159,9 +159,7 @@ def remove_constraint_with_drivers(
 
     if armature.animation_data:
         for fc in armature.animation_data.drivers[:]:
-            if fc.data_path.startswith(
-                f'pose.bones["{pbone.name}"].constraints["{con.name}"].'
-            ):
+            if fc.data_path.startswith(f'pose.bones["{pbone.name}"].constraints["{con.name}"].'):
                 armature.animation_data.drivers.remove(fc)
 
     pbone.constraints.remove(con)
@@ -265,18 +263,11 @@ def symmetrize_drivers(
             if swap_map:
                 for key, value in swap_map.items():
                     if key in data_path_from_constraint:
-                        data_path_from_constraint = data_path_from_constraint.replace(
-                            key, value
-                        )
+                        data_path_from_constraint = data_path_from_constraint.replace(key, value)
                     elif value in data_path_from_constraint:
-                        data_path_from_constraint = data_path_from_constraint.replace(
-                            value, key
-                        )
+                        data_path_from_constraint = data_path_from_constraint.replace(value, key)
             # Armature constraints need special special treatment...
-            if (
-                src_constraint.type == 'ARMATURE'
-                and "targets[" in data_path_from_constraint
-            ):
+            if src_constraint.type == 'ARMATURE' and "targets[" in data_path_from_constraint:
                 target_idx = int(data_path_from_constraint.split("targets[")[1][0])
                 target = dst_constraint.targets[target_idx]
                 # Weight is the only property that can have a driver on an Armature constraint's Target.
@@ -326,9 +317,7 @@ def symmetrize_drivers(
 
                     # If the data path is referring to a custom property, flip the custom property name, too.
                     prop_name = dst_data_path.split('["')[-1].split('"')[0]
-                    dst_data_path = dst_data_path.replace(
-                        prop_name, flip_name(prop_name)
-                    )
+                    dst_data_path = dst_data_path.replace(prop_name, flip_name(prop_name))
 
                 dst_tgt.data_path = dst_data_path
                 dst_tgt.transform_type = src_tgt.transform_type
@@ -338,14 +327,9 @@ def symmetrize_drivers(
                     expression = expression.replace(src_var.name, dst_var.name)
 
                 # If one of the driving values is something that needs to be inverted, invert only that value in the expression.
-                if (
-                    dst_var.type == 'TRANSFORM'
-                    and dst_tgt.transform_type in {'ROT_Y', 'ROT_Z', 'LOC_X'}
-                ) or (
+                if (dst_var.type == 'TRANSFORM' and dst_tgt.transform_type in {'ROT_Y', 'ROT_Z', 'LOC_X'}) or (
                     dst_var.type == 'SINGLE_PROP'
-                    and any(
-                        [dst_tgt.data_path.endswith(thing) for thing in invert_values]
-                    )
+                    and any([dst_tgt.data_path.endswith(thing) for thing in invert_values])
                 ):
                     expression = expression.replace(dst_var.name, f"-({dst_var.name})")
 
@@ -424,25 +408,15 @@ def get_driver_mirror_logic(src_constraint):
                     }
                 )
             if (
-                (
-                    src_constraint.map_from == 'LOCATION'
-                    and from_axis == 'X'
-                    and axis != 'Y'
-                )
-                or (
-                    src_constraint.map_from == 'ROTATION'
-                    and from_axis == 'Y'
-                    and axis != 'Y'
-                )
+                (src_constraint.map_from == 'LOCATION' and from_axis == 'X' and axis != 'Y')
+                or (src_constraint.map_from == 'ROTATION' and from_axis == 'Y' and axis != 'Y')
                 or (src_constraint.map_from == 'ROTATION' and from_axis == 'Z')
             ):
                 # X Loc to X/Z Rot: Flipped
                 # Y Rot to X/Z Rot: Flipped
                 # Z Rot to X/Y/Z rot: Flipped
 
-                datapath_swap_maps['TRANSFORM'].update(
-                    {f"to_min_{axis}_rot": f"to_max_{axis}_rot"}
-                )
+                datapath_swap_maps['TRANSFORM'].update({f"to_min_{axis}_rot": f"to_max_{axis}_rot"})
             if src_constraint.map_from == 'ROTATION' and from_axis == 'Y':
                 # If source is Y rot, flip and invert Y rot
                 datapath_swap_maps['TRANSFORM'].update({'to_min_y_rot': 'to_max_y_rot'})
@@ -460,8 +434,7 @@ def get_driver_mirror_logic(src_constraint):
     if (
         src_constraint
         and src_constraint.type == 'ACTION'
-        and src_constraint.transform_channel
-        in {'LOCATION_X', 'ROTATION_Y', 'ROTATION_Z'}
+        and src_constraint.transform_channel in {'LOCATION_X', 'ROTATION_Y', 'ROTATION_Z'}
     ):
         invert_values['ACTION'] = ['min', 'max']
 

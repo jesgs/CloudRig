@@ -13,17 +13,11 @@ def get_opposite_obj(obj: Object) -> Object:
     """Return the X-mirrored version of a Blender object by name (and library if linked)."""
     flipped_name = flip_name(obj.name)
     lib = obj.library
-    return (
-        bpy.data.objects.get((lib, flipped_name)) if lib else
-        bpy.data.objects.get(flipped_name)
-    ) or obj
+    return (bpy.data.objects.get((lib, flipped_name)) if lib else bpy.data.objects.get(flipped_name)) or obj
 
 
-def load_script(
-    file_path="", file_name="cloudrig.py", datablock=None, execute=True
-) -> Text:
-    """Load a text file into a text datablock, enable register checkbox and execute it.
-    """
+def load_script(file_path="", file_name="cloudrig.py", datablock=None, execute=True) -> Text:
+    """Load a text file into a text datablock, enable register checkbox and execute it."""
 
     if datablock:
         # Allow writing into a passed text datablock.

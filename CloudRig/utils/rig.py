@@ -27,8 +27,7 @@ def get_pbone_of_active(context) -> PoseBone | None:
 
 
 def get_component_in_ui(context) -> RigComponent | None:
-    """Return whatever component's parameters should be currently getting drawn in the UI.
-    """
+    """Return whatever component's parameters should be currently getting drawn in the UI."""
     prefs = get_addon_prefs(context)
     active_pb = get_pbone_of_active(context)
     if active_pb and not hasattr(active_pb, 'cloudrig_component'):
@@ -59,10 +58,12 @@ def get_pbones_of_selected(context, whole_ebone=True) -> list[PoseBone]:
     if context.mode in ('PAINT_WEIGHT', 'POSE'):
         return context.selected_pose_bones
     elif context.mode == 'EDIT_ARMATURE':
+
         def is_ebone_select(eb):
             if whole_ebone:
-                return (eb.select and eb.select_head and eb.select_tail)
-            return (eb.select or eb.select_head or eb.select_tail)
+                return eb.select and eb.select_head and eb.select_tail
+            return eb.select or eb.select_head or eb.select_tail
+
         rig = context.active_object
         pbones = rig.pose.bones
         return [pbones[eb.name] for eb in rig.data.edit_bones if is_ebone_select(eb) and eb.name in pbones]
@@ -94,9 +95,7 @@ def bone_is_visible(bone: Bone | PoseBone | EditBone):
     return True
 
 
-def get_selected_bone_tuples(
-        context, exclude_active=False
-    ) -> list[tuple[Object, Bone | EditBone]]:
+def get_selected_bone_tuples(context, exclude_active=False) -> list[tuple[Object, Bone | EditBone]]:
     """Return a list of Bones or EditBones depending on context."""
     bone_tuples = []
     if context.mode in ('POSE', 'PAINT_WEIGHT'):
@@ -153,13 +152,12 @@ def is_rna_path_driven(obj, data_path: str, index=-1) -> bool:
 ####################################
 ### Bone Roll functions.
 
+
 def signed_angle_on_plane(vec_a: Vector, vec_b: Vector, plane_normal: Vector) -> float:
     vec_a = vec_a.normalized()
     vec_b = vec_b.normalized()
-    return atan2(
-        plane_normal.dot(vec_a.cross(vec_b)),
-        vec_a.dot(vec_b)
-    )
+    return atan2(plane_normal.dot(vec_a.cross(vec_b)), vec_a.dot(vec_b))
+
 
 def wrap_angle_pi(angle: float) -> float:
     return (angle + pi) % (2 * pi) - pi
@@ -169,13 +167,7 @@ def align_bone_axis_to_vector(ebone: EditBone, vector: Vector, axis="+Z"):
     ebone.roll = calc_roll_to_align_axis(ebone, vector, axis)
 
 
-
-
-def project_point_to_plane(
-        point: Vector,
-        plane_point: Vector,
-        plane_normal: Vector
-    ) -> Vector:
+def project_point_to_plane(point: Vector, plane_point: Vector, plane_normal: Vector) -> Vector:
     if plane_normal.length == 0:
         raise ValueError(f"This normal vector cannot define a plane! ({plane_normal})")
     return point - plane_normal * (point - plane_point).dot(plane_normal)
@@ -242,7 +234,7 @@ def ik_chain_flatten_single_iter(eb_chain, axis="+Z") -> bool:
     did_anything = False
     for i, edit_bone in enumerate(eb_chain):
         flattened_head, flattened_tail = coords[i]
-        if (edit_bone.head-flattened_head).length > THRESHOLD or (edit_bone.tail-flattened_tail).length > THRESHOLD:
+        if (edit_bone.head - flattened_head).length > THRESHOLD or (edit_bone.tail - flattened_tail).length > THRESHOLD:
             edit_bone.head = flattened_head
             edit_bone.tail = flattened_tail
             did_anything = True
@@ -265,7 +257,6 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
     one of their axes (out of +Z/-Z/+X/-X) points towards the (theoretical)
     pole target position.
     """
-
 
     try:
         flattened_coords = get_flattened_coords(chain)
@@ -332,7 +323,9 @@ def get_flattened_coords(eb_chain: list[EditBone]) -> list[tuple[Vector, Vector]
             break
 
     if not points_define_plane(*plane_points):
-        raise ValueError(f"This bone chain is perfectly straight, and cannot define a plane: {[eb.name for eb in eb_chain]}")
+        raise ValueError(
+            f"This bone chain is perfectly straight, and cannot define a plane: {[eb.name for eb in eb_chain]}"
+        )
 
     # Find the normal of this plane by finding two non-parallel vectors that lie on the plane.
     # and taking their cross product.

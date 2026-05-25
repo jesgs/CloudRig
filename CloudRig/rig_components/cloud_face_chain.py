@@ -63,9 +63,7 @@ class Component_FaceChain(Component_ToonChain):
 
         if con.type == 'ARMATURE':
             if not hasattr(relink_tgt, "parent_helper") and not is_intersection:
-                relink_tgt = relink_tgt.parent_helper = self.create_parent_bone(
-                    relink_tgt, self.bones_mch
-                )
+                relink_tgt = relink_tgt.parent_helper = self.create_parent_bone(relink_tgt, self.bones_mch)
             elif not is_intersection and relink_tgt.parent_helper:
                 relink_tgt = relink_tgt.parent_helper
             else:
@@ -78,18 +76,16 @@ class Component_FaceChain(Component_ToonChain):
     # Face grid functions.
 
     def fchain__create_and_setup_intersections(self, context):
-            # Create and set up intersection controls.
+        # Create and set up intersection controls.
 
-            str_bone_clusters = get_bone_clusters(self.chain_components)
-            self.intersection_bones = []
-            for cluster in str_bone_clusters:
-                self.intersection_bones.append(
-                    self.__create_intersection_for_cluster(cluster)
-                )
-            self.__setup_all_intersections()
+        str_bone_clusters = get_bone_clusters(self.chain_components)
+        self.intersection_bones = []
+        for cluster in str_bone_clusters:
+            self.intersection_bones.append(self.__create_intersection_for_cluster(cluster))
+        self.__setup_all_intersections()
 
-            for comp in self.chain_components:
-                comp.create_component_interactions(context, last_chain_done=True)
+        for comp in self.chain_components:
+            comp.create_component_interactions(context, last_chain_done=True)
 
     def __create_intersection_for_cluster(self, cluster: list[BoneInfo]) -> BoneInfo:
         """Try to find a Component_FaceChainAnchor to parent the cluster to.
@@ -147,9 +143,7 @@ class Component_FaceChain(Component_ToonChain):
             # transforms propagate to TAN bones.
             continue
             if intersection.parent and len(intersection.constraint_infos) == 0:
-                intersection.add_constraint(
-                    'ARMATURE', targets=[{'subtarget': intersection.parent}]
-                )
+                intersection.add_constraint('ARMATURE', targets=[{'subtarget': intersection.parent}])
         # HACK: We can't ensure that the last chain component to be executed is a cloud_eyelid,
         # so we have to make sure the eyelid setup function runs even when that's not the case...
         for chain_comp in self.chain_components:
@@ -271,11 +265,7 @@ def get_bone_clusters(chain_components: list[Component_ToonChain]) -> list[list[
     return clusters
 
 
-def do_centered_cluster(
-    cluster: list[BoneInfo],
-    intersection: BoneInfo,
-    is_anchor=False
-):
+def do_centered_cluster(cluster: list[BoneInfo], intersection: BoneInfo, is_anchor=False):
     # If bones are in the center, flatten them along the X axis to make sure
     # they produce a clean curvature. This is important for things like the
     # teeth or the lips, which are one rig component on each side that meet in
@@ -293,7 +283,7 @@ def do_centered_cluster(
     avg_z_axis = z_axis_sum / len(cluster)
 
     if not is_anchor:
-        intersection.vector = direction * sum([b.length for b in cluster])/len(cluster)
+        intersection.vector = direction * sum([b.length for b in cluster]) / len(cluster)
         intersection.roll_align_vector(avg_z_axis, axis='+Z')
         intersection.use_custom_shape_bone_size = False
         intersection.custom_shape_scale_xyz = avg_shape_scale
@@ -312,10 +302,7 @@ def do_centered_cluster(
         if has_tangent_helpers(str_bone.owner_component):
             str_bone.tangent_helper.flatten(axis=x_axis)
             str_bone.tangent_helper.roll_align_vector(str_bone.head + z_axis_sum)
-        if (
-            str_bone.owner_component.params.chain.smooth_spline and
-            has_tangent_helpers(opposite_bone.owner_component)
-        ):
+        if str_bone.owner_component.params.chain.smooth_spline and has_tangent_helpers(opposite_bone.owner_component):
             # Add the missing "Damped Track Next" constraint that was skipped because
             # its target wouldn't have existed during generation,
             # since it belongs to another component.
@@ -336,10 +323,7 @@ class Params(PropertyGroup):
         default=True,
     )
 
-    shape_intersection: Component_ToonChain.make_custom_shape_params(
-        identifier="Intersection",
-        default="Cube"
-    )
+    shape_intersection: Component_ToonChain.make_custom_shape_params(identifier="Intersection", default="Cube")
 
 
 RIG_COMPONENT_CLASS = Component_FaceChain

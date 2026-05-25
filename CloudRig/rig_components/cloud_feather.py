@@ -47,18 +47,14 @@ class Component_Feather(Component_Chain_FK):
             custom_shape_name="Line",
             use_custom_shape_bone_size=True,
         )
-        bend_ctr.collections = line.collections = self.bone_sets[
-            'Stretch Controls'
-        ].collections
+        bend_ctr.collections = line.collections = self.bone_sets['Stretch Controls'].collections
         line.bbone_width *= 0.2
         line.hide_select = True
 
         line.add_constraint('STRETCH_TO', subtarget=first_fk.name, head_tail=1)
 
         # Make the tip control copy partial rotation of the bend control
-        self.main_str_bones[-1].add_constraint(
-            'COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4
-        )
+        self.main_str_bones[-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)
 
     @classmethod
     def is_bone_set_used(cls, context, rig, params, set_name):
@@ -76,10 +72,9 @@ class Component_Feather(Component_Chain_FK):
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.feather, 'shape_feather')
 
+
 class Params(PropertyGroup):
-    shape_feather: Component_Chain_FK.make_custom_shape_params(
-        identifier="Feather",
-        default="Feather"
-    )
+    shape_feather: Component_Chain_FK.make_custom_shape_params(identifier="Feather", default="Feather")
+
 
 RIG_COMPONENT_CLASS = Component_Feather

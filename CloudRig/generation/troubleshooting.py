@@ -99,7 +99,7 @@ class LoggerMixin:
             note_icon=note_icon,
             operator=operator,
             op_kwargs=op_kwargs,
-            op_text=op_text
+            op_text=op_text,
         )
 
     def raise_generation_error(self, description, **kwargs):
@@ -154,7 +154,6 @@ def url_prefill_from_cloudrig(stack_trace=""):
         + urllib.parse.quote(blender_version)
         + "&field:op_sys="
         + urllib.parse.quote(op_sys)
-
     )
 
 
@@ -209,7 +208,9 @@ def get_pretty_stack() -> str:
         fill_frame = " " * (longest_frame_name - len(frame.name))
         right_arrow = chr(0x2192)
         first_arrow = right_arrow if frame.filename != stack[i - 1].filename else chr(0x2937)
-        lines.append(f"{short_file}{fill_file} {first_arrow} {frame.name}{fill_frame} {right_arrow} line {frame.lineno}")
+        lines.append(
+            f"{short_file}{fill_file} {first_arrow} {frame.name}{fill_frame} {right_arrow} line {frame.lineno}"
+        )
 
     ret += f" {chr(0x2936)}\n".join(lines)
     ret += f":\n          {frame.line}\n"
@@ -235,6 +236,7 @@ def get_datablock_type_icon(datablock):
 
 class CloudRigLogEntry(PropertyGroup):
     "Log Entry"
+
     __longdoc__ = """Container for storing information about a single metarig warning/error.
 
     A CollectionProperty of CloudRigLogEntries are added to the armature datablock
@@ -244,9 +246,7 @@ class CloudRigLogEntry(PropertyGroup):
     CloudRig_Generator, which is created by the Generate operator.
     """
 
-    icon: StringProperty(
-        name="Icon", description="Icon for this log entry", default='ERROR'
-    )
+    icon: StringProperty(name="Icon", description="Icon for this log entry", default='ERROR')
     base_bone_name: StringProperty(
         name="Rig Bone",
         description="Name of the bone on the metarig which owns the rig that created this entry",
@@ -256,7 +256,7 @@ class CloudRigLogEntry(PropertyGroup):
         items=[
             ('ADVANCED', "Advanced", "Display stack trace only if Advanced Mode is enabled"),
             ('NEVER', "Never", "Never display stack trace"),
-            ('ALWAYS', "Always", "Always display stack trace")
+            ('ALWAYS', "Always", "Always display stack trace"),
         ],
         description="Whether the stack trace for this log entry should be displayed never, always, or only when Advanced Mode is enabled",
     )
@@ -265,25 +265,19 @@ class CloudRigLogEntry(PropertyGroup):
         description="Extra note that gets displayed in the UIList when there's no owner bone",
         default="",
     )
-    note_icon: StringProperty(
-        name="Note Icon", description="Icon for the extra note", default='NONE'
-    )
+    note_icon: StringProperty(name="Note Icon", description="Icon for the extra note", default='NONE')
     trouble_bone: StringProperty(
         name="Problem Bone",
         description="Name of the bone on the Target Rig which the entry relates to",
         default="",
     )
-    description_short: StringProperty(
-        name="Short Description", description="Something went wrong!", default=""
-    )
+    description_short: StringProperty(name="Short Description", description="Something went wrong!", default="")
     description: StringProperty(name="Description", description="", default="")
     pretty_stack: StringProperty(
         name="Pretty Stack",
         description="Stack trace in the code of where this log entry was added. For internal use only",
     )
-    operator: StringProperty(
-        name="Operator", description="Operator that can fix the issue", default=''
-    )
+    operator: StringProperty(name="Operator", description="Operator that can fix the issue", default='')
     op_kwargs: StringProperty(
         name="Operator Arguments",
         description="Keyword arguments that will be passed to the operator. This should be a string that can be eval()'d into a python dict",
@@ -372,9 +366,7 @@ class CloudLogManager:
         return entry
 
     @no_overlay
-    def log_fatal_error(
-        self, description_short: str, *, wipe_log=True, description="", **kwargs
-    ) -> CloudRigLogEntry:
+    def log_fatal_error(self, description_short: str, *, wipe_log=True, description="", **kwargs) -> CloudRigLogEntry:
         """
         Wipe all other log entries, and create a log entry for an error that has caused
         generation to halt.
@@ -422,10 +414,7 @@ class CloudLogManager:
                     icon='COLLECTION_COLOR_01',
                     description=rpt_('Collection "{coll}" has trailing numbers.').format(coll=coll.name),
                     operator=CLOUDRIG_OT_rename_bone_collection.bl_idname,
-                    op_kwargs={
-                        'old_name': coll.name,
-                        'new_name': naming.strip_blender_zeroes(coll)
-                    },
+                    op_kwargs={'old_name': coll.name, 'new_name': naming.strip_blender_zeroes(coll)},
                 )
 
     def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
@@ -457,9 +446,9 @@ class CloudLogManager:
 
             self.log(
                 rpt_("Invalid Driver"),
-                description=rpt_('Invalid driver:\nDatablock: "{datablock}"\n' \
-                            'Data path: "{data_path}"\nIndex: {index}')
-                            .format(datablock=owner.name, data_path=fcurve.data_path, index=fcurve.array_index),
+                description=rpt_(
+                    'Invalid driver:\nDatablock: "{datablock}"\nData path: "{data_path}"\nIndex: {index}'
+                ).format(datablock=owner.name, data_path=fcurve.data_path, index=fcurve.array_index),
                 icon='DRIVER',
                 note=owner.name,
                 note_icon=get_datablock_type_icon(datablock),
@@ -476,16 +465,12 @@ class CloudLogManager:
             if hasattr(obj, "data") and obj.data:
                 self.report_invalid_drivers_on_datablock(obj.data, owner_datablock=obj)
             if obj.type == 'MESH':
-                self.report_invalid_drivers_on_datablock(
-                    obj.data.shape_keys, owner_datablock=obj
-                )
+                self.report_invalid_drivers_on_datablock(obj.data.shape_keys, owner_datablock=obj)
 
             for ms in obj.material_slots:
                 if ms.material:
                     self.report_invalid_drivers_on_datablock(ms.material)
-                    self.report_invalid_drivers_on_datablock(
-                        ms.material.node_tree, owner_datablock=ms.material
-                    )
+                    self.report_invalid_drivers_on_datablock(ms.material.node_tree, owner_datablock=ms.material)
 
     def report_widgets(self, widget_collection):
         """Find and log unused and duplicate widgets."""
@@ -518,9 +503,9 @@ class CloudLogManager:
                         rpt_("Duplicate Custom Shape"),
                         note=widget.name,
                         icon='DUPLICATE',
-                        description=rpt_('There exists a custom shape called "{good}", ' \
-                                    'that should be used instead of "{bad}".')
-                                    .format(good=unprefixed, bad=widget.name),
+                        description=rpt_(
+                            'There exists a custom shape called "{good}", that should be used instead of "{bad}".'
+                        ).format(good=unprefixed, bad=widget.name),
                         operator=CLOUDRIG_OT_Swap_Bone_Shape.bl_idname,
                         op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
                     )
@@ -531,7 +516,7 @@ class CloudLogManager:
                         icon='FILE_TEXT',
                         description=rpt_(
                             'The "{suffix}" suffix in the name of this custom shape name is not necessary.'
-                            ).format(suffix=widget.name[-4:]),
+                        ).format(suffix=widget.name[-4:]),
                         operator=CLOUDRIG_OT_Rename_Object.bl_idname,
                         op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
                     )
@@ -555,9 +540,10 @@ class CloudLogManager:
                     rpt_("Action has no transform range"),
                     note=action_setup.name,
                     icon='ACTION',
-                    description=rpt_('Action Setup "{action_setup}" has no transformation range. '
-                                'This will cause the action to always be in the same state!')
-                                .format(action_setup=action_setup.name),
+                    description=rpt_(
+                        'Action Setup "{action_setup}" has no transformation range. '
+                        'This will cause the action to always be in the same state!'
+                    ).format(action_setup=action_setup.name),
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -566,9 +552,10 @@ class CloudLogManager:
                     rpt_("Action has no frame range"),
                     note=action_setup.name,
                     icon='ACTION',
-                    description=rpt_('Action Setup "{action_setup}" has no frame range. ' \
-                                'This will cause the action to always be in the same state!')
-                                .format(action_setup=action_setup.name),
+                    description=rpt_(
+                        'Action Setup "{action_setup}" has no frame range. '
+                        'This will cause the action to always be in the same state!'
+                    ).format(action_setup=action_setup.name),
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -579,12 +566,13 @@ class CloudLogManager:
                     rpt_("Action default frame must be whole"),
                     note=action_setup.name,
                     icon='ACTION',
-                    description=rpt_('Action "{action_setup}" has a default frame of {default_frame}. ' \
-                                'The input parameters of the Action Setup should be tweaked such that the ' \
-                                '"Default Frame" value is a whole number. On that frame, there should be a keyframe ' \
-                                'of all affected bones in the default position. Otherwise, the rig will be deformed in '\
-                                'its default pose.')
-                                .format(action_setup=action_setup.name, default_frame=default_frame),
+                    description=rpt_(
+                        'Action "{action_setup}" has a default frame of {default_frame}. '
+                        'The input parameters of the Action Setup should be tweaked such that the '
+                        '"Default Frame" value is a whole number. On that frame, there should be a keyframe '
+                        'of all affected bones in the default position. Otherwise, the rig will be deformed in '
+                        'its default pose.'
+                    ).format(action_setup=action_setup.name, default_frame=default_frame),
                     operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -599,7 +587,13 @@ class CloudLogManager:
                 continue
             for fcurve in channelbag.fcurves:
                 transform = fcurve.data_path.split(".")[-1]
-                if transform not in ['location', 'rotation_euler', 'rotation_quaternion', 'rotation_axis_angle', 'scale']:
+                if transform not in [
+                    'location',
+                    'rotation_euler',
+                    'rotation_quaternion',
+                    'rotation_axis_angle',
+                    'scale',
+                ]:
                     continue
                 if len(fcurve.keyframe_points) < 2:
                     single_point_curves.append(fcurve)
@@ -620,9 +614,10 @@ class CloudLogManager:
                     rpt_("Action with 1-key curves"),
                     note=action_setup.name,
                     icon='ACTION',
-                    description=rpt_('Action setup "{action}" has {num_curves} '\
-                                'curves with only a single keyframe. These curves will be ignored by the action setup!')
-                                .format(action=action_setup.name, num_curves=len(single_point_curves)),
+                    description=rpt_(
+                        'Action setup "{action}" has {num_curves} '
+                        'curves with only a single keyframe. These curves will be ignored by the action setup!'
+                    ).format(action=action_setup.name, num_curves=len(single_point_curves)),
                     operator=CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
@@ -631,9 +626,10 @@ class CloudLogManager:
                     rpt_("Action affects rest pose"),
                     note=action_setup.name,
                     icon='ACTION',
-                    description=rpt_('Action setup "{action}" has {num_curves} curves that are ' \
-                                'not keyframed to their default values on the default frame ({default_frame}).')
-                                .format(action=action_setup.name, num_curves=len(wrong_curves), default_frame=default_frame),
+                    description=rpt_(
+                        'Action setup "{action}" has {num_curves} curves that are '
+                        'not keyframed to their default values on the default frame ({default_frame}).'
+                    ).format(action=action_setup.name, num_curves=len(wrong_curves), default_frame=default_frame),
                     operator='object.cloudrig_jump_to_action_setup',
                     op_kwargs={'setup_id': action_setup.unique_id},
                 )
@@ -653,9 +649,7 @@ class CloudLogManager:
                     continue
                 for target in var.targets:
                     if not target.id or not (
-                        target.id.id_type == 'OBJECT'
-                        and target.id.type == 'ARMATURE'
-                        and target.bone_target
+                        target.id.id_type == 'OBJECT' and target.id.type == 'ARMATURE' and target.bone_target
                     ):
                         continue
                     if target.transform_space != 'LOCAL_SPACE':
@@ -664,9 +658,7 @@ class CloudLogManager:
                     target_bone = target.id.pose.bones.get(target.bone_target)
                     if not target_bone:
                         continue
-                    if not any(
-                        [con.type == 'ARMATURE' for con in target_bone.constraints]
-                    ):
+                    if not any([con.type == 'ARMATURE' for con in target_bone.constraints]):
                         continue
 
                     self.log(
@@ -675,11 +667,11 @@ class CloudLogManager:
                         trouble_bone=target_bone.name,
                         icon='DRIVER_TRANSFORM',
                         description=rpt_(
-                            'Driver `{data_path}` is trying to read local transforms from bone ' \
-                            '"{bone}", but this bone has an Armature constraint, which ' \
-                            'moves its parenting matrix into its local matrix, making it unviable ' \
-                            'as a driver target. Move the Armature constraint to a parent, or remove the driver.')
-                            .format(data_path=fc.data_path, bone=target_bone.name),
+                            'Driver `{data_path}` is trying to read local transforms from bone '
+                            '"{bone}", but this bone has an Armature constraint, which '
+                            'moves its parenting matrix into its local matrix, making it unviable '
+                            'as a driver target. Move the Armature constraint to a parent, or remove the driver.'
+                        ).format(data_path=fc.data_path, bone=target_bone.name),
                     )
 
     def report_sus_constraints(self, rig_obj):
@@ -692,9 +684,11 @@ class CloudLogManager:
                         note=con.name,
                         trouble_bone=pb.name,
                         icon='CONSTRAINT_BONE',
-                        description=rpt_('Constraint is invalid. This is usually because its target bone does not exist.')
+                        description=rpt_(
+                            'Constraint is invalid. This is usually because its target bone does not exist.'
+                        ),
                     )
-                if con.type=='ARMATURE':
+                if con.type == 'ARMATURE':
                     if not arm_con:
                         arm_con = con
                     else:
@@ -703,7 +697,9 @@ class CloudLogManager:
                             note=pb.name,
                             trouble_bone=pb.name,
                             icon='CON_ARMATURE',
-                            description=rpt_('This bone has multiple Armature constraints, which is unlikely to be intentional.')
+                            description=rpt_(
+                                'This bone has multiple Armature constraints, which is unlikely to be intentional.'
+                            ),
                         )
 
     def report_metarig_children(self, metarig):
@@ -719,26 +715,29 @@ class CloudLogManager:
             self.log(
                 rpt_("Metarig Hates Children"),
                 description=rpt_(
-                    "Metarig has {count} dependent objects.\n" \
-                    "Click the button below to parent any children or deformed mesh objects to the Target Rig instead.\n" \
-                    "If this warning persists, you may have objects which reference the metarig via drivers,\n" \
-                    "or you are parenting objects to the metarig in the post-generation script.")
-                    .format(count=count),
+                    "Metarig has {count} dependent objects.\n"
+                    "Click the button below to parent any children or deformed mesh objects to the Target Rig instead.\n"
+                    "If this warning persists, you may have objects which reference the metarig via drivers,\n"
+                    "or you are parenting objects to the metarig in the post-generation script."
+                ).format(count=count),
                 operator='object.cloudrig_reparent_metarig_children',
             )
 
     def report_bad_bone_colors(self, context):
         def user_has_bad_colors(context) -> bool:
-            return any((
-                colorset.normal == Color((0.0, 0.0, 0.0))
-                for colorset in reversed(context.preferences.themes[0].bone_color_sets)
-            ))
+            return any(
+                (
+                    colorset.normal == Color((0.0, 0.0, 0.0))
+                    for colorset in reversed(context.preferences.themes[0].bone_color_sets)
+                )
+            )
+
         if user_has_bad_colors(context):
             self.log(
                 rpt_("Bad Bone Colors"),
                 description=rpt_("You should apply one of CloudRig's bone color presets."),
                 operator='preferences.set_bone_color_presets',
-                op_kwargs={'preset':'LANARO'},
+                op_kwargs={'preset': 'LANARO'},
             )
 
     def report_old_cloudrig_props(self, metarig):
@@ -757,9 +756,7 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
     when the active object is a CloudRig Metarig.
     """
 
-    def draw_item(
-        self, _context, layout, _data, item, icon_value, _active_data, _active_propname
-    ):
+    def draw_item(self, _context, layout, _data, item, icon_value, _active_data, _active_propname):
         log = item
         row = layout.row()
         text = rpt_(log.description_short)
@@ -770,6 +767,7 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
             row.prop(log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE')
         elif log.base_bone_name != "":
             row.prop(log, 'base_bone_name', text="", emboss=False, icon='BONE_DATA')
+
 
 def draw_log_panel(context, layout):
     metarig = context.object
@@ -818,9 +816,7 @@ def draw_log_panel(context, layout):
         row.prop_search(log, 'base_bone_name', metarig.data, 'bones', text="")
         row.enabled = False
         row = main_row.row(align=True)
-        op = row.operator(
-            CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS'
-        )
+        op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
         op.use_target_rig = False
         op.target_bone = log.base_bone_name
 
@@ -832,9 +828,7 @@ def draw_log_panel(context, layout):
         row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
         row.enabled = False
         row = main_row.row(align=True)
-        op = row.operator(
-            CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS'
-        )
+        op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
         op.use_target_rig = True
         op.target_bone = log.trouble_bone
 
@@ -856,16 +850,12 @@ def draw_log_panel(context, layout):
             setattr(op, key, kwargs[key])
 
     display_mode = log.display_stack_trace
-    if display_mode == 'ALWAYS' or (
-        display_mode == 'ADVANCED' and is_advanced_mode(context)
-    ):
-
+    if display_mode == 'ALWAYS' or (display_mode == 'ADVANCED' and is_advanced_mode(context)):
         header, panel = layout.panel("CloudRig Python Stack Trace", default_closed=True)
         header.label(text="Python Stack Trace")
         if panel:
-            draw_label_with_linebreak(
-                context, panel, generator.active_log.pretty_stack, alert=True
-            )
+            draw_label_with_linebreak(context, panel, generator.active_log.pretty_stack, alert=True)
+
 
 ########################################
 ######### Quick-Fix Operators ##########
@@ -898,7 +888,9 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
 
         bone = rig.data.bones.get(self.target_bone)
         if not bone:
-            self.report({'ERROR'}, rpt_('Bone "{bone}" not in Armature "{rig}".').format(bone=self.target_bone, rig=rig.name))
+            self.report(
+                {'ERROR'}, rpt_('Bone "{bone}" not in Armature "{rig}".').format(bone=self.target_bone, rig=rig.name)
+            )
             return {'CANCELLED'}
 
         reveal_and_select_bone(context, bone)
@@ -1005,7 +997,9 @@ class RenameThingOp:
             return {'CANCELLED'}
 
         if not thing:
-            self.report({'ERROR'}, rpt_('Old name "{old_name}" not found or not provided.').format(old_name=self.old_name))
+            self.report(
+                {'ERROR'}, rpt_('Old name "{old_name}" not found or not provided.').format(old_name=self.old_name)
+            )
             return {'CANCELLED'}
 
         self.set_name(thing, self.new_name)
@@ -1072,7 +1066,10 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         new_obj = bpy.data.objects.get((self.new_name, None))
 
         if not old_obj and new_obj:
-            self.report({'ERROR'}, rpt_('One of "{old}" or "{new}" were not found.').format(old=self.old_name, new=self.new_name))
+            self.report(
+                {'ERROR'},
+                rpt_('One of "{old}" or "{new}" were not found.').format(old=self.old_name, new=self.new_name),
+            )
             return {'CANCELLED'}
 
         rigs = [metarig]
@@ -1094,8 +1091,9 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         metarig.cloudrig.generator.remove_active_log()
         self.report(
             {'INFO'},
-            rpt_('Replaced all references of "{old_name}" to "{new_name}".')
-            .format(old_name=self.old_name, new_name=self.new_name),
+            rpt_('Replaced all references of "{old_name}" to "{new_name}".').format(
+                old_name=self.old_name, new_name=self.new_name
+            ),
         )
         return {'FINISHED'}
 
@@ -1119,8 +1117,7 @@ class CLOUDRIG_OT_Delete_Object(Operator):
         if not ob:
             self.report(
                 {'WARNING'},
-                rpt_('"{obj}" not found. It must have already been deleted.')
-                .format(obj=self.ob_name),
+                rpt_('"{obj}" not found. It must have already been deleted.').format(obj=self.ob_name),
             )
             return {'FINISHED'}
 
@@ -1183,7 +1180,10 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
         old_ref = getattr(pbone.cloudrig_component.params, param_split[1])
         setattr(param_category, param_split[1], None)
 
-        self.report({'INFO'}, rpt_('Cleared reference to "{old_ref}" on "{bone}".').format(old_ref=old_ref.name, bone=pbone.name))
+        self.report(
+            {'INFO'},
+            rpt_('Cleared reference to "{old_ref}" on "{bone}".').format(old_ref=old_ref.name, bone=pbone.name),
+        )
         metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
@@ -1209,11 +1209,7 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
                 action_setup.channelbag.fcurves.remove(fcurve)
                 curves_removed += 1
 
-        self.report(
-            {'INFO'},
-            rpt_('Removed {num_curves} curves.')
-            .format(num_curves=curves_removed)
-        )
+        self.report({'INFO'}, rpt_('Removed {num_curves} curves.').format(num_curves=curves_removed))
         metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
@@ -1279,11 +1275,13 @@ class CLOUDRIG_OT_edit_bone_transform(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     bone_name: StringProperty()
-    selection: EnumProperty(items=[
-        ('HEAD', 'Head', 'Head'),
-        ('TAIL', 'Tail', 'Tail'),
-        ('BOTH', 'Both', 'Both'),
-    ])
+    selection: EnumProperty(
+        items=[
+            ('HEAD', 'Head', 'Head'),
+            ('TAIL', 'Tail', 'Tail'),
+            ('BOTH', 'Both', 'Both'),
+        ]
+    )
     offset: FloatVectorProperty()
 
     def execute(self, context):
@@ -1430,10 +1428,13 @@ class CLOUDRIG_OT_remove_old_properties(Operator):
         metarig.cloudrig.generator.remove_active_log()
         return {'FINISHED'}
 
+
 def find_leftover_properties(metarig) -> list[tuple[str, str]]:
     leftover_props = []
+
     def report_recursive_sus_props(rna_path: str, prop_owner):
         from _bpy_types import PropertyGroup as PG
+
         for key in prop_owner.keys():
             if not hasattr(prop_owner, key):
                 leftover_props.append((rna_path, key))
@@ -1473,5 +1474,5 @@ registry = [
     CLOUDRIG_OT_dismiss_version_warning,
     CLOUDRIG_OT_reparent_metarig_children,
     OBJECT_OT_property_unset,
-    CLOUDRIG_OT_remove_old_properties
+    CLOUDRIG_OT_remove_old_properties,
 ]

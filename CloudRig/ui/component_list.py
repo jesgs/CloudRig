@@ -18,13 +18,12 @@ from .component_param_panels import (
 
 class CLOUDRIG_UL_rig_components(UIList):
     """Rig Components"""
+
     __longdoc__ = """The Rig Component list is actually a list of all pose bones on the object,
     filtered to only show the ones that have a CloudRig component type assigned.
     """
 
-    def draw_item(
-        self, context, layout, data, item, icon_value, _active_data, _active_propname
-    ):
+    def draw_item(self, context, layout, data, item, icon_value, _active_data, _active_propname):
         pose_bone = item
         rig_component = pose_bone.cloudrig_component
         if not rig_component.component_type:
@@ -38,7 +37,9 @@ class CLOUDRIG_UL_rig_components(UIList):
             split = row.split(factor=0.02 * rig_component.depth)
             split.row()
             row = split.row(align=True)
-        if rig_component.has_children and not all((comp.component_class.ui_name == "Raw Copy" for comp in rig_component.children)):
+        if rig_component.has_children and not all(
+            (comp.component_class.ui_name == "Raw Copy" for comp in rig_component.children)
+        ):
             row.prop(rig_component, 'show_child_components', text="", icon=icon, emboss=False)
         else:
             row.label(text="", icon='BLANK1')
@@ -92,16 +93,10 @@ class CLOUDRIG_UL_rig_components(UIList):
                     flt_flags[i] = 1073741824
 
         # Filter out bones that don't have a rig component.
-        flt_flags = [
-            flag * int(pbones[i].cloudrig_component.component_type != "")
-            for i, flag in enumerate(flt_flags)
-        ]
+        flt_flags = [flag * int(pbones[i].cloudrig_component.component_type != "") for i, flag in enumerate(flt_flags)]
 
         # Filter out components whose parents are collapsed
-        flt_flags = [
-            flag * int(pbones[i].cloudrig_component.should_draw)
-            for i, flag in enumerate(flt_flags)
-        ]
+        flt_flags = [flag * int(pbones[i].cloudrig_component.should_draw) for i, flag in enumerate(flt_flags)]
 
         sorted_pbones = sorted(pbones, key=lambda pb: pb.cloudrig_component.order)
         # NOTE: THIS MUST BE BOMBPROOF, OR BLENDER WILL CRASH!
@@ -116,12 +111,8 @@ class CLOUDRIG_OT_add_rig_component(Operator):
     bl_label = "Add Component"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    bone_name: StringProperty(
-        name="Bone Name", description="Name of the bone to assign a component type to"
-    )
-    component_type: StringProperty(
-        name="Component Type", description="Component type to assign"
-    )
+    bone_name: StringProperty(name="Bone Name", description="Name of the bone to assign a component type to")
+    component_type: StringProperty(name="Component Type", description="Component type to assign")
     remove_active_log: BoolProperty(
         name="Remove Active Log",
         description="If True, remove the active generation log entry",
@@ -131,9 +122,7 @@ class CLOUDRIG_OT_add_rig_component(Operator):
     @classmethod
     def poll(cls, context):
         if not is_cloud_metarig(context.object):
-            cls.poll_message_set(
-                "This button should only be visible on CloudRig metarigs!"
-            )
+            cls.poll_message_set("This button should only be visible on CloudRig metarigs!")
             return False
         return True
 
@@ -181,8 +170,9 @@ class CLOUDRIG_OT_add_rig_component(Operator):
         rig.cloudrig.active_component_index = rig.pose.bones.find(self.bone_name)
         self.report(
             {'INFO'},
-            rpt_('Added "{comp_type}" component to "{bone}".')
-            .format(comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name),
+            rpt_('Added "{comp_type}" component to "{bone}".').format(
+                comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name
+            ),
         )
 
         if self.remove_active_log:
@@ -203,10 +193,7 @@ class CLOUDRIG_OT_remove_rig_component(Operator):
 
     @classmethod
     def poll(cls, context):
-        if (
-            not is_cloud_metarig(context.object)
-            and context.object.cloudrig.active_component
-        ):
+        if not is_cloud_metarig(context.object) and context.object.cloudrig.active_component:
             cls.poll_message_set("Select a component.")
             return False
         return True
@@ -217,8 +204,9 @@ class CLOUDRIG_OT_remove_rig_component(Operator):
 
         self.report(
             {'INFO'},
-            rpt_('Removed "{comp_type}" component from "{bone}".')
-            .format(comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name),
+            rpt_('Removed "{comp_type}" component from "{bone}".').format(
+                comp_type=selected_pb.cloudrig_component.component_type, bone=selected_pb.name
+            ),
         )
         selected_pb.cloudrig_component.component_type = ""
 
@@ -242,9 +230,7 @@ class CLOUDRIG_OT_reorder_rig_component(Operator):
     bl_label = "Reorder Component"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    direction: EnumProperty(
-        name="Direction", items=[('UP', "Up", "Up"), ('DOWN', "Down", "Down")]
-    )
+    direction: EnumProperty(name="Direction", items=[('UP', "Up", "Up"), ('DOWN', "Down", "Down")])
 
     @classmethod
     def poll(cls, context):
@@ -326,16 +312,10 @@ def draw_rig_component_list(context, layout, default_closed=True):
         unique_id='CloudRig Rig Component List',
     )
     ops_col.operator(CLOUDRIG_OT_add_rig_component.bl_idname, text="", icon='ADD')
-    ops_col.operator(
-        CLOUDRIG_OT_remove_rig_component.bl_idname, text="", icon='REMOVE'
-    )
+    ops_col.operator(CLOUDRIG_OT_remove_rig_component.bl_idname, text="", icon='REMOVE')
     ops_col.separator()
-    ops_col.operator(
-        CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_UP'
-    ).direction = 'UP'
-    ops_col.operator(
-        CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_DOWN'
-    ).direction = 'DOWN'
+    ops_col.operator(CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_UP').direction = 'UP'
+    ops_col.operator(CLOUDRIG_OT_reorder_rig_component.bl_idname, text="", icon='TRIA_DOWN').direction = 'DOWN'
 
     active_component = get_component_in_ui(context)
 
@@ -359,6 +339,7 @@ def draw_rig_component_list(context, layout, default_closed=True):
         box.use_property_split = True
         box.use_property_decorate = False
         draw_params_subpanels(context, active_component, box.column())
+
 
 registry = [
     CLOUDRIG_UL_rig_components,

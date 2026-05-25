@@ -125,9 +125,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
             name = self.naming.add_prefix(bone_chain[i - 1], PHYS_PREFIX)
             # Determine pin weight on this vertex.
             cum_length += bone_chain[i - 1].length
-            ratio = (
-                self.params.physics_chain.pin_falloff_offset - cum_length / total_length
-            )
+            ratio = self.params.physics_chain.pin_falloff_offset - cum_length / total_length
             if self.params.physics_chain.pin_falloff == 'NONE':
                 pin_weight = 0
             elif self.params.physics_chain.pin_falloff == 'LINEAR':
@@ -174,7 +172,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
                 name=self.naming.add_prefix(fk_ctrl, PHYS_PREFIX),
                 source=fk_ctrl,
                 custom_shape_name=fk_ctrl.custom_shape_name,
-                custom_shape_scale_xyz = fk_ctrl.custom_shape_scale_xyz * 1.2,
+                custom_shape_scale_xyz=fk_ctrl.custom_shape_scale_xyz * 1.2,
                 parent=next_parent,
                 use_deform=True,
             )
@@ -212,9 +210,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set(
-            n_("Physics Bones"), color_palette='THEME04', collections=['Physics Bones']
-        )
+        cls.define_bone_set(n_("Physics Bones"), color_palette='THEME04', collections=['Physics Bones'])
 
     @classmethod
     def draw_control_params(cls, layout, context, component):
@@ -230,9 +226,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         if not params.physics_chain.phys_obj or params.physics_chain.force_regen:
             cls.draw_prop(context, layout, params.physics_chain, 'pin_falloff')
             if params.physics_chain.pin_falloff != 'NONE':
-                cls.draw_prop(
-                    context, layout, params.physics_chain, 'pin_falloff_offset'
-                )
+                cls.draw_prop(context, layout, params.physics_chain, 'pin_falloff_offset')
 
         cls.draw_prop(context, layout, params.physics_chain, 'make_ctrl')
 

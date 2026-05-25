@@ -22,17 +22,13 @@ def get_lattice_vertex_index(lattice: Lattice, xyz: list[int], do_clamp=True) ->
         y = clamp(y, 0, res_y)
         z = clamp(z, 0, res_z)
 
-    assert (
-        x < res_x and y < res_y and z < res_z
-    ), "Error: Lattice vertex xyz index out of bounds"
+    assert x < res_x and y < res_y and z < res_z, "Error: Lattice vertex xyz index out of bounds"
 
     index = (z * res_y * res_x) + (y * res_x) + x
     return index
 
 
-def ensure_falloff_vgroup(
-    lattice_ob: Object, vg_name="Group", multiplier=1
-) -> VertexGroup:
+def ensure_falloff_vgroup(lattice_ob: Object, vg_name="Group", multiplier=1) -> VertexGroup:
     lattice = lattice_ob.data
     res_x, res_y, res_z = lattice.points_u, lattice.points_v, lattice.points_w
 

@@ -57,6 +57,7 @@ class CLOUDRIG_OT_MetarigToggle(Operator):
             return {'CANCELLED'}
         return {'FINISHED'}
 
+
 def metarig_context_switch(context, match_collections=True, match_selection=True) -> str:
     """Switches the context between the metarig and the generated rig.
     May return an error message in case of failure."""
@@ -104,6 +105,7 @@ def metarig_context_switch(context, match_collections=True, match_selection=True
     # Switch from the rig to the metarig
     return __switch_rig_focus(context, rig, metarig, match_collections, match_selection)
 
+
 def __focus_rig(context, rig, mode='POSE'):
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
@@ -111,6 +113,7 @@ def __focus_rig(context, rig, mode='POSE'):
     rig.select_set(True)
     context.view_layer.objects.active = rig
     bpy.ops.object.mode_set(mode=mode)
+
 
 def __switch_rig_focus(
     context,
@@ -127,7 +130,9 @@ def __switch_rig_focus(
 
     to_rig.hide_set(False)
     if not to_rig.visible_get():
-        return rpt_('Could not make "{rig}" visible. It must be enabled, and in an enabled collection.').format(rig=to_rig.name)
+        return rpt_('Could not make "{rig}" visible. It must be enabled, and in an enabled collection.').format(
+            rig=to_rig.name
+        )
 
     if context.mode == 'EDIT':
         selected_bone_names = [eb.name for eb in from_rig.data.edit_bones if eb.select]
@@ -163,7 +168,8 @@ def __switch_rig_focus(
         __match_bone_selection(from_rig, to_rig, selected_bone_names)
     return ""
 
-def __match_bone_selection(from_rig: Object, to_rig: Object, selected_bone_names: list[str]=[]):
+
+def __match_bone_selection(from_rig: Object, to_rig: Object, selected_bone_names: list[str] = []):
     __deselect_all_bones(to_rig)
     __match_active_bone(from_rig, to_rig)
 
@@ -188,6 +194,7 @@ def __match_bone_selection(from_rig: Object, to_rig: Object, selected_bone_names
             pbone = to_rig.pose.bones[bone.name]
             pbone.select = True
 
+
 def __deselect_all_bones(rig: Object):
     if rig.mode == 'EDIT_ARMATURE':
         for eb in rig.data.edit_bones:
@@ -195,6 +202,7 @@ def __deselect_all_bones(rig: Object):
     else:
         for pb in rig.pose.bones:
             pb.select = False
+
 
 def __match_active_bone(from_rig: Object, to_rig: Object):
     """Set the active bone to be the closest visible name match."""
@@ -204,31 +212,28 @@ def __match_active_bone(from_rig: Object, to_rig: Object):
         if to_active:
             to_rig.data.bones.active = to_active
 
+
 def __get_visible_bone_with_similar_name(rig: Object, bone_name: str) -> PoseBone | EditBone | Bone | None:
-        armature = rig.data
+    armature = rig.data
 
-        def names_match(a, b):
-            return (a in b) or (b in a)
+    def names_match(a, b):
+        return (a in b) or (b in a)
 
-        if bone_name in armature.bones and bone_is_visible(armature.bones[bone_name]):
-            # If we have an exact match and it's visible, return it.
-            # (Just for optimization)
-            return armature.bones[bone_name]
+    if bone_name in armature.bones and bone_is_visible(armature.bones[bone_name]):
+        # If we have an exact match and it's visible, return it.
+        # (Just for optimization)
+        return armature.bones[bone_name]
 
-        matches = [
-            b.name
-            for b in armature.bones
-            if bone_is_visible(b) and names_match(b.name, bone_name)
-        ]
-        if len(matches) == 1:
-            # If there is only one match and it's visible, return it.
-            return armature.bones[matches[0]]
-        else:
-            for prefix in PREFIX_PRIORITY:
-                for match in matches:
-                    prefixes = slice_name(match)[0]
-                    if prefix in prefixes:
-                        return armature.bones[match]
+    matches = [b.name for b in armature.bones if bone_is_visible(b) and names_match(b.name, bone_name)]
+    if len(matches) == 1:
+        # If there is only one match and it's visible, return it.
+        return armature.bones[matches[0]]
+    else:
+        for prefix in PREFIX_PRIORITY:
+            for match in matches:
+                prefixes = slice_name(match)[0]
+                if prefix in prefixes:
+                    return armature.bones[match]
 
 
 registry = [CLOUDRIG_OT_MetarigToggle]

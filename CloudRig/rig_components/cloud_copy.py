@@ -37,7 +37,7 @@ class Component_CopyBone(Component_Base):
 
         self.params.custom_props.props_storage_bone = self.base_bone_name
 
-    def base__apply_custom_root_parent(self, component_root: BoneInfo=None, parent_name=""):
+    def base__apply_custom_root_parent(self, component_root: BoneInfo = None, parent_name=""):
         super().base__apply_custom_root_parent(self.root_bone, parent_name)
 
     def create_bone_infos(self, context):
@@ -52,15 +52,18 @@ class Component_CopyBone(Component_Base):
             if color.palette == 'DEFAULT':
                 continue
             if color.palette == 'CUSTOM':
-                self.add_log(
-                    rpt_("Custom Colors are forbidden!"),
-                    icon='COLORSET_01_VEC',
-                    trouble_bone=bone_info.name,
-                    description=rpt_("Custom Colors are not supported in Metarigs. " \
-                        "Please choose one of the preset colors. " \
-                        "Try the color presets available in CloudRig's Preferences."
-                    )
-                ),
+                (
+                    self.add_log(
+                        rpt_("Custom Colors are forbidden!"),
+                        icon='COLORSET_01_VEC',
+                        trouble_bone=bone_info.name,
+                        description=rpt_(
+                            "Custom Colors are not supported in Metarigs. "
+                            "Please choose one of the preset colors. "
+                            "Try the color presets available in CloudRig's Preferences."
+                        ),
+                    ),
+                )
                 continue
             setattr(bone_info, prop_name, color.palette)
 
@@ -73,8 +76,10 @@ class Component_CopyBone(Component_Base):
             self.add_log(
                 rpt_("Quaternion rotation"),
                 trouble_bone=self.base_bone_name,
-                description=rpt_('"{bone}" is using Quaternion rotation mode. " \
-                    "This is unfriendly for animators who use the Graph Editor!').format(bone=bone_info.name),
+                description=rpt_(
+                    '"{bone}" is using Quaternion rotation mode. " \
+                    "This is unfriendly for animators who use the Graph Editor!'
+                ).format(bone=bone_info.name),
                 icon='GIZMO',
                 operator='pose.cloudrig_troubleshoot_rotationmode',
                 op_kwargs={'bone_name': self.base_bone_name},
@@ -105,7 +110,7 @@ class Component_CopyBone(Component_Base):
     ##############################
     # Single Control functions.
 
-    def __make_custom_pivot(self, boneinfo: BoneInfo, bone_set: BoneSet|None=None) -> BoneInfo:
+    def __make_custom_pivot(self, boneinfo: BoneInfo, bone_set: BoneSet | None = None) -> BoneInfo:
         if not bone_set:
             bone_set = boneinfo.bone_set
         pivot = self.create_parent_bone(boneinfo, bone_set)
@@ -165,7 +170,7 @@ class Component_CopyBone(Component_Base):
                 row_name=row_name,
                 slider_name=entry_name,
                 texts=texts,
-                custom_prop_settings=prop_settings
+                custom_prop_settings=prop_settings,
             )
 
     ##############################
@@ -241,10 +246,8 @@ class Component_CopyBone(Component_Base):
     def define_bone_sets(cls):
         """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
-        cls.define_bone_set(
-            n_("Pivot Control"),
-            color_palette='THEME02'
-        )
+        cls.define_bone_set(n_("Pivot Control"), color_palette='THEME02')
+
 
 class Params(PropertyGroup):
     create_deform: BoolProperty(
@@ -271,14 +274,8 @@ class Params(PropertyGroup):
         description="Choose which label the custom properties should be displayed under. If empty, the properties will display at the top of the subpanel",
     )
 
-    shape_control: Component_Base.make_custom_shape_params(
-        identifier="Control",
-        default="Cube"
-    )
-    shape_pivot: Component_Base.make_custom_shape_params(
-        identifier="Pivot",
-        default="Axes 6"
-    )
+    shape_control: Component_Base.make_custom_shape_params(identifier="Control", default="Cube")
+    shape_pivot: Component_Base.make_custom_shape_params(identifier="Pivot", default="Axes 6")
 
 
 RIG_COMPONENT_CLASS = Component_CopyBone

@@ -14,6 +14,8 @@ def import_cloudrig():
     if module_name:
         return importlib.import_module(module_name)
     raise ModuleNotFoundError("Failed to import CloudRig.")
+
+
 CloudRig = import_cloudrig()
 post_gen = CloudRig.utils.post_gen
 

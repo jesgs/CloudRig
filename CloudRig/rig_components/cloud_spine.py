@@ -40,9 +40,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 rpt_("Spine component with IK must consist of a chain of at least 3 connected bones!")
             )
         if not self.bone_count > 1:
-            self.raise_generation_error(
-                rpt_("Spine component must consist of a chain of at least 2 connected bones!")
-            )
+            self.raise_generation_error(rpt_("Spine component must consist of a chain of at least 2 connected bones!"))
 
         self.ik_prop_name = "ik_" + self.base_name.lower()
         self.ik_stretch_name = "ik_stretch_" + self.base_name.lower()
@@ -68,7 +66,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             parent=self.bones_org[0].parent,
             source=self.bones_org[0],
             head=self.bones_org[0].center,
-            length=self.bones_org[0].length+self.bones_org[1].length/2,
+            length=self.bones_org[0].length + self.bones_org[1].length / 2,
             custom_shape_name=self.params.spine.shape_torso.shape_name,
         )
         if self.params.spine.world_align:
@@ -97,7 +95,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         self.mstr_hips.custom_shape_translation *= Vector((1, -1, -1))
         self.mstr_hips.custom_shape_scale_xyz = self.mstr_hips.custom_shape_scale_xyz.zyx
         self.mstr_hips.custom_shape_rotation_euler.y *= -1
-        self.mstr_hips.custom_shape_rotation_euler.y += pi/2
+        self.mstr_hips.custom_shape_rotation_euler.y += pi / 2
         self.mstr_hips.custom_shape_rotation_euler.z *= -1
         fk_chain[0].parent = self.mstr_hips
         fk_chain[0].collections = self.bones_mch.collections
@@ -113,7 +111,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
         return fk_chain
 
     @no_overlay
-    def fk_chain__counter_rotate_str_bones(self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.85):
+    def fk_chain__counter_rotate_str_bones(
+        self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.85
+    ):
         super().fk_chain__counter_rotate_str_bones(self.bones_org[1:], main_str_bones[1:], influence)
         arm_con = main_str_bones[1].parent_armature_constraint
         if arm_con:
@@ -138,9 +138,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
             self.__make_ik_spine()
 
         if self.params.spine.double:
-            self.root_bone = self.create_parent_bone(
-                self.root_torso, self.bone_sets['Spine Parent Controls']
-            )
+            self.root_bone = self.create_parent_bone(self.root_torso, self.bone_sets['Spine Parent Controls'])
 
     ################################
     # IK/FK spine functions.
@@ -163,13 +161,11 @@ class Component_Spine_IKFK(Component_Chain_FK):
             chest.flatten()
         chest.custom_shape_scale_xyz = chest.custom_shape_scale_xyz.zyx
         chest.custom_shape_scale_xyz.y *= 2
-        chest.custom_shape_rotation_euler.y += pi/2
+        chest.custom_shape_rotation_euler.y += pi / 2
         self.mstr_chest = chest
 
         if self.params.spine.double:
-            self.create_parent_bone(
-                self.mstr_chest, self.bone_sets['Spine Parent Controls']
-            )
+            self.create_parent_bone(self.mstr_chest, self.bone_sets['Spine Parent Controls'])
 
         ### IK Control (IK-CTR) chain. Exposed to animators, although rarely used.
         for i, org_bone in enumerate(self.bones_org):
@@ -181,7 +177,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
                 lock_rotation=[True, False, True],
             )
             ik_ctr_bone.custom_shape_rotation_euler.x = 0
-            ik_ctr_bone.custom_shape_rotation_euler.y += pi/4
+            ik_ctr_bone.custom_shape_rotation_euler.y += pi / 4
             ik_ctr_bone.custom_shape_rotation_euler.z = 0
 
             ik_ctr_bone.custom_shape_translation = Vector((0, 0, 0))
@@ -250,9 +246,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         # IK chain. Aims at the IK-R bones, and owns the FK bones.
         # Also does the stretching.
         next_parent = self.ik_ctr_chain[0]
-        for i, (org_bone, ik_r_bone, ik_ctr_bone) in enumerate(
-            zip(self.bones_org, self.ik_r_chain, self.ik_ctr_chain)
-        ):
+        for i, (org_bone, ik_r_bone, ik_ctr_bone) in enumerate(zip(self.bones_org, self.ik_r_chain, self.ik_ctr_chain)):
             ik_bone = self.bone_sets['Spine Mechanism'].new(
                 name=self.naming.add_prefix(ik_r_bone.source, "IK-M"),
                 source=org_bone,
@@ -286,9 +280,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
                     {
                         'prop': 'influence',
                         'expression': f"var * {influence}",
-                        'variables': [
-                            (self.properties_bone.name, self.ik_stretch_name)
-                        ],
+                        'variables': [(self.properties_bone.name, self.ik_stretch_name)],
                     }
                 )
 
@@ -308,9 +300,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         # Attach ORG to IK
         for i, (fk_bone, ik_bone) in enumerate(zip(self.fk_chain, self.ik_chain)):
             con_name = "Copy Transforms IK"
-            ct_con = fk_bone.add_constraint(
-                'COPY_TRANSFORMS', space='WORLD', name=con_name, subtarget=ik_bone
-            )
+            ct_con = fk_bone.add_constraint('COPY_TRANSFORMS', space='WORLD', name=con_name, subtarget=ik_bone)
             ct_con.drivers.append(
                 {
                     'prop': 'influence',
@@ -328,8 +318,9 @@ class Component_Spine_IKFK(Component_Chain_FK):
             slider_name=self.base_name,
             custom_prop_settings={
                 'default': 1.0,
-                'description': tip_("Allow the spine to stretch beyond its normal length "
-                "while in IK mode, for a cartoony effect"),
+                'description': tip_(
+                    "Allow the spine to stretch beyond its normal length while in IK mode, for a cartoony effect"
+                ),
             },
             context_bones=self.ik_ctr_chain + [self.mstr_chest, self.torso_ctr, self.mstr_hips],
         )
@@ -342,8 +333,10 @@ class Component_Spine_IKFK(Component_Chain_FK):
             slider_name=self.base_name,
             custom_prop_settings={
                 'default': 0.0,
-                'description': tip_("Switch to an IK-like posing mode. Instead of posing the spine "
-                "from bottom to top, this lets you control the two end points in an intuitive way")
+                'description': tip_(
+                    "Switch to an IK-like posing mode. Instead of posing the spine "
+                    "from bottom to top, this lets you control the two end points in an intuitive way"
+                ),
             },
             context_bones=self.fk_chain + self.ik_ctr_chain + [self.mstr_chest, self.torso_ctr, self.mstr_hips],
         )
@@ -440,22 +433,10 @@ class Params(PropertyGroup):
         default=False,
     )
 
-    shape_hip: Component_Chain_FK.make_custom_shape_params(
-        identifier="Hip",
-        default="Saddle"
-    )
-    shape_chest: Component_Chain_FK.make_custom_shape_params(
-        identifier="Chest",
-        default="Saddle"
-    )
-    shape_torso: Component_Chain_FK.make_custom_shape_params(
-        identifier="Torso",
-        default="Torso"
-    )
-    shape_ik: Component_Chain_FK.make_custom_shape_params(
-        identifier="IK",
-        default="Square"
-    )
+    shape_hip: Component_Chain_FK.make_custom_shape_params(identifier="Hip", default="Saddle")
+    shape_chest: Component_Chain_FK.make_custom_shape_params(identifier="Chest", default="Saddle")
+    shape_torso: Component_Chain_FK.make_custom_shape_params(identifier="Torso", default="Torso")
+    shape_ik: Component_Chain_FK.make_custom_shape_params(identifier="IK", default="Square")
 
 
 RIG_COMPONENT_CLASS = Component_Spine_IKFK

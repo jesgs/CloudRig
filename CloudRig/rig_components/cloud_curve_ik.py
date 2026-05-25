@@ -35,11 +35,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
 
     def create_bone_infos(self, context):
         if not self.params.curve.target:
-            num_points = (
-                self.bone_count + 1
-                if self.params.spline_ik.match_hooks
-                else self.params.spline_ik.hooks
-            )
+            num_points = self.bone_count + 1 if self.params.spline_ik.match_hooks else self.params.spline_ik.hooks
             curve_ob = self.curve__create_curve_object(context)
             self.curve__reset_to_default_spline(
                 curve_ob,
@@ -91,9 +87,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         if len(hooks) < 2:
             self.add_log(
                 rpt_("Spline skipped for IK"),
-                description=rpt_(
-                    "Spline {idx} has fewer than 2 hooks, skipping IK handle."
-                ).format(idx=spline_idx),
+                description=rpt_("Spline {idx} has fewer than 2 hooks, skipping IK handle.").format(idx=spline_idx),
             )
             return
         if self.params.curve.target.data.splines[spline_idx].use_cyclic_u:
@@ -117,9 +111,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         pole_ctrl = None
         pole_angle_deg = 0.0  # only used when pole_ctrl is set
         if self.params.ik_chain.use_pole and num_hooks >= 3:
-            pole_ctrl, pole_angle_deg = self.__make_pole_control(
-                spline_idx, hooks, ik_chain
-            )
+            pole_ctrl, pole_angle_deg = self.__make_pole_control(spline_idx, hooks, ik_chain)
             if pole_ctrl is not None:
                 self.pole_ctrls.append(pole_ctrl)
 
@@ -140,9 +132,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         # instead of inheriting only the outgoing segment's rotation.
         self.__reparent_hooks_on_ik(hooks, ik_chain)
 
-    def __make_ik_mech_chain(
-        self, hooks: list[BoneInfo], root_parent: BoneInfo
-    ) -> list[BoneInfo]:
+    def __make_ik_mech_chain(self, hooks: list[BoneInfo], root_parent: BoneInfo) -> list[BoneInfo]:
         num_hooks = len(hooks)
         ik_chain: list[BoneInfo] = []
         for i, hook in enumerate(hooks):
@@ -164,9 +154,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
             ik_chain.append(ik_bone)
         return ik_chain
 
-    def __make_ik_master(
-        self, spline_idx: int, hooks: list[BoneInfo], ik_chain: list[BoneInfo]
-    ) -> BoneInfo:
+    def __make_ik_master(self, spline_idx: int, hooks: list[BoneInfo], ik_chain: list[BoneInfo]) -> BoneInfo:
         last_hook = hooks[-1]
         tip_head = last_hook.head.copy()
         direction = (last_hook.head - hooks[-2].head).normalized()
@@ -194,9 +182,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
     def __make_pole_control(
         self, spline_idx: int, hooks: list[BoneInfo], ik_chain: list[BoneInfo]
     ) -> tuple[BoneInfo, float] | tuple[None, float]:
-        pole_angle_deg, pole_vector, pole_location = calculate_ik_pole_vector(
-            ik_chain[0], ik_chain[1]
-        )
+        pole_angle_deg, pole_vector, pole_location = calculate_ik_pole_vector(ik_chain[0], ik_chain[1])
 
         # A perfectly straight chain has no defined bend direction, so
         # calculate_ik_pole_vector returns a zero pole_vector. Skip the
@@ -229,9 +215,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         )
         return pole_ctrl, pole_angle_deg
 
-    def __reparent_hooks_on_ik(
-        self, hooks: list[BoneInfo], ik_chain: list[BoneInfo]
-    ):
+    def __reparent_hooks_on_ik(self, hooks: list[BoneInfo], ik_chain: list[BoneInfo]):
         num_hooks = len(hooks)
         for i, hook in enumerate(hooks):
             if 0 < i < num_hooks - 1:
@@ -259,10 +243,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
                 hook.parent = ik_chain[i]
 
     def __get_ik_name(self, spline_idx: int, prefix: str) -> str:
-        hook_name = (
-            self.params.curve.hook_name
-            or self.base_bone_name.replace("ORG-", "")
-        )
+        hook_name = self.params.curve.hook_name or self.base_bone_name.replace("ORG-", "")
         spline_part = ""
         if len(self.params.curve.target.data.splines) > 1:
             spline_part = f"_{spline_idx}"

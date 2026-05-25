@@ -16,26 +16,18 @@ from ..rig_component_features.object import EnsureVisible
 from ..rig_components import ALL_COMPONENT_MODULES
 from ..utils.misc import load_script
 
-RIG_TYPE_MAP = {
-    key: module.RIG_COMPONENT_CLASS.ui_name for key, module in ALL_COMPONENT_MODULES.items()
-}
+RIG_TYPE_MAP = {key: module.RIG_COMPONENT_CLASS.ui_name for key, module in ALL_COMPONENT_MODULES.items()}
 
 
 def setattr_safe(thing, key, value):
-    if (
-        hasattr(thing, 'bl_rna')
-        and type(thing.bl_rna.properties[key]) is bpy.types.EnumProperty
-        and type(value) is int
-    ):
+    if hasattr(thing, 'bl_rna') and type(thing.bl_rna.properties[key]) is bpy.types.EnumProperty and type(value) is int:
         enum_value = thing.bl_rna.properties[key].enum_items[value].identifier
         setattr(thing, key, enum_value)
     else:
         setattr(thing, key, value)
 
 
-def preserve_old_default(
-    metarig: Object, param_name: str, old_default: float | int | bool | str
-):
+def preserve_old_default(metarig: Object, param_name: str, old_default: float | int | bool | str):
     for pb in metarig.pose.bones:
         if param_name not in pb.cloudrig_component.params:
             setattr(pb.cloudrig_component.params, param_name, old_default)
@@ -84,8 +76,7 @@ def version_cloud_metarig(metarig):
         if (
             'generation_date' in metarig.data
             or 'generation_time' in metarig.data
-            or ('is_generated_cloudrig' in metarig.data
-                and metarig.data['is_generated_cloudrig'])
+            or ('is_generated_cloudrig' in metarig.data and metarig.data['is_generated_cloudrig'])
         ):
             metarig.property_unset('cloudrig')
             return
@@ -127,32 +118,32 @@ def version_cloud_metarig(metarig):
     if metarig_version < 6:
         # Rename widget params.
         widget_map = {
-            "Root Simple" : "Root 2",
-            "Root Arrows" : "Root 3",
-            "Arrow Four-way" : "Root 4",
-            "Nose Master" : "Nose",
-            "Circle Spiked 1" : "Circle 2",
-            "Circle Spiked 2" : "Circle 3",
-            "Semicircle" : "Circle 4",
-            "Curve Point" : "Bezier",
-            "Curve Handle" : "Handle",
-            "Arrow Two-way" : "Slider",
-            "Arrow 3D" : "Arrow 2",
-            "Arrow Head" : "Arrow 3",
-            "IK Pole" : "Pole",
-            "Squares 2" : "Squares",
-            "Triangle Rounded" : "Tri 2",
-            "Capsule" : "Pill",
-            "Carpal" : "Pill 2",
-            "Cogwheel" : "Cog",
-            "Square Rounded" : "Square 2",
-            "Torso Master" : "Torso",
-            "Sphere XZ" : "Sphere 2",
-            "Eyes Target" : "Eyes",
-            "Roll Flat" : "Roll 2",
-            "Hyperbola" : "Saddle",
-            "Finger Curl" : "Wave",
-            "Sphere Half" : "Sphere H",
+            "Root Simple": "Root 2",
+            "Root Arrows": "Root 3",
+            "Arrow Four-way": "Root 4",
+            "Nose Master": "Nose",
+            "Circle Spiked 1": "Circle 2",
+            "Circle Spiked 2": "Circle 3",
+            "Semicircle": "Circle 4",
+            "Curve Point": "Bezier",
+            "Curve Handle": "Handle",
+            "Arrow Two-way": "Slider",
+            "Arrow 3D": "Arrow 2",
+            "Arrow Head": "Arrow 3",
+            "IK Pole": "Pole",
+            "Squares 2": "Squares",
+            "Triangle Rounded": "Tri 2",
+            "Capsule": "Pill",
+            "Carpal": "Pill 2",
+            "Cogwheel": "Cog",
+            "Square Rounded": "Square 2",
+            "Torso Master": "Torso",
+            "Sphere XZ": "Sphere 2",
+            "Eyes Target": "Eyes",
+            "Roll Flat": "Roll 2",
+            "Hyperbola": "Saddle",
+            "Finger Curl": "Wave",
+            "Sphere Half": "Sphere H",
         }
         for pbone in metarig.pose.bones:
             comp = pbone.cloudrig_component
@@ -198,13 +189,13 @@ def version_cloud_metarig(metarig):
     if metarig_version < 9:
         # We changed some bone shapes.
         rotated_shapes = {
-            'WGT-Root 2': Euler((-pi/2, 0, 0)),
-            'WGT-Root 3': Euler((-pi/2, 0, 0)),
-            'WGT-Root 4': Euler((-pi/2, 0, 0)),
-            'WGT-Root 5': Euler((-pi/2, 0, 0)),
-            'WGT-Root 6': Euler((-pi/2, 0, 0)),
-            'WGT-Mouth': Euler((-pi/2, 0, 0)),
-            'WGT-Diamond': Euler((0, 0, -pi/2)),
+            'WGT-Root 2': Euler((-pi / 2, 0, 0)),
+            'WGT-Root 3': Euler((-pi / 2, 0, 0)),
+            'WGT-Root 4': Euler((-pi / 2, 0, 0)),
+            'WGT-Root 5': Euler((-pi / 2, 0, 0)),
+            'WGT-Root 6': Euler((-pi / 2, 0, 0)),
+            'WGT-Mouth': Euler((-pi / 2, 0, 0)),
+            'WGT-Diamond': Euler((0, 0, -pi / 2)),
             'WGT-Heel': Euler((-pi, 0, 0)),
         }
         for pbone in metarig.pose.bones:
@@ -221,13 +212,13 @@ def version_cloud_metarig(metarig):
                 ebone = metarig.data.edit_bones[heel_bone]
                 if not ebone:
                     continue
-                center = ebone.head + (ebone.tail-ebone.head) * 0.5
+                center = ebone.head + (ebone.tail - ebone.head) * 0.5
                 length = ebone.length
                 side = 1
                 if ".L" in ebone.name:
                     side = -1
-                ebone.head = center+Vector((length/2, 0, 0)) * side
-                ebone.tail = center-Vector((length/2, 0, 0)) * side
+                ebone.head = center + Vector((length / 2, 0, 0)) * side
+                ebone.tail = center - Vector((length / 2, 0, 0)) * side
                 ebone.roll = 0
 
     if metarig_version < 11:
@@ -296,10 +287,7 @@ def update_generated_rig_ui_scripts():
     for text in bpy.data.texts:
         if text.library or not text.use_module:
             continue
-        if not any(
-            arm.get('cloudrig_ui') is text and arm.get('is_generated_cloudrig')
-            for arm in bpy.data.armatures
-        ):
+        if not any(arm.get('cloudrig_ui') is text and arm.get('is_generated_cloudrig') for arm in bpy.data.armatures):
             continue
         if current_content is None:
             current_content = (generation_dir / 'cloudrig.py').read_text()
@@ -321,6 +309,7 @@ def fix_corrective_actions_51(metarig):
             action_setup.trigger_select_a = action_setup['trigger_select_a']
         if not str.isdecimal(action_setup['trigger_select_b']):
             action_setup.trigger_select_b = action_setup['trigger_select_b']
+
 
 @persistent
 def update_all_metarigs(dummy=None):

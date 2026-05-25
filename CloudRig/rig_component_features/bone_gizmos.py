@@ -5,9 +5,7 @@ from bpy.types import Object
 from .bone_info import BoneInfo
 
 
-def map_vgroups_to_most_significant_object(
-    group_names: list[str], objects: list[Object]
-) -> dict[str, Object]:
+def map_vgroups_to_most_significant_object(group_names: list[str], objects: list[Object]) -> dict[str, Object]:
     """Create a dictionary, mapping each vertex group name to the object
     which has the vertex group with the most vertices in it.
     This is expected to be pretty damn slow.
@@ -18,9 +16,7 @@ def map_vgroups_to_most_significant_object(
     # For each object, go through each of its vertex groups.
     for ob in objects:
         group_lookup = {g.index: g.name for g in ob.vertex_groups}
-        vgroup_datas = {
-            name: [] for name in group_lookup.values() if name in group_names
-        }
+        vgroup_datas = {name: [] for name in group_lookup.values() if name in group_names}
         for v in ob.data.vertices:
             for g in v.groups:
                 group_name = group_lookup[g.group]
@@ -71,9 +67,7 @@ class BoneGizmoMixin:
 
     # https://developer.blender.org/diffusion/BSTS/browse/master/bone-gizmos/
 
-    def gizmos__add_interaction(
-        self, bone_names: list[str], operator: str, op_kwargs: dict
-    ):
+    def gizmos__add_interaction(self, bone_names: list[str], operator: str, op_kwargs: dict):
         """Whenever any of this list of bone names are interacted with through
         BoneGizmos addon, execute an operator with the given arguments.
         Useful eg., for automatic IK/FK switching.

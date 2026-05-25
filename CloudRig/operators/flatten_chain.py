@@ -16,11 +16,12 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     remove_active_log: BoolProperty(
-        description="For calling this operator from the Generation Log", default=False
+        description="For calling this operator from the Generation Log",
+        default=False,
     )
     start_bone: StringProperty(
         description="Use a specific bone as the beginning of the chain, rather than the active bone",
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     pole_axis: EnumProperty(
         name="Pole Axis",
@@ -30,7 +31,7 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
             ("+Z", "+Z", "+Z"),
             ("+X", "+X", "+X"),
             ("-X", "-X", "-X"),
-        ]
+        ],
     )
     limit_count: IntProperty(
         name="Limit To First",
@@ -60,7 +61,7 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
         comp = start_pb.cloudrig_component.inherited_component
         pb_chain = comp.component_pbone_chain
         if self.limit_count > 0:
-            pb_chain = pb_chain[:self.limit_count]
+            pb_chain = pb_chain[: self.limit_count]
 
         bpy.ops.object.mode_set(mode='EDIT')
 

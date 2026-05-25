@@ -15,9 +15,12 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
     is_link = 'LINK' in lapp_context.options
 
     root_coll = next(
-        (item.id for item in lapp_context.import_items
-        if item.id.id_type == 'COLLECTION' and item.import_info == set()),
-        None
+        (
+            item.id
+            for item in lapp_context.import_items
+            if item.id.id_type == 'COLLECTION' and item.import_info == set()
+        ),
+        None,
     )
     if not root_coll:
         return
@@ -31,12 +34,15 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
 
         armature_objs = [obj for obj in override_root_coll.all_objects if obj.type == 'ARMATURE']
     else:
-        armature_objs = [item.id for item in lapp_context.import_items if item.id.id_type == 'OBJECT' and item.id.type == 'ARMATURE']
+        armature_objs = [
+            item.id for item in lapp_context.import_items if item.id.id_type == 'OBJECT' and item.id.type == 'ARMATURE'
+        ]
         for obj in context.selected_objects:
             obj.select_set(False)
 
     select_armatures(context, armature_objs, scene)
     autorun_scripts_of_objects(context, armature_objs)
+
 
 def select_armatures(context: Context, armature_objs: list[Object], scene: Scene, set_editable_override=True):
     for arm_ob in armature_objs:
@@ -47,6 +53,7 @@ def select_armatures(context: Context, armature_objs: list[Object], scene: Scene
     if armature_objs and armature_objs[-1] in set(context.view_layer.objects):
         context.view_layer.objects.active = armature_objs[-1]
 
+
 def autorun_scripts_of_objects(context: Context, objects: list[Object]):
     if not context.preferences.filepaths.use_scripts_auto_execute:
         return
@@ -56,8 +63,10 @@ def autorun_scripts_of_objects(context: Context, objects: list[Object]):
             if isinstance(value, bpy.types.Text) and value.use_module:
                 value.as_module()
 
+
 def register():
     bpy.app.handlers.blend_import_post.append(cloudrig_append_link_handler)
+
 
 def unregister():
     if cloudrig_append_link_handler in bpy.app.handlers.blend_import_post:

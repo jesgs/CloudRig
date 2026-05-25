@@ -91,10 +91,7 @@ def cloudrig_manual_map():
     )
 
     # Make everything lower-case.
-    url_map = [
-        (tup[0].lower(), tup[1].lower())
-        for tup in url_map
-    ]
+    url_map = [(tup[0].lower(), tup[1].lower()) for tup in url_map]
 
     return url_manual_prefix, url_map
 

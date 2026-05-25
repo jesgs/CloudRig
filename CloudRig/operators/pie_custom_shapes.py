@@ -76,7 +76,9 @@ class POSE_OT_assign_selected_custom_shape(Operator):
         prefs = get_addon_prefs(context)
 
         big_enough = prefs.widget_popup_size > 2
-        layout.row().template_icon_view(self, 'widget_name', show_labels=big_enough, scale=3, scale_popup=prefs.widget_popup_size)
+        layout.row().template_icon_view(
+            self, 'widget_name', show_labels=big_enough, scale=3, scale_popup=prefs.widget_popup_size
+        )
         layout.row().prop_search(self, 'widget_name', prefs, 'widget_names', text="")
 
     @classmethod
@@ -136,7 +138,7 @@ class POSE_OT_reload_selected_custom_shape(Operator):
         for i, pb in enumerate(self.get_bones_to_reload(context)):
             pb.custom_shape = ensure_widget(pb.custom_shape.name, overwrite=True)
 
-        self.report({'INFO'}, rpt_("Bone shapes reloaded: {count}.").format(count=i+1))
+        self.report({'INFO'}, rpt_("Bone shapes reloaded: {count}.").format(count=i + 1))
 
         return {'FINISHED'}
 
@@ -205,16 +207,8 @@ class POSE_OT_edit_widget_of_selected_bones(Operator):
         if not cls.poll_without_linked_check(context):
             return False
 
-        if all(
-            [
-                pb.custom_shape.library
-                for pb in context.selected_pose_bones
-                if pb.custom_shape
-            ]
-        ):
-            cls.poll_message_set(
-                "All selected bones' custom shapes are linked, they cannot be edited."
-            )
+        if all([pb.custom_shape.library for pb in context.selected_pose_bones if pb.custom_shape]):
+            cls.poll_message_set("All selected bones' custom shapes are linked, they cannot be edited.")
             return False
 
         return True
@@ -258,9 +252,7 @@ class POSE_OT_edit_widget_of_selected_bones(Operator):
 
         # Step 3: Create a matrix from the custom shape translation, rotation
         # and this scale which already accounts for bone length.
-        custom_shape_matrix = Matrix.LocRotScale(
-            pb.custom_shape_translation, pb.custom_shape_rotation_euler, scale
-        )
+        custom_shape_matrix = Matrix.LocRotScale(pb.custom_shape_translation, pb.custom_shape_rotation_euler, scale)
 
         # Step 4: Multiply the pose bone's world matrix by the custom shape matrix.
         final_matrix = pb.id_data.matrix_world @ transform_bone.matrix @ custom_shape_matrix
@@ -393,7 +385,9 @@ class POSE_OT_assign_selected_object_as_custom_shape(Operator):
                 pb.custom_shape = shape
                 counter += 1
 
-        self.report({'INFO'}, rpt_("{object} assigned to bones: {num_bones}.").format(object=shape.name, num_bones=counter))
+        self.report(
+            {'INFO'}, rpt_("{object} assigned to bones: {num_bones}.").format(object=shape.name, num_bones=counter)
+        )
         return {'FINISHED'}
 
 
@@ -475,18 +469,18 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
         self.draw_bone_color_ui(layout, pbone.color)
 
     def draw_bone_shape_settings(
-            self,
-            layout,
-            pbone: PoseBone,
-            custom_shape=True,
-            display_type=True,
-            override_transform=True,
-            force_wire=True,
-            transforms=True,
-            bone_size=True,
-            wire_width=True,
-            draw_all=False,
-        ):
+        self,
+        layout,
+        pbone: PoseBone,
+        custom_shape=True,
+        display_type=True,
+        override_transform=True,
+        force_wire=True,
+        transforms=True,
+        bone_size=True,
+        wire_width=True,
+        draw_all=False,
+    ):
         if custom_shape:
             layout.prop(pbone, "custom_shape", text="Custom Shape Object")
 
@@ -514,7 +508,11 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
 
         if bone_size:
             length = pbone.bone.length
-            layout.prop(pbone, "use_custom_shape_bone_size", text="Scale to Bone Length (x{multiplier})".format(multiplier=f"{length:.2f}"))
+            layout.prop(
+                pbone,
+                "use_custom_shape_bone_size",
+                text="Scale to Bone Length (x{multiplier})".format(multiplier=f"{length:.2f}"),
+            )
 
         layout.separator()
 

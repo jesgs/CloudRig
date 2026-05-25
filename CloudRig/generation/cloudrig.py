@@ -57,6 +57,7 @@ if submodule:
 ############ Context Checks ###########
 #######################################
 
+
 def active_rig(context) -> Object | None:
     """Return the active rig even if we're in weight paint mode."""
     rig = context.pose_object or context.active_object
@@ -64,6 +65,7 @@ def active_rig(context) -> Object | None:
         return
     if rig.type == 'ARMATURE':
         return rig
+
 
 def is_active_cloudrig(context) -> Object | bool:
     """If the active object is a cloudrig, return it."""
@@ -84,12 +86,7 @@ def is_active_cloudrig(context) -> Object | bool:
 
 def is_generated_cloudrig(obj: Object) -> bool:
     """Return whether obj is a rig marked as being compatible with cloudrig.py."""
-    return (
-        obj
-        and obj.type == 'ARMATURE'
-        and 'is_generated_cloudrig' in obj.data
-        and obj.data['is_generated_cloudrig']
-    )
+    return obj and obj.type == 'ARMATURE' and 'is_generated_cloudrig' in obj.data and obj.data['is_generated_cloudrig']
 
 
 def is_active_cloud_metarig(context) -> bool:
@@ -97,12 +94,7 @@ def is_active_cloud_metarig(context) -> bool:
 
 
 def is_cloud_metarig(obj: Object) -> bool:
-    return (
-        obj
-        and obj.type == 'ARMATURE'
-        and hasattr(obj, 'cloudrig')
-        and obj.cloudrig.enabled
-    )
+    return obj and obj.type == 'ARMATURE' and hasattr(obj, 'cloudrig') and obj.cloudrig.enabled
 
 
 def find_metarig_of_rig(context, rig: Object) -> Object | None:
@@ -120,9 +112,8 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
     # If that failed, try to find it by name as a last resort.
     for prefix in {'RIG-', 'FAILED-RIG-'}:
         if rig.name.startswith(prefix):
-            metarig = (
-                context.scene.objects.get(rig.name.replace(prefix, "META-")) or
-                context.scene.objects.get(rig.name.replace(prefix, ""))
+            metarig = context.scene.objects.get(rig.name.replace(prefix, "META-")) or context.scene.objects.get(
+                rig.name.replace(prefix, "")
             )
             if metarig and metarig.type != 'ARMATURE':
                 metarig = None
@@ -144,18 +135,14 @@ def find_metarig_of_rig(context, rig: Object) -> Object | None:
                 return metarig
 
 
-def find_cloudrig(
-    context, *, allow_metarigs=True, filter_func: callable = None
-) -> Object | None:
+def find_cloudrig(context, *, allow_metarigs=True, filter_func: callable = None) -> Object | None:
     """Find the CloudRig Metarig or Target Rig most relevant to the current context.
     For example, if the active object is a mesh which is deformed by a generated rig,
     return that generated rig.
     """
 
     def is_good_rig(rig):
-        return rig and (
-            is_generated_cloudrig(rig) or (allow_metarigs and is_cloud_metarig(rig))
-        )
+        return rig and (is_generated_cloudrig(rig) or (allow_metarigs and is_cloud_metarig(rig)))
 
     if not filter_func:
         filter_func = is_good_rig
@@ -193,9 +180,7 @@ def poll_cloudrig_operator(operator, context, modes={}, **kwargs):
         return False
     rig = find_cloudrig(context, **kwargs)
     if not rig:
-        operator.poll_message_set(
-            "Could not find a CloudRig metarig or generated rig in this context."
-        )
+        operator.poll_message_set("Could not find a CloudRig metarig or generated rig in this context.")
         return False
     return rig
 
@@ -203,6 +188,7 @@ def poll_cloudrig_operator(operator, context, modes={}, **kwargs):
 #######################################
 ########## Snapping & Baking ##########
 #######################################
+
 
 class SnappingOpMixin:
     bone_names: StringProperty(
@@ -239,7 +225,9 @@ class SnappingOpMixin:
             self.key_target_prop_value(options)
 
     def key_target_prop_value(self, options={'INSERTKEY_AVAILABLE'}):
-        self.prop_pbone.keyframe_insert(f'["{self.prop_id}"]', group=self.prop_pbone.name, keytype='GENERATED', options=options)
+        self.prop_pbone.keyframe_insert(
+            f'["{self.prop_id}"]', group=self.prop_pbone.name, keytype='GENERATED', options=options
+        )
 
     @property
     def prop_pbone(self) -> PoseBone:
@@ -253,9 +241,7 @@ class SnappingOpMixin:
     def prop_value(self) -> float:
         # Return the current value of the custom property that will be toggled.
         if self.prop_id not in self.prop_pbone:
-            raise ValueError(
-                f"Property `{self.prop_id}` not found in bone `{self.prop_bone}`."
-            )
+            raise ValueError(f"Property `{self.prop_id}` not found in bone `{self.prop_bone}`.")
         return self.prop_pbone[self.prop_id]
 
     def get_affected_pbones(self) -> set[PoseBone]:
@@ -278,6 +264,7 @@ class SnappingOpMixin:
 
             key_transforms(pbone, options)
 
+
 def get_pbone_matrix_map(
     bones_to_snap: list[PoseBone], snap_to_bones: list[PoseBone] = []
 ) -> OrderedDict[PoseBone, Matrix]:
@@ -285,11 +272,9 @@ def get_pbone_matrix_map(
         snap_to_bones = bones_to_snap
     assert len(bones_to_snap) == len(snap_to_bones)
     return OrderedDict(
-        [
-            (snapped_bone, snap_target.matrix.copy())
-            for snapped_bone, snap_target in zip(bones_to_snap, snap_to_bones)
-        ]
+        [(snapped_bone, snap_target.matrix.copy()) for snapped_bone, snap_target in zip(bones_to_snap, snap_to_bones)]
     )
+
 
 def set_bone_selection(rig, select=False, pbones: list[PoseBone] = None, extend=False):
     if select and not extend:
@@ -304,6 +289,7 @@ def set_bone_selection(rig, select=False, pbones: list[PoseBone] = None, extend=
     if last and select:
         rig.data.bones.active = last.bone
 
+
 def key_transforms(pb: PoseBone, options={'INSERTKEY_AVAILABLE'}):
     if pb.rotation_mode == 'QUATERNION':
         props = ['rotation_quaternion']
@@ -317,13 +303,16 @@ def key_transforms(pb: PoseBone, options={'INSERTKEY_AVAILABLE'}):
     for prop in props:
         pb.keyframe_insert(prop, keytype='GENERATED', options=options)
 
+
 def reveal_bones(bones: list[Bone | EditBone | PoseBone]):
     for bone in bones:
         reveal_bone(bone)
 
+
 def reveal_bone(bone: Bone | EditBone | PoseBone):
     ensure_visible_bone_collection(bone)
     bone.hide = False
+
 
 def ensure_visible_bone_collection(bone: Bone | EditBone | PoseBone):
     """If target bone not in any enabled collections, enable first one."""
@@ -345,15 +334,18 @@ def ensure_visible_bone_collection(bone: Bone | EditBone | PoseBone):
                 coll.is_visible = True
             coll = coll.parent
 
+
 class SnapBakeOpMixin(SnappingOpMixin):
     do_bake: BoolProperty(name="Bake", default=False)
 
     def nudge_end(self, context):
         if self.frame_start >= self.frame_end:
             self.frame_end = self.frame_start + 1
+
     def nudge_start(self, context):
         if self.frame_start >= self.frame_end:
             self.frame_start = self.frame_end - 1
+
     frame_start: IntProperty(name="First Frame", default=-999, update=nudge_end)
     frame_end: IntProperty(name="Last Frame", default=-999, update=nudge_start)
 
@@ -393,7 +385,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
 
     def draw_affected_bones(self, layout):
         affected_pbones = self.get_affected_pbones()
-        self.draw_bones(layout, {pb:None for pb in affected_pbones})
+        self.draw_bones(layout, {pb: None for pb in affected_pbones})
 
     def draw_bones(self, layout, bone_map: dict[PoseBone, PoseBone | None]):
         col = layout.column(align=True)
@@ -412,7 +404,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
             row.prop(from_pb, 'name', text="", icon='BONE_DATA')
             if to_pb:
                 split = split.row().split(factor=0.08)
-                split.row().label(text="\u279C")
+                split.row().label(text="\u279c")
                 split.row().prop(to_pb, 'name', text="", icon='BONE_DATA')
             else:
                 # When there's no target, this helps align the bone selectors.
@@ -464,6 +456,7 @@ class SnapBakeOpMixin(SnappingOpMixin):
             self.key_target_prop_value()
             for pb in affected_pbones:
                 key_transforms(pb, options=set())
+
         if self.key_before_start:
             # Key original value and transforms one frame before the selected bake range.
             key_all_on_frame(frame_numbers[0] - 1)
@@ -478,8 +471,10 @@ class SnapBakeOpMixin(SnappingOpMixin):
             # Pose & key the bones.
             self.key_bones_single_frame(context, pbone_matrix_map, options=set())
 
+
 class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
     "Invert property value while preserving the transforms of affected bones."
+
     bl_idname = 'pose.cloudrig_snap_bake'
     bl_label = "Snap & Bake Bones"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
@@ -531,8 +526,10 @@ class POSE_OT_cloudrig_snap_bake(SnapBakeOpMixin, Operator):
         self.report({'INFO'}, "Snapping complete.")
         return {'FINISHED'}
 
+
 class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
     "Change the parent while preserving the world-matrix of the children."
+
     # This operator's implementation is so simple because it does nothing more
     # than base Snap&Bake other than using an Enum selector for the property value.
 
@@ -572,6 +569,7 @@ class POSE_OT_cloudrig_switch_parent_bake(POSE_OT_cloudrig_snap_bake, Operator):
         self._target_prop_value = int(self.selected)
         return super().execute(context)
 
+
 class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
     "Switch between IK <-> FK modes."
 
@@ -579,21 +577,11 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
     bl_label = "Snap & Bake"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    map_fk_to_ik: StringProperty(
-        description="List of tuples of (fk_bone, target_bone) for snapping FK to IK"
-    )
-    map_ik_to_fk: StringProperty(
-        description="List of tuples of (ik_bone, target_bone) for snapping IK to FK"
-    )
-    ik_pole: StringProperty(
-        description="Name of IK pole vector bone, for snapping IK to FK"
-    )
-    ik_first: StringProperty(
-        description="Name of the first bone in the IK chain. Necessary for IK pole snapping logic"
-    )
-    fk_first: StringProperty(
-        description="Name of the first bone in the FK chain. Necessary for IK pole snapping logic"
-    )
+    map_fk_to_ik: StringProperty(description="List of tuples of (fk_bone, target_bone) for snapping FK to IK")
+    map_ik_to_fk: StringProperty(description="List of tuples of (ik_bone, target_bone) for snapping IK to FK")
+    ik_pole: StringProperty(description="Name of IK pole vector bone, for snapping IK to FK")
+    ik_first: StringProperty(description="Name of the first bone in the IK chain. Necessary for IK pole snapping logic")
+    fk_first: StringProperty(description="Name of the first bone in the FK chain. Necessary for IK pole snapping logic")
 
     @property
     def pole_pbone(self):
@@ -636,9 +624,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
             key_transforms(pb)
 
         # Store bone matrices.
-        frame_matrix_map = self.map_frames_to_bone_matrices(
-            context, bones_to_snap, snap_to_bones
-        )
+        frame_matrix_map = self.map_frames_to_bone_matrices(context, bones_to_snap, snap_to_bones)
 
         self.ik_last = bones_to_snap[0]
         if self.do_bake:
@@ -709,8 +695,7 @@ class POSE_OT_cloudrig_toggle_ikfk_bake(SnapBakeOpMixin, Operator):
 
 
 def calculate_ik_pole_vector(
-    meta_first: PoseBone | Bone | EditBone,
-    meta_second: PoseBone | Bone | EditBone
+    meta_first: PoseBone | Bone | EditBone, meta_second: PoseBone | Bone | EditBone
 ) -> tuple[float, Vector, Vector]:
     """Based on the first two bones of a chain,
     return some data useful in creating an IK pole target:
@@ -765,19 +750,16 @@ def calculate_ik_pole_vector(
     # to find the pole vector position.
     # NOTE: This requires that all the bone rolls are aligned to point towards this point.
     # This can be achieved with the "Flatten IK Chain" operator.
-    elbow_vec = (first_tail-closest)
+    elbow_vec = first_tail - closest
     elbow_direction = elbow_vec.normalized()
-    pole_location = closest + elbow_vec + elbow_direction*chain_vector.length
+    pole_location = closest + elbow_vec + elbow_direction * chain_vector.length
 
     return pole_angle_deg, elbow_direction, pole_location
 
 
 def closest_point_on_line(
-        line_start: Vector,
-        line_end: Vector,
-        point: Vector,
-        clamp_to_segment: bool = False
-    ) -> Vector:
+    line_start: Vector, line_end: Vector, point: Vector, clamp_to_segment: bool = False
+) -> Vector:
     line_direction = line_end - line_start
     vector_to_point = point - line_start
 
@@ -871,27 +853,21 @@ class POSE_OT_armature_reset(Operator):
     bl_label = "Reset Armature"
     bl_options = {'REGISTER', 'UNDO'}
 
-    reset_action: BoolProperty(
-        name="Unassign Action", default=False, description="Un-assign Action"
-    )
+    reset_action: BoolProperty(name="Unassign Action", default=False, description="Un-assign Action")
     reset_viewport_display: BoolProperty(
-        name="Viewport Settings", default=False, description="Reset 'Show Name', 'Show Axes', 'In Front' object properties"
+        name="Viewport Settings",
+        default=False,
+        description="Reset 'Show Name', 'Show Axes', 'In Front' object properties",
     )
-    reset_bone_visibility: BoolProperty(
-        name="Unhide Bones", default=False, description="Unhide all bones"
-    )
+    reset_bone_visibility: BoolProperty(name="Unhide Bones", default=False, description="Unhide all bones")
 
     selection_only: BoolProperty(
         name="Selected Only",
         default=False,
         description="Affect selected bones rather than all bones",
     )
-    reset_transforms: BoolProperty(
-        name="Transforms", default=True, description="Reset bone transforms"
-    )
-    reset_custom_props: BoolProperty(
-        name="Custom Properties", default=True, description="Reset custom properties"
-    )
+    reset_transforms: BoolProperty(name="Transforms", default=True, description="Reset bone transforms")
+    reset_custom_props: BoolProperty(name="Custom Properties", default=True, description="Reset custom properties")
 
     @classmethod
     def poll(cls, context):
@@ -935,7 +911,16 @@ class POSE_OT_armature_reset(Operator):
         return {'FINISHED'}
 
 
-def reset_armature(rig, *, viewport_display=False, bone_visibility=False, action=False, transforms=True, custom_props=True, pose_bones=[]):
+def reset_armature(
+    rig,
+    *,
+    viewport_display=False,
+    bone_visibility=False,
+    action=False,
+    transforms=True,
+    custom_props=True,
+    pose_bones=[],
+):
     if viewport_display:
         rig.show_name = False
         rig.show_axis = False
@@ -962,9 +947,7 @@ def reset_armature(rig, *, viewport_display=False, bone_visibility=False, action
         if not custom_props or len(pbone.keys()) == 0:
             continue
 
-        rna_properties = [
-            prop.identifier for prop in pbone.bl_rna.properties if prop.is_runtime
-        ]
+        rna_properties = [prop.identifier for prop in pbone.bl_rna.properties if prop.is_runtime]
 
         # Reset custom property values to their defaults.
         for key in pbone.keys():
@@ -994,6 +977,7 @@ def reset_armature(rig, *, viewport_display=False, bone_visibility=False, action
                 continue
             pbone[key] = property_settings['default']
 
+
 @bpy.app.handlers.persistent
 def auto_override_rig_data(_=None):
     # On file load, if a CloudRig rig object is overridden, make sure its data is also overridden.
@@ -1013,10 +997,7 @@ def should_ui_be_enabled(context) -> bool:
     rig = find_cloudrig(context)
     if not rig:
         return False
-    return not (
-        rig.cloudrig_prefs.hide_during_transform and
-        is_modal_transform_running(context)
-    )
+    return not (rig.cloudrig_prefs.hide_during_transform and is_modal_transform_running(context))
 
 
 def is_modal_transform_running(context) -> bool:
@@ -1025,6 +1006,7 @@ def is_modal_transform_running(context) -> bool:
         if m.bl_idname.startswith('TRANSFORM_OT_'):
             return True
     return False
+
 
 class CLOUDRIG_PT_base(Panel):
     """Base class for all CloudRig sidebar panels."""
@@ -1094,9 +1076,7 @@ class CLOUDRIG_PT_settings(CLOUDRIG_PT_base):
                         )
                 else:
                     sane_name = re.sub(r'\W+', '', panel_name)
-                    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(
-                        " ", ""
-                    )
+                    full_name = "CLOUDRIG_PT_custom_" + sane_name.lower().replace(" ", "")
                     header, body = layout.panel(full_name)
                     self.draw_panel_header(context, header, panel_name)
                     if body:
@@ -1229,10 +1209,8 @@ def context_filter_ui_data(context, ui_data: OrderedDict) -> OrderedDict:
         if is_leaf(node):
             return node if keep_leaf(node) else None
         filtered = OrderedDict(
-            (k, filtered_child)
-            for k in node
-            if (filtered_child := filter_node(node[k])) is not None
-    )
+            (k, filtered_child) for k in node if (filtered_child := filter_node(node[k])) is not None
+        )
         return filtered or None
 
     return filter_node(ui_data) or OrderedDict()
@@ -1352,7 +1330,9 @@ def draw_slider(
     if not owner:
         sub_row.alert = True
         sub_row.label(
-            text="Missing property owner: '{owner_path}' for property '{prop_name}'.".format(owner_path=owner_path, prop_name=prop_name),
+            text="Missing property owner: '{owner_path}' for property '{prop_name}'.".format(
+                owner_path=owner_path, prop_name=prop_name
+            ),
             icon='ERROR',
         )
     elif supports_custom_props(owner) and bracketless_prop_name in owner:
@@ -1363,15 +1343,13 @@ def draw_slider(
         except ValueError:
             sub_row.alert = True
             sub_row.label(
-                text="Missing property '{prop_name}' of owner '{owner_path}'.".format(owner_path=owner_path, prop_name=prop_name),
+                text="Missing property '{prop_name}' of owner '{owner_path}'.".format(
+                    owner_path=owner_path, prop_name=prop_name
+                ),
                 icon='ERROR',
             )
 
-    if (
-        isinstance(owner, bpy.types.BoneCollection)
-        and any_solo(owner.id_data)
-        and prop_name == 'is_visible'
-    ):
+    if isinstance(owner, bpy.types.BoneCollection) and any_solo(owner.id_data) and prop_name == 'is_visible':
         # If this is a bone collection visibility, and any bone collection is Solo'd,
         # disable the visibility button (since it wouldn't work.)
         sub_row.enabled = False
@@ -1389,17 +1367,13 @@ def draw_slider(
             texts=texts,
         )
         if operator:
-            draw_operator(
-                rig, sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs
-            )
+            draw_operator(rig, sub_row, bl_idname=operator, op_icon=op_icon, op_kwargs=op_kwargs)
 
         prop_value_str = str(prop_value)
         if children:
             box_col = None
             for comma_separated_values, child_data in children.items():
-                prop_values_as_str = [
-                    v.strip() for v in comma_separated_values.split(",")
-                ]
+                prop_values_as_str = [v.strip() for v in comma_separated_values.split(",")]
                 if prop_value_str in prop_values_as_str:
                     for child_label_name, child_label_data in child_data.items():
                         if not box_col:
@@ -1417,33 +1391,24 @@ def draw_slider(
     if is_ui_edit_mode(rig):
         if not sub_row.alert:
             if type(prop_value) in {int, bool}:
-                child_op = sub_row.operator(
-                    'pose.cloudrig_add_child_property_to_ui', icon='ADD', text=""
-                )
+                child_op = sub_row.operator('pose.cloudrig_add_child_property_to_ui', icon='ADD', text="")
                 child_op.parent_value = prop_value_str
                 child_op.parent_ui_path = json.dumps(ui_path)
                 if type(owner) is PoseBone:
                     child_op.init_owner_path = f'pose.bones["{owner.name}"]'
 
-            if (
-                bracketless_prop_name not in owner.__dir__()
-                and bracketless_prop_name in owner
-            ):
+            if bracketless_prop_name not in owner.__dir__() and bracketless_prop_name in owner:
                 data_path = "active_object"
                 if owner_path.startswith('['):
                     data_path += owner_path
                 elif owner_path != "":
                     data_path += "." + owner_path
                 # XXX: This doesn't work when the rig isn't the active object. We would need to pass context to check.
-                edit_op = sub_row.operator(
-                    "wm.properties_edit", text="", icon='PREFERENCES'
-                )
+                edit_op = sub_row.operator("wm.properties_edit", text="", icon='PREFERENCES')
                 edit_op.data_path = data_path
                 edit_op.property_name = bracketless_prop_name
 
-        edit_op = sub_row.operator(
-            'pose.cloudrig_edit_property_in_ui', text="", icon='GREASEPENCIL'
-        )
+        edit_op = sub_row.operator('pose.cloudrig_edit_property_in_ui', text="", icon='GREASEPENCIL')
         edit_op.init_owner_path = owner_path
         edit_op.prop_name = bracketless_prop_name
         ui_path_str = json.dumps(ui_path)
@@ -1468,9 +1433,7 @@ def draw_slider(
             edit_op.icon_true = icon_true
         if icon_false != 'CHECKBOX_DEHLT':
             edit_op.icon_false = icon_false
-        sub_row.operator(
-            'pose.cloudrig_remove_property_from_ui', text="", icon='X'
-        ).ui_path = ui_path_str
+        sub_row.operator('pose.cloudrig_remove_property_from_ui', text="", icon='X').ui_path = ui_path_str
     sub_row.separator()
 
 
@@ -1558,7 +1521,7 @@ def draw_operator(
     if op_exists(bl_idname):
         op_props = layout.operator(bl_idname, text=text, icon=op_icon)
     elif is_ui_edit_mode(obj):
-        layout.alert=True
+        layout.alert = True
         layout.label(text="Missing Operator", icon='ERROR')
     feed_op_props(op_props, op_kwargs)
     return op_props
@@ -1583,17 +1546,13 @@ def draw_drag_operator(
         elif cloudrig_installed:
             icon = 'NONE'
             icon_value = icons.get_cloudrig_icon_id('vertical_twoway_arrows')
-        op = layout.operator(
-            'pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value
-        )
+        op = layout.operator('pose.cloudrig_reorder_rows', text="", icon=icon, icon_value=icon_value)
         op.ui_path = json.dumps(ui_path + [ui_name])
         return op
 
 
 def is_ui_edit_mode(obj):
-    return (
-        hasattr(obj, 'cloudrig') and obj.cloudrig.enabled and obj.cloudrig.ui_edit_mode
-    )
+    return hasattr(obj, 'cloudrig') and obj.cloudrig.enabled and obj.cloudrig.ui_edit_mode
 
 
 def op_exists(bl_idname) -> bool:
@@ -1647,6 +1606,7 @@ def supports_custom_props(thing: Any) -> bool:
         return True
     except (TypeError, AttributeError):
         return False
+
 
 #######################################
 ########### Rig Preferences ###########
@@ -1739,9 +1699,7 @@ class CloudRig_RigPreferences(PropertyGroup):
         if not colls:
             return
 
-        flt_flags = CLOUDRIG_UL_collections.get_filter_flags(
-            all_colls, self.collection_filter
-        )
+        flt_flags = CLOUDRIG_UL_collections.get_filter_flags(all_colls, self.collection_filter)
 
         new_idx = self.active_collection_index
 
@@ -1873,7 +1831,6 @@ class CloudRigBoneCollection(PropertyGroup):
             post_gen = importlib.import_module(cr_module_name + ".utils.post_gen")
             post_gen.replace_in_ui_data(rig, f'collections_all["{coll.name}"]', f'collections_all["{self.name}"]')
 
-
         # Set the actual collection's name to be in sync.
         coll.name = self.name
 
@@ -1940,9 +1897,7 @@ class CloudRigBoneCollection(PropertyGroup):
         """Includes self!"""
         if not self.parent_collection:
             all_colls = self.id_data.collections_all
-            return [
-                coll for coll in all_colls if not coll.cloudrig_info.parent_collection
-            ]
+            return [coll for coll in all_colls if not coll.cloudrig_info.parent_collection]
         return self.parent_collection.children
 
     @property
@@ -2040,9 +1995,7 @@ class CLOUDRIG_UL_collections(UIList):
             ]
             indirect_bones = collection.bones_recursive
             indirect_visible_bones = [
-                b
-                for b in indirect_bones
-                if not pbones[b.name].hide and any([c.is_visible for c in b.collections])
+                b for b in indirect_bones if not pbones[b.name].hide and any([c.is_visible for c in b.collections])
             ]
             indirect_selected_bones = [bone for bone in indirect_visible_bones if pbones[bone.name].select]
 
@@ -2083,11 +2036,7 @@ class CLOUDRIG_UL_collections(UIList):
             main_row.prop(cloudrig_info, 'quick_access', text="", icon=icon)
             metarig = find_metarig_of_rig(context, context.active_object)
             if is_active_cloudrig(context) and metarig:
-                icon = (
-                    'FAKE_USER_ON'
-                    if cloudrig_info.preserve_on_regenerate
-                    else 'FAKE_USER_OFF'
-                )
+                icon = 'FAKE_USER_ON' if cloudrig_info.preserve_on_regenerate else 'FAKE_USER_OFF'
                 main_row.prop(cloudrig_info, 'preserve_on_regenerate', text="", icon=icon)
 
             if collection.is_editable:
@@ -2139,9 +2088,7 @@ class CLOUDRIG_UL_collections(UIList):
         for root_coll in root_colls:
             add_children_recursive(root_coll)
 
-        flt_flags = CLOUDRIG_UL_collections.get_filter_flags(
-            all_collections, rig.cloudrig_prefs.collection_filter
-        )
+        flt_flags = CLOUDRIG_UL_collections.get_filter_flags(all_collections, rig.cloudrig_prefs.collection_filter)
 
         if filtered:
             for i, flag in enumerate(flt_flags):
@@ -2179,18 +2126,13 @@ class CLOUDRIG_UL_collections(UIList):
                     flt_flags[i] = 1073741824
 
         # Filter out collections whose parents are collapsed
-        return [
-            flag * int(all_collections[i].cloudrig_info.are_parents_unfolded)
-            for i, flag in enumerate(flt_flags)
-        ]
+        return [flag * int(all_collections[i].cloudrig_info.are_parents_unfolded) for i, flag in enumerate(flt_flags)]
 
     def filter_items(self, context, data, propname):
         all_collections = getattr(data, propname)
         rig = find_cloudrig(context)
 
-        flt_flags = self.get_filter_flags(
-            all_collections, rig.cloudrig_prefs.collection_filter
-        )
+        flt_flags = self.get_filter_flags(all_collections, rig.cloudrig_prefs.collection_filter)
         flt_neworder = self.get_collection_order(rig)
 
         return flt_flags, flt_neworder
@@ -2199,12 +2141,14 @@ class CLOUDRIG_UL_collections(UIList):
 def any_solo(armature) -> bool:
     return any([c.is_solo for c in armature.collections_all])
 
+
 def get_coll_children_recursive(coll: BoneCollection) -> list[BoneCollection]:
     children = []
     for child in coll.children:
         children.append(child)
         children += get_coll_children_recursive(child)
     return children
+
 
 def draw_cloudrig_collections(self, context, rig: Object):
     layout = self.layout
@@ -2261,9 +2205,7 @@ def draw_cloudrig_collections(self, context, rig: Object):
 
     list_col.operator(POSE_OT_cloudrig_collection_add.bl_idname, text="", icon='ADD')
 
-    list_col.operator(
-        POSE_OT_cloudrig_collection_delete.bl_idname, text="", icon='REMOVE'
-    ).mode = 'ACTIVE'
+    list_col.operator(POSE_OT_cloudrig_collection_delete.bl_idname, text="", icon='REMOVE').mode = 'ACTIVE'
     list_col.separator()
 
     row = list_col.row()
@@ -2277,12 +2219,8 @@ def draw_cloudrig_collections(self, context, rig: Object):
 
     row = layout.row()
     sub = row.row(align=True)
-    sub.operator(POSE_OT_cloudrig_collection_assign.bl_idname, text="Assign").assign = (
-        True
-    )
-    sub.operator(
-        POSE_OT_cloudrig_collection_assign.bl_idname, text="Unassign"
-    ).assign = False
+    sub.operator(POSE_OT_cloudrig_collection_assign.bl_idname, text="Assign").assign = True
+    sub.operator(POSE_OT_cloudrig_collection_assign.bl_idname, text="Unassign").assign = False
 
     sub = row.row(align=True)
     sel_op = sub.operator(POSE_OT_cloudrig_collection_select.bl_idname, text="Select")
@@ -2290,9 +2228,7 @@ def draw_cloudrig_collections(self, context, rig: Object):
     sel_op.collection_name = active_coll.name
     sel_op.extend_selection = True
 
-    desel_op = sub.operator(
-        POSE_OT_cloudrig_collection_select.bl_idname, text="Deselect"
-    )
+    desel_op = sub.operator(POSE_OT_cloudrig_collection_select.bl_idname, text="Deselect")
     desel_op.select = False
     desel_op.collection_name = active_coll.name
 
@@ -2332,9 +2268,7 @@ class CLOUDRIG_PT_collections_filter(Panel):
         row.prop(prefs, "show_editing", text="", icon='PREFERENCES')
         row.prop(prefs, 'show_bone_count', text="", icon='GROUP_BONE')
         if rig.data.override_library:
-            row.prop(
-                prefs, 'show_local_overrides', text="", icon='LIBRARY_DATA_OVERRIDE'
-            )
+            row.prop(prefs, 'show_local_overrides', text="", icon='LIBRARY_DATA_OVERRIDE')
 
 
 class CLOUDRIG_MT_collections_specials(Menu):
@@ -2451,7 +2385,7 @@ def object_mode(rig, mode='OBJECT'):
 
 
 class POSE_OT_cloudrig_collection_select(Operator):
-    "Select all bones in this Bone Collection.\n\n" "Shift: Extend selection.\n" "Ctrl: Mirror selection.\n" "Alt: Deselect"
+    "Select all bones in this Bone Collection.\n\nShift: Extend selection.\nCtrl: Mirror selection.\nAlt: Deselect"
 
     bl_idname = "pose.cloudrig_collection_select"
     bl_label = "Select Bones of Collection"
@@ -2494,9 +2428,7 @@ class POSE_OT_cloudrig_collection_select(Operator):
 
     @classmethod
     def poll(cls, context):
-        return poll_cloudrig_operator(
-            cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'}
-        )
+        return poll_cloudrig_operator(cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'})
 
     def invoke(self, context, event):
         if not self.extend_selection:
@@ -2531,7 +2463,9 @@ class POSE_OT_cloudrig_collection_select(Operator):
 
             for bone in collection.bones_recursive:
                 pbone = rig.pose.bones[bone.name]
-                if not self.reveal_bones and (pbone.hide or not any((coll.is_visible_effectively for coll in bone.collections))):
+                if not self.reveal_bones and (
+                    pbone.hide or not any((coll.is_visible_effectively for coll in bone.collections))
+                ):
                     continue
                 if self.flip:
                     pbone = rig.pose.bones.get(bpy.utils.flip_name(bone.name))
@@ -2559,7 +2493,7 @@ def poll_cloudrig_operator_collection(operator, context):
 
 
 class POSE_OT_cloudrig_collection_delete(Operator):
-    "Remove the active Bone Collection.\n" "Shift: Delete whole hierarchy" ""
+    "Remove the active Bone Collection.\nShift: Delete whole hierarchy"
 
     bl_idname = "pose.cloudrig_collection_delete"
     bl_label = "Remove Bone Collection"
@@ -2599,9 +2533,7 @@ class POSE_OT_cloudrig_collection_delete(Operator):
 
         elif self.mode == 'HIERARCHY':
             self.delete_hierarchy(rig)
-            self.report(
-                {'INFO'}, "Deleted editable bone collections of selected hierarchy."
-            )
+            self.report({'INFO'}, "Deleted editable bone collections of selected hierarchy.")
 
         self.set_visual_active_index(rig, visual_index)
 
@@ -2612,18 +2544,14 @@ class POSE_OT_cloudrig_collection_delete(Operator):
         """Get the index of the active collection as it is in the current UIList.
         Eg., if the active collection is the 3rd one that is drawn, this will return 2.
         """
-        sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(
-            rig, filtered=True
-        )
+        sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(rig, filtered=True)
         return sorted_collections.index(rig.data.collections.active)
 
     def set_visual_active_index(self, rig, index):
         """Set the index of the active collection as they appear in the UIList.
         Eg., if index==2, the 3rd collection from the top of the list will become active.
         """
-        sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(
-            rig, filtered=True
-        )
+        sorted_collections = CLOUDRIG_UL_collections.get_visual_collection_order(rig, filtered=True)
         if index <= len(sorted_collections) - 1:
             coll = sorted_collections[index]
         elif len(sorted_collections) > 0:
@@ -2696,7 +2624,7 @@ class POSE_OT_cloudrig_collection_add(Operator):
 
 
 class POSE_OT_cloudrig_reorder_collections(Operator):
-    "Rearrange and re-parent this collection with the arrow keys, WASD, or by " "moving the mouse.\n\n" "Left-click/Enter: Confirm.\n" "Right-click/Esc: Cancel.\n" "Up/Down: Move Collection up/down.\n" "Left/Right: Unparent/Parent collection to the one above"
+    "Rearrange and re-parent this collection with the arrow keys, WASD, or by moving the mouse.\n\nLeft-click/Enter: Confirm.\nRight-click/Esc: Cancel.\nUp/Down: Move Collection up/down.\nLeft/Right: Unparent/Parent collection to the one above"
 
     bl_idname = "pose.cloudrig_reorder_collections"
     bl_label = "Reorder Collections"
@@ -2715,9 +2643,7 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
             return {'CANCELLED'}
         self.initial_parent = self.collection.parent
         self.collection.cloudrig_info.is_dragged = True
-        rig.cloudrig_prefs.active_collection_index = self.initial_index = (
-            self.collection.index
-        )
+        rig.cloudrig_prefs.active_collection_index = self.initial_index = self.collection.index
 
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
@@ -2725,17 +2651,9 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
     def modal(self, context, event):
         rig = find_cloudrig(context)
         self.index_offset = 0
-        if (
-            event.type in {'W', 'UP_ARROW'}
-            and not event.is_repeat
-            and event.value != 'RELEASE'
-        ):
+        if event.type in {'W', 'UP_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
             self.index_offset = -1
-        elif (
-            event.type in {'S', 'DOWN_ARROW'}
-            and not event.is_repeat
-            and event.value != 'RELEASE'
-        ):
+        elif event.type in {'S', 'DOWN_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
             self.index_offset = 1
         elif event.type == 'MOUSEMOVE':
             self.index_offset = int((event.mouse_y - self.mouse_anchor_y) / -20)
@@ -2754,17 +2672,9 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
             rig.data.collections.move(self.collection.index, self.initial_index)
             rig.cloudrig_prefs.active_collection_index = self.collection.index
             return {'CANCELLED'}
-        elif (
-            event.type in {'RIGHT_ARROW'}
-            and not event.is_repeat
-            and event.value != 'RELEASE'
-        ):
+        elif event.type in {'RIGHT_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
             self.parent_active_coll_to_prev_sibling(rig)
-        elif (
-            event.type in {'LEFT_ARROW'}
-            and not event.is_repeat
-            and event.value != 'RELEASE'
-        ):
+        elif event.type in {'LEFT_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
             self.unparent_active_coll_by_one(rig)
 
         if self.index_offset != 0:
@@ -2786,20 +2696,14 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
         rig.cloudrig_prefs.active_collection_index = active_coll.index
 
         if active_coll.parent:
-            self.report(
-                {'INFO'},
-                "Parented to '{parent}'."
-                .format(parent=active_coll.parent.name)
-            )
+            self.report({'INFO'}, "Parented to '{parent}'.".format(parent=active_coll.parent.name))
         else:
             self.report({'INFO'}, "Set parent to None.")
         return {'FINISHED'}
 
     def parent_active_coll_to_prev_sibling(self, rig):
         active_coll = rig.data.collections.active
-        prev_sibling = self.get_sibling_of_active_coll(
-            rig, index_offset=-1, only_editable=True
-        )
+        prev_sibling = self.get_sibling_of_active_coll(rig, index_offset=-1, only_editable=True)
         if not prev_sibling:
             return {'CANCELLED'}
 
@@ -2809,21 +2713,13 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
         rig.cloudrig_prefs.active_collection_index = active_coll.index
 
         if active_coll.parent:
-            self.report(
-                {'INFO'},
-                "Parented to '{parent}'."
-                .format(parent=active_coll.parent.name)
-            )
+            self.report({'INFO'}, "Parented to '{parent}'.".format(parent=active_coll.parent.name))
         else:
             self.report({'INFO'}, "Set parent to None.")
         return {'FINISHED'}
 
-    def get_sibling_of_active_coll(
-        self, rig, *, index_offset=-1, only_editable=False
-    ) -> BoneCollection | None:
-        visual_order = CLOUDRIG_UL_collections.get_visual_collection_order(
-            rig, filtered=True
-        )
+    def get_sibling_of_active_coll(self, rig, *, index_offset=-1, only_editable=False) -> BoneCollection | None:
+        visual_order = CLOUDRIG_UL_collections.get_visual_collection_order(rig, filtered=True)
         visual_index = POSE_OT_cloudrig_collection_delete.get_visual_active_index(rig)
 
         while True:
@@ -2849,7 +2745,7 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
 
 
 class POSE_OT_cloudrig_collection_assign(Operator):
-    "Assign selected bones to active collection.\n\n" "Alt: Un-assign.\n" "Shift: To active collection & children.\n" "Shift+Ctrl: To all collections"
+    "Assign selected bones to active collection.\n\nAlt: Un-assign.\nShift: To active collection & children.\nShift+Ctrl: To all collections"
 
     bl_idname = "pose.cloudrig_collection_assign"
     bl_label = "(Un)Assign Bones to Collection"
@@ -2861,9 +2757,7 @@ class POSE_OT_cloudrig_collection_assign(Operator):
 
     @classmethod
     def poll(cls, context):
-        rig = poll_cloudrig_operator(
-            cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'}
-        )
+        rig = poll_cloudrig_operator(cls, context, modes={'POSE', 'EDIT_ARMATURE', 'PAINT_WEIGHT'})
         if not rig:
             return False
         if not rig.data.collections.active:
@@ -3181,9 +3075,7 @@ def register():
             # which would cause them to lose their sub-panels. (They would become top-level.)
             register_class(c)
 
-    bpy.types.Object.cloudrig_prefs = PointerProperty(
-        type=CloudRig_RigPreferences, override={'LIBRARY_OVERRIDABLE'}
-    )
+    bpy.types.Object.cloudrig_prefs = PointerProperty(type=CloudRig_RigPreferences, override={'LIBRARY_OVERRIDABLE'})
 
     bpy.types.BoneCollection.cloudrig_info = PointerProperty(
         type=CloudRigBoneCollection, override={'LIBRARY_OVERRIDABLE'}
@@ -3191,9 +3083,7 @@ def register():
 
     # Inject our custom Bone Collections panel.
     if not hasattr(bpy.types.DATA_PT_bone_collections, 'draw_bkp'):
-        bpy.types.DATA_PT_bone_collections.draw_bkp = (
-            bpy.types.DATA_PT_bone_collections.draw
-        )
+        bpy.types.DATA_PT_bone_collections.draw_bkp = bpy.types.DATA_PT_bone_collections.draw
         bpy.types.DATA_PT_bone_collections.draw = builtin_collections_draw_override
 
     if cloudrig_installed:
@@ -3239,9 +3129,7 @@ def unregister():
 
     try:
         # Un-inject our collection UI override.
-        bpy.types.DATA_PT_bone_collections.draw = (
-            bpy.types.DATA_PT_bone_collections.draw_bkp
-        )
+        bpy.types.DATA_PT_bone_collections.draw = bpy.types.DATA_PT_bone_collections.draw_bkp
         del bpy.types.DATA_PT_bone_collections.draw_bkp
     except AttributeError:
         pass
