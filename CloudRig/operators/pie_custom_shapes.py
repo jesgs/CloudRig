@@ -169,6 +169,8 @@ class POSE_OT_copy_custom_shape_to_selected_bones(Operator):
             pb.use_custom_shape_bone_size = active_pb.use_custom_shape_bone_size
             pb.bone.show_wire = active_pb.bone.show_wire
             pb.custom_shape_wire_width = active_pb.custom_shape_wire_width
+            pb.use_transform_at_custom_shape = active_pb.use_transform_at_custom_shape
+            pb.use_transform_around_custom_shape = active_pb.use_transform_around_custom_shape
 
         self.report({'INFO'}, rpt_("Copied shape to bones: {num_bones}.").format(num_bones=i))
 
