@@ -2696,7 +2696,7 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
         rig.cloudrig_prefs.active_collection_index = active_coll.index
 
         if active_coll.parent:
-            self.report({'INFO'}, "Parented to '{parent}'.".format(parent=active_coll.parent.name))
+            self.report({'INFO'}, rpt_("Parented to '{parent}'.").format(parent=active_coll.parent.name))
         else:
             self.report({'INFO'}, "Set parent to None.")
         return {'FINISHED'}
@@ -2713,7 +2713,7 @@ class POSE_OT_cloudrig_reorder_collections(Operator):
         rig.cloudrig_prefs.active_collection_index = active_coll.index
 
         if active_coll.parent:
-            self.report({'INFO'}, "Parented to '{parent}'.".format(parent=active_coll.parent.name))
+            self.report({'INFO'}, rpt_("Parented to '{parent}'.").format(parent=active_coll.parent.name))
         else:
             self.report({'INFO'}, "Set parent to None.")
         return {'FINISHED'}

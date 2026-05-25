@@ -1,3 +1,4 @@
+# fmt: off
 """
 Tests that certain regex patterns do not appear anywhere in the CloudRig codebase.
 """
@@ -26,21 +27,21 @@ IGNORED_FILES = [
 # Patterns that must not match anywhere in the codebase.
 # Keys are human-readable descriptions; values are regex strings.
 FORBIDDEN_PATTERNS: dict[str, str] = {
-    "`report()` must not use f-string":                               r'''report\([^)]*,\s*f["']''',
-    "`aligned_label(text=` kwarg must be wrapped by iface_()":        r'''aligned_label.*text=f?"''',
-    "`log()` first argument must be wrapped by rpt_()":               r'''log\([\n\s]*f?"''',
-    "`description` must be wrapped by tip_()":                        r'''['"]description['"]:[\s]*f?['"]''',
-    "`description` must not use f-string":                            r'''description\s*=[\n\s\(]*f''',
-    "`raise_generation_error()` 1st arg must be wrapped by rpt_()":   r'''raise_generation_error\([\s\nf]*"''',
-    "`draw_control_label()` 2nd arg must be wrapped by iface_()":     r'''\.draw_control_label\(.*,[\s\n]*f?"''',
-    "`text` kwarg must not use f-string":                             r'''text\s*=\s*f"''',
-    "parent_switch_behaviour must be wrapped by n_()":                r'''parent_switch_behaviour\s*=\s*f?["']''',
-    "`report()` must not use .format() (unless already translated)":  r'''self\.report\((?![^)]*rpt_)[^)]*["']\.format\(''',
-    "`define_bone_set()` 1st arg must be wrapped in iface_()":        r'''define_bone_set\(([\n\s]*)["|'](.*?)["|']''',
-    "`label_name` or `panel_name` must be wrapped in n_()":           r'''(label_name|panel_name)\s*=\s*"(.+)"''',
-    "'.format()' must be outside of translation function, not inside":r'''(_|n_|iface_|tip_|rpt_|data_)\(.*?(?<!\))\.format''',
-    "Do not call long version of translation functions":              r'''pgettext_[data|rpt|tip|iface|n]\(''',
-    "report() must not combine strings without translation wrappers": r'''self\.report\(\{'\w+'\},\s*"[^"]*"\s*\+''',
+    "`report()` must not use f-string":                                 r'''report\([^)]*,\s*f["']''',
+    "`report()` must not use .format() (unless already translated)":    r'''self\.report\((?![^)]*rpt_)[^)]*["']\s*\.format\(''',
+    "`report()` must not combine strings without translation wrappers": r'''self\.report\(\{'\w+'\},\s*"[^"]*"\s*\+''',
+    "`aligned_label(text=` kwarg must be wrapped by `iface_()`":        r'''aligned_label.*text=f?"''',
+    "`log()` first argument must be wrapped by `rpt_()`":               r'''log\([\n\s]*f?"''',
+    "`description` must be wrapped by `tip_()`":                        r'''['"]description['"]:[\s]*f?['"]''',
+    "`description` must not use f-string":                              r'''description\s*=[\n\s\(]*f''',
+    "`raise_generation_error()` 1st arg must be wrapped by `rpt_()`":   r'''raise_generation_error\([\s\nf]*"''',
+    "`draw_control_label()` 2nd arg must be wrapped by `iface_()`":     r'''\.draw_control_label\(.*,[\s\n]*f?"''',
+    "`text` kwarg must not use f-string":                               r'''text\s*=\s*f"''',
+    "`parent_switch_behaviour` must be wrapped by `n_()`":              r'''parent_switch_behaviour\s*=\s*f?["']''',
+    "`define_bone_set()` 1st arg must be wrapped in `iface_()`":        r'''define_bone_set\(([\n\s]*)["|'](.*?)["|']''',
+    "`label_name` or `panel_name` must be wrapped in `n_()`":           r'''(label_name|panel_name)\s*=\s*"(.+)"''',
+    "'.format()' must be outside of translation function, not inside":  r'''(_|n_|iface_|tip_|rpt_|data_)\(.*?(?<!\))\.format''',
+    "Do not call long version of translation functions":                r'''pgettext_[data|rpt|tip|iface|n]\(''',
 }
 
 # ---------------------------------------------------------------------------

@@ -1084,7 +1084,7 @@ class CLOUDRIG_OT_generate(Operator):
         if prev_generated_rig and prev_generated_rig not in set(context.view_layer.objects):
             self.report(
                 {'ERROR'},
-                "Target rig '{rig}' cannot be re-generated because it is not in the current view layer.".format(
+                rpt_("Target rig '{rig}' cannot be re-generated because it is not in the current view layer.").format(
                     rig=prev_generated_rig.name
                 ),
             )
@@ -1240,9 +1240,9 @@ class CLOUDRIG_OT_generate(Operator):
 
                 self.report(
                     {'ERROR'},
-                    "A bug has occurred. You can report it through the Generation Log interface.{traceback}".format(
-                        traceback=f"\n{traceback.format_exc()}"
-                    ),
+                    rpt_(
+                        "A bug has occurred. You can report it through the Generation Log interface.{traceback}"
+                    ).format(traceback=f"\n{traceback.format_exc()}"),
                 )
 
             return

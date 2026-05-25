@@ -362,7 +362,7 @@ class POSE_OT_parent_object_to_selected_bones(Operator):
 
         self.report(
             {'INFO'},
-            "Parented {num_objects} objects to {num_bones} bones.".format(
+            rpt_("Parented {num_objects} objects to {num_bones} bones.").format(
                 num_objects=len(target_objs), num_bones=len(pbones)
             ),
         )
