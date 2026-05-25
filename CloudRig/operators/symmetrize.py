@@ -99,6 +99,13 @@ class POSE_OT_symmetrize_rigging(Operator):
         for from_pb, to_pb in bone_map.items():
             # Copy bone color preset.
             to_pb.bone.color.palette = from_pb.bone.color.palette
+            to_pb.bone.color.custom.normal = from_pb.bone.color.custom.normal
+            to_pb.bone.color.custom.select = from_pb.bone.color.custom.select
+            to_pb.bone.color.custom.active = from_pb.bone.color.custom.active
+            to_pb.color.palette = from_pb.color.palette
+            to_pb.color.custom.normal = from_pb.color.custom.normal
+            to_pb.color.custom.select = from_pb.color.custom.select
+            to_pb.color.custom.active = from_pb.bone.color.custom.active
 
             # Copy armature display type.
             to_pb.bone.display_type = from_pb.bone.display_type
