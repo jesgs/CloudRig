@@ -105,7 +105,6 @@ class BoneSelectOperatorMixin:
     )
 
     def invoke(self, context, event):
-        print("Invoke!")
         if event.shift:
             self.extend_selection = True
         else:
