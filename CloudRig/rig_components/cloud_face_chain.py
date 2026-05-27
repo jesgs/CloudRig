@@ -66,7 +66,7 @@ class Component_FaceChain(Component_ToonChain):
                 relink_tgt = relink_tgt.parent_helper = self.create_parent_bone(relink_tgt, self.bones_mch)
             elif not is_intersection and relink_tgt.parent_helper:
                 relink_tgt = relink_tgt.parent_helper
-            else:
+            elif not is_intersection:
                 if 'NOHLP' not in con.name:
                     con.name += "_NOHLP"
 
