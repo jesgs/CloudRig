@@ -243,7 +243,6 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
                 hook.parent = ik_chain[i]
 
     def __get_ik_name(self, spline_idx: int, prefix: str) -> str:
-        hook_name = self.params.curve.hook_name or self.base_bone_name.replace("ORG-", "")
         spline_part = ""
         if len(self.params.curve.target.data.splines) > 1:
             spline_part = f"_{spline_idx}"
@@ -253,7 +252,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         if suffix:
             suffix_part = self.naming.SUFFIX_SEPARATOR + suffix
 
-        base = f"{hook_name}{spline_part}{suffix_part}"
+        base = f"{self.base_name}{spline_part}{suffix_part}"
         return self.naming.add_prefix(base, prefix)
 
     ##############################

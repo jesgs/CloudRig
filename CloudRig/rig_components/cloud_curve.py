@@ -19,20 +19,11 @@ from ..utils.curve import (
 from .cloud_base import Component_Base
 
 
-def is_curve(self, obj):
-    return obj.type == 'CURVE'
-
-
-def get_points_propname(spline):
-    if spline.bezier_points:
-        return 'bezier_points'
-    return 'points'
-
-
 class Component_Curve_Hooked(Component_Base):
     """Create hook controls for an existing bezier curve."""
 
     ui_name = "Curve: With Hooks"
+    use_base_name = True
 
     ##############################
     # Inherited functions.
@@ -106,7 +97,8 @@ class Component_Curve_Hooked(Component_Base):
         curve__reset_to_default_spline) and assigning it to params.curve.target.
         """
         curve_name = "CUR-" + self.generator.metarig.name.replace("META-", "")
-        curve_name += "_" + (self.params.curve.hook_name or self.base_bone_name.replace("ORG-", ""))
+        if self.params.base.base_name:
+            curve_name += "_" + self.base_name
 
         curve_data = bpy.data.curves.new(curve_name, 'CURVE')
         curve_ob = bpy.data.objects.new(curve_name, curve_data)
@@ -236,11 +228,6 @@ class Component_Curve_Hooked(Component_Base):
         if prefix:
             prefix_part = "_" + prefix
 
-        if self.params.curve.hook_name:
-            hook_name = self.params.curve.hook_name
-        else:
-            hook_name = self.base_bone_name.replace("ORG-", "")
-
         spline_part = ""
         if len(self.params.curve.target.data.splines) > 1:
             spline_part = f"_{spline_idx}"
@@ -263,7 +250,7 @@ class Component_Curve_Hooked(Component_Base):
             if suffix != "":
                 suffix = self.naming.SUFFIX_SEPARATOR + suffix
 
-        return f"Spline{prefix_part}_{hook_name}{spline_part}{suffix}"
+        return f"Spline{prefix_part}_{self.base_name}{spline_part}{suffix}"
 
     def __get_mirror_point(
         self,
@@ -757,6 +744,7 @@ class Component_Curve_Hooked(Component_Base):
 
     @classmethod
     def draw_control_params(cls, layout, context, component):
+        super().draw_control_params(layout, context, component)
         params = component.params
         cls.curve__draw_selector_ui(layout, context, params)
         curve_ob = params.curve.target
@@ -766,15 +754,15 @@ class Component_Curve_Hooked(Component_Base):
         if len(curve_ob.data.splines) > 1:
             cls.draw_prop(context, layout, params.curve, "root_per_spline")
 
-        if cls.is_advanced_mode(context):
-            cls.draw_prop(context, layout, params.curve, "hook_name")
-            cls.draw_prop(context, layout, params.curve, "inherit_scale")
         cls.draw_prop(context, layout, params.curve, "x_axis_symmetry")
         if curve_ob.data and any([spline.type == 'BEZIER' for spline in curve_ob.data.splines]):
             cls.draw_prop(context, layout, params.curve, "controls_for_handles")
             if params.curve.controls_for_handles:
                 cls.draw_prop(context, layout, params.curve, "rotatable_handles")
                 cls.draw_prop(context, layout, params.curve, "separate_radius")
+
+        if cls.is_advanced_mode(context):
+            cls.draw_prop(context, layout, params.curve, "inherit_scale")
 
     @classmethod
     def draw_appearance_params(cls, layout, context, component):
@@ -808,17 +796,21 @@ class Component_Curve_Hooked(Component_Base):
         return layout
 
 
+def is_curve(self, obj):
+    return obj.type == 'CURVE'
+
+
+def get_points_propname(spline):
+    if spline.bezier_points:
+        return 'bezier_points'
+    return 'points'
+
+
 class Params(PropertyGroup):
     create_root: BoolProperty(
         name="Create Root",
         description="Create a root bone for this rig component",
         default=True,
-    )
-    hook_name: StringProperty(
-        name="Custom Name",
-        description="Used in the naming of created bones and objects. If empty, use the base bone's name",
-        # TODO: This should be removed in favor of `base.base_name`.
-        default="",
     )
     controls_for_handles: BoolProperty(
         name="Controls for Handles",

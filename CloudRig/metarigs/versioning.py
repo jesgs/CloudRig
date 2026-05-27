@@ -278,6 +278,12 @@ def version_cloud_metarig(metarig):
             if comp.component_type == 'Shoulder Bone':
                 comp.params.fk_chain.shape_fk.name = "Shoulder"
 
+    if metarig_version < 16:
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component
+            if comp.component_type in ('Curve: Spline IK', 'Curve: With Hooks'):
+                comp.params.base.base_name = comp.params.curve.get('hook_name', "")
+
 
 def update_generated_rig_ui_scripts():
     """Replace local cloudrig.py UI scripts that don't match the current add-on version."""

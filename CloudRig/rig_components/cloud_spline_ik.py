@@ -143,20 +143,18 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     def __make_def_chain(self):
         segments = self.params.spline_ik.subdivide
 
-        count_def_bone = 0
         next_parent = self.bones_org[0] if self.bones_org[0].preserve else self.bones_org[0].parent
         for org_bone in self.bones_org:
             for i in range(0, segments):
                 ## Create Deform bones
-                if self.params.curve.hook_name != "":
-                    name_base = self.params.curve.hook_name
-                    counter = count_def_bone
+                if self.params.base.base_name:
+                    name_base = self.params.base.base_name
+                    name_idx = len(self.bones_def)
                 else:
                     name_base = org_bone.name
-                    counter = i
+                    name_idx = i
                 name_base = self.naming.add_prefix(name_base, "DEF")
-                def_name = self.naming.suffix_base_name(name_base, str(counter).zfill(len(str(segments))))
-                count_def_bone += 1
+                def_name = self.naming.suffix_base_name(name_base, str(name_idx).zfill(len(str(segments))))
 
                 unit = org_bone.vector / segments
                 def_bone = self.bones_def.new(
