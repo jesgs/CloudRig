@@ -31,7 +31,7 @@ class Component_Finger(Component_Chain_IKFK):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.full_length_ik_name = "finger_ik_full_" + self.limb_name_props
+        self.full_length_ik_name = "finger_ik_full_" + self.base_name_props
 
     @no_overlay
     def rig_ui__add_bone_property(
@@ -197,7 +197,7 @@ class Component_Finger(Component_Chain_IKFK):
             panel_name=n_("IK"),
             label_name=n_("Full IK"),
             row_name=self.base_name,
-            slider_name=self.limb_ui_name,
+            slider_name=self.base_name_ui,
             custom_prop_settings={
                 'default': 1.0,
                 'description': tip_('When enabled, the last bone in the chain is also considered part of the IK chain'),

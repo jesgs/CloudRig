@@ -36,13 +36,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.limb_ui_name = self.base_name
-        if self.side_prefix != "":
-            self.limb_ui_name = self.side_prefix + " " + self.limb_ui_name
-
-        self.limb_name_props = self.limb_ui_name.replace(" ", "_").lower()
-        self.fk_hinge_name = "fk_hinge_" + self.limb_name_props
-        self.reverse_fk_name = "fk_reverse_" + self.limb_name_props
+        self.fk_hinge_name = "fk_hinge_" + self.base_name_props
+        self.reverse_fk_name = "fk_reverse_" + self.base_name_props
 
         if not (self.params.fk_chain.root and self.generator_params.ensure_root):
             self.params.fk_chain.hinge = False
@@ -163,7 +158,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 hng_name=self.naming.add_prefix(self.base_bone_name, "FK-HNG"),
                 prop_bone=self.properties_bone,
                 prop_name=self.fk_hinge_name,
-                limb_name=self.limb_ui_name,
+                ui_name=self.base_name_ui,
                 fk_chain=fk_chain,
             )
 
@@ -211,7 +206,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         parent_bone=None,
         root_bone_name="",
         hng_name=None,
-        limb_name=None,
+        ui_name=None,
         bone_set=None,
         panel_name=n_("FK"),
         label_name=n_("Hinge"),
@@ -246,7 +241,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
             panel_name=panel_name,
             label_name=label_name,
             row_name=category,
-            slider_name=limb_name or self.limb_ui_name,
+            slider_name=ui_name or self.base_name_ui,
             custom_prop_settings={
                 "default": default_value,
                 "description": tip_("When enabled, rotation is not inherited, except from the armature's root"),

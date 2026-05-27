@@ -41,8 +41,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         super().__init__(*args, **kwargs)
 
         # UI Strings and Custom Property names
-        self.ikfk_name = "ik_" + self.limb_name_props
-        self.ik_stretch_name = "ik_stretch_" + self.limb_name_props
+        self.ikfk_name = "ik_" + self.base_name_props
+        self.ik_stretch_name = "ik_stretch_" + self.base_name_props
 
         self.pole_side = 1
         self.ik_pole_offset = 3  # Scalar on distance from the body. Could become a parameter but it's unimportant.
@@ -71,7 +71,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         label_name=n_("Parent Switching"),
         entry_name="",
     ):
-        ik_parents_prop_name = "ik_parents_" + self.limb_name_props
+        ik_parents_prop_name = "ik_parents_" + self.base_name_props
         super().base__apply_parent_switching(
             child_bone=child_bone or self.ik_mstr,
             prop_bone=prop_bone or self.properties_bone,
@@ -176,7 +176,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
                 self._parent_ui_names.append("IK Master")
                 self.base__apply_parent_switching(
                     child_bone=self.pole_ctrl,
-                    prop_name="ik_pole_parents_" + self.limb_name_props,
+                    prop_name="ik_pole_parents_" + self.base_name_props,
                     row_name=self.base_name + " Pole",
                     entry_name=self.base_name + " Pole",
                 )
@@ -362,7 +362,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             panel_name=n_("IK"),
             label_name=n_("IK Stretch"),
             row_name=self.base_name,
-            slider_name=self.limb_ui_name,
+            slider_name=self.base_name_ui,
             custom_prop_settings={
                 "default": self.params.ik_chain.default_stretch,
                 "description": tip_("Allow the limb to stretch beyond its normal maximum reach for a cartoony effect"),
@@ -478,7 +478,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             "prop_id": self.ikfk_name,
             "panel_name": n_("FK/IK Switch"),
             "row_name": self.base_name,
-            "slider_name": self.limb_ui_name,
+            "slider_name": self.base_name_ui,
             "custom_prop_settings": {
                 "default": self.params.ik_chain.default_fkik,
                 "description": tip_("Switch {bone} to Inverse Kinematics posing mode").format(bone=self.base_name),
@@ -534,7 +534,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         pole_parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
         pole_parent_helper.custom_shape = None
 
-        ik_pole_follow_name = "ik_pole_follow_" + self.limb_name_props
+        ik_pole_follow_name = "ik_pole_follow_" + self.base_name_props
         self.create_driven_armature_constraint(
             pole_parent_helper,
             target_bones=[self.__get_default_ik_parent(), ik_mstr],
@@ -550,7 +550,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             panel_name=n_("IK"),
             label_name=n_("IK Pole Follow"),
             row_name=self.base_name,
-            slider_name=self.limb_ui_name,
+            slider_name=self.base_name_ui,
             custom_prop_settings={
                 "default": default,
                 "description": tip_('Make "{ik_pole}" follow "{ik_mstr}"').format(

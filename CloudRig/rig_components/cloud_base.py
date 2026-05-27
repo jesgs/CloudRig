@@ -127,9 +127,29 @@ class Component_Base(
         self.bones_mch = self.bone_sets['Mechanism Bones']
 
     @property
-    def base_name(self):
+    def base_name(self) -> str:
+        """String that can be used to derive object or bone names. Does not include left/right suffix."""
         # NOTE: self.params.base.base_name shouldn't be accessed directly outside of here.
         return self.params.base.base_name or self.naming.get_name_parts(self.base_bone_name)[1]
+
+    @property
+    def base_name_with_suffix(self) -> str:
+        """String that can be used to derive object or bone names. Includes left/right suffix."""
+        if self.side_suffix:
+            return self.base_name + "." + self.side_suffix
+        return self.base_name
+
+    @property
+    def base_name_ui(self) -> str:
+        """String that can be used to derive property UI labels."""
+        if self.side_prefix:
+            return self.side_prefix + " " + self.base_name
+        return self.base_name
+
+    @property
+    def base_name_props(self) -> str:
+        """String that can be used to derive custom property names."""
+        return self.base_name_ui.replace(" ", "_").lower()
 
     def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
         """Read ORG bones into BoneInfo instances in self.bones_org
@@ -177,7 +197,7 @@ class Component_Base(
         if not skip_root_parenting and self.params.parenting.root_parent != "":
             self.base__apply_custom_root_parent()
         if self.params.parenting.parent_switching:
-            self.base__apply_parent_switching(entry_name=self.base_name)
+            self.base__apply_parent_switching(entry_name=self.base_name_ui)
         # self.gizmos__add_interactions()
 
     def create_helper_objects(self, context):

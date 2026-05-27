@@ -197,7 +197,7 @@ class Component_Limb(Component_Chain_IKFK):
         elbow or the knee.
         """
 
-        prop_name = "auto_rubber_hose_" + self.limb_name_props
+        prop_name = "auto_rubber_hose_" + self.base_name_props
 
         rubberhose_ctr = None
         if self.params.limb.auto_hose_control:
@@ -239,7 +239,7 @@ class Component_Limb(Component_Chain_IKFK):
                     ),
                 },
                 row_name=self.base_name,
-                slider_name=self.limb_ui_name,
+                slider_name=self.base_name_ui,
                 context_bones=(
                     self.ik_chain
                     + self.fk_chain
