@@ -203,7 +203,12 @@ def symmetrize_constraint(armature: Object, pbone: PoseBone, from_con: Constrain
         if from_targ.target:
             to_targ.target = get_opposite_obj(from_targ.target)
         # Try flipping the target vertex group.
-        if to_targ.target and to_targ.target.type != 'ARMATURE' and from_targ.subtarget:
+        if (
+            hasattr(to_targ, 'subtarget')
+            and to_targ.target
+            and to_targ.target.type != 'ARMATURE'
+            and from_targ.subtarget
+        ):
             flipped_name = flip_name(from_targ.subtarget)
             if to_targ.target.type != 'MESH' or flipped_name in to_targ.target.vertex_groups:
                 to_targ.subtarget = flip_name(from_targ.subtarget)
