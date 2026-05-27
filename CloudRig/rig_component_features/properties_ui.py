@@ -392,7 +392,7 @@ class CloudRigUIEditOpMixin:
         owner_row.prop(self, 'use_bone_selector', icon='BONE_DATA', text="")
         owner_row.prop(self, 'use_coll_selector', icon='OUTLINER_COLLECTION', text="")
 
-        if not self.owner_path:
+        if not self.owner_path and (self.use_bone_selector or self.use_coll_selector):
             # User hasn't specified a property owner yet. Don't overwhelm them with the rest of the UI.
             return True
 
