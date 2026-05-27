@@ -401,6 +401,19 @@ class BoneInfo:
     def parent(self, value):
         if self.parent == value:
             return
+        ancestor = value
+        ancestor_loop = []
+        while ancestor and type(ancestor) is not str:
+            ancestor_loop.append(ancestor.name)
+            if ancestor is self:
+                ancestor_loop.reverse()
+                ancestor_loop.append(ancestor.name + " ⟵ " + rpt_("Already among parents!!!"))
+                err_msg = f"{self} -> {value}"
+                for i, ancestor_name in enumerate(ancestor_loop):
+                    err_msg += "\n" + "    " * i + ancestor_name
+                self.owner_component.raise_generation_error(rpt_("Cyclic parenting attempted: ") + err_msg)
+                return
+            ancestor = ancestor.parent
         if self.parent and type(self.parent) is not str:
             self.parent.children.remove(self)
         self._parent = value
