@@ -9,7 +9,6 @@ from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
-from numpy import average
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.bone_set import BoneSet

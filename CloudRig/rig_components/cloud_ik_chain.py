@@ -79,7 +79,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             panel_name=panel_name,
             row_name=row_name or self.base_name,
             label_name=label_name,
-            entry_name=self.side_prefix + " " + (entry_name or self.ik_mstr.name),
+            entry_name=entry_name or self.base_name_ui or self.ik_mstr.name,
         )
 
     @no_overlay
@@ -168,18 +168,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         super().create_component_interactions(context)
 
         if self.params.ik_chain.use_pole:
-            if self.params.ik_chain.pole_parent_switch == 'FOLLOW':
-                self.ik_chain__make_pole_follow_switch(self.pole_ctrl, self.ik_mstr)
-            else:
-                self.parent_bone_names
-                self._parent_bone_names.append(self.ik_mstr.name)
-                self._parent_ui_names.append("IK Master")
-                self.base__apply_parent_switching(
-                    child_bone=self.pole_ctrl,
-                    prop_name="ik_pole_parents_" + self.base_name_props,
-                    row_name=self.base_name + " Pole",
-                    entry_name=self.base_name + " Pole",
-                )
+            self.ik_chain__make_pole_parent_switch(self.pole_ctrl, self.ik_mstr)
 
     ##############################
     # IK Chain functions.
@@ -528,6 +517,21 @@ class Component_Chain_IKFK(Component_Chain_FK):
                         "variables": [(self.properties_bone.name, self.ikfk_name)],
                     }
                 )
+
+    @no_overlay
+    def ik_chain__make_pole_parent_switch(self, pole_ctrl: BoneInfo, ik_mstr: BoneInfo):
+        if self.params.ik_chain.pole_parent_switch == 'FOLLOW':
+            self.ik_chain__make_pole_follow_switch(pole_ctrl, ik_mstr)
+        else:
+            self.parent_bone_names
+            self._parent_bone_names.append(ik_mstr.name)
+            self._parent_ui_names.append("IK Master")
+            self.base__apply_parent_switching(
+                child_bone=pole_ctrl,
+                prop_name="ik_pole_parents_" + self.base_name_props,
+                row_name=self.base_name + " Pole",
+                entry_name=self.base_name_ui + " Pole",
+            )
 
     @no_overlay
     def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, default=0.0):

@@ -397,6 +397,21 @@ class BoneInfo:
     def parent(self) -> BoneInfo | None:
         return self._parent
 
+    @parent.setter
+    def parent(self, value):
+        if self.parent == value:
+            return
+        if self.parent and type(self.parent) is not str:
+            self.parent.children.remove(self)
+        self._parent = value
+        if value and type(self) is type(value):
+            value.children.append(self)
+
+        # If we want to use connected parenting, do it explicitly, after setting the parent.
+        # This is a more intuitive because otherwise changing the parent of a connected bone
+        # will also move the child bone, which is quite unexpected.
+        self.use_connect = False
+
     @property
     def is_orphan(self) -> bool:
         if self.parent:
@@ -412,21 +427,6 @@ class BoneInfo:
             return False
 
         return True
-
-    @parent.setter
-    def parent(self, value):
-        if self.parent == value:
-            return
-        if self.parent and type(self.parent) is not str:
-            self.parent.children.remove(self)
-        self._parent = value
-        if value and type(self) is type(value):
-            value.children.append(self)
-
-        # If we want to use connected parenting, do it explicitly, after setting the parent.
-        # This is a more intuitive because otherwise changing the parent of a connected bone
-        # will also move the child bone, which is quite unexpected.
-        self.use_connect = False
 
     @property
     def children_recursive(self):

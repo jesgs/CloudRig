@@ -59,7 +59,7 @@ class Component_Limb(Component_Chain_IKFK):
         label_name=n_("Parent Switching"),
         entry_name="",
     ):
-        if self.params.limb.double_ik:
+        if self.params.limb.double_ik and child_bone in (None, self.ik_mstr):
             child_bone = self.ik_mstr.parent
 
         super().base__apply_parent_switching(

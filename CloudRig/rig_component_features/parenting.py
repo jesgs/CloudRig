@@ -215,10 +215,16 @@ class CloudParentingMixin:
     ) -> ConstraintInfo:
         targets = [{"subtarget": bone} for bone in target_bones]
 
+        con_name = name or "Armature"
+        arm_con = next((con for con in bone.constraint_infos if con.name == con_name), None)
+        if arm_con:
+            # Allow overwriting by removing existing Armature constraint with the same name.
+            bone.constraint_infos.remove(arm_con)
+
         # Add Armature Constraint.
         arm_con = bone.add_constraint(
             "ARMATURE",
-            name=name or "Armature",
+            name=con_name,
             targets=targets,
             use_deform_preserve_volume=preserve_volume,
         )
