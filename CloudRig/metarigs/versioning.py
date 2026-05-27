@@ -5,7 +5,7 @@ from pathlib import Path
 
 import bpy
 from bpy.app.handlers import persistent
-from bpy.types import Object
+from bpy.types import PoseBone
 from mathutils import Euler, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -27,11 +27,14 @@ def setattr_safe(thing, key, value):
         setattr(thing, key, value)
 
 
-def preserve_old_default(metarig: Object, param_name: str, old_default: float | int | bool | str):
-    for pb in metarig.pose.bones:
-        if param_name not in pb.cloudrig_component.params:
-            setattr(pb.cloudrig_component.params, param_name, old_default)
-            print(f"Preserve old default value: {pb.name} -> {param_name} = {old_default}")
+def preserve_old_default(pbone: PoseBone, param_name: str, old_default: float | int | bool | str):
+    parts = param_name.split(".")
+    params = pbone.cloudrig_component.params
+    while len(parts) > 1 and hasattr(params, parts[0]):
+        part = parts.pop(0)
+        params = getattr(params, part)
+    if params and parts[0] not in params:
+        setattr(params, parts[0], old_default)
 
 
 def version_cloud_metarig_editmode(context, metarig):
@@ -283,6 +286,12 @@ def version_cloud_metarig(metarig):
             comp = pbone.cloudrig_component
             if comp.component_type in ('Curve: Spline IK', 'Curve: With Hooks'):
                 comp.params.base.base_name = comp.params.curve.get('hook_name', "")
+
+    if metarig_version < 17:
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component
+            if comp.component_type == 'Chain: Finger':
+                preserve_old_default(pbone, "ik_chain.default_fkik", 0.0)
 
 
 def update_generated_rig_ui_scripts():

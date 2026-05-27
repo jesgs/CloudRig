@@ -93,25 +93,6 @@ class Component_Finger(Component_Chain_IKFK):
         """Avoid creating complex inherited setup. Just parent the pole to the master."""
         ik_pole.parent = ik_mstr
 
-    # @no_overlay(return_value={})
-    # def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
-    #     ui_data = super().ik_chain__get_ik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
-
-    #     # It's quite strange to be creating an extra helper bone in this function,
-    #     # but we need it for correct snapping in this case.
-    #     tip_str = self.main_str_bones[-1]
-    #     snap_helper = self.bone_sets['Mechanism Bones'].new(
-    #         source=tip_str,
-    #         parent=tip_str,
-    #         name=self.naming.add_prefix(ik_mstr, "SNAP"),
-    #         use_inherit_rotation=False,
-    #     )
-
-    #     map_on = [(ik_mstr.name, snap_helper.name)]
-
-    #     ui_data['op_kwargs']['map_on'] = map_on
-    #     return ui_data
-
     @no_overlay
     def ik_chain__attach_org_to_ik(self, org_chain: list[BoneInfo], ik_chain: list[BoneInfo]):
         super().ik_chain__attach_org_to_ik(org_chain, ik_chain)
@@ -219,7 +200,11 @@ class Component_Finger(Component_Chain_IKFK):
         return ik2_chain
 
     ##############################
-    # No additional parameters for this component type.
+    # Parameters.
+
+    @classmethod
+    def set_param_defaults(cls, component):
+        component.params.ik_chain.default_fkik = 0.0
 
 
 RIG_COMPONENT_CLASS = Component_Finger
