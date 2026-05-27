@@ -26,7 +26,7 @@ class EnsureVisible:
             obj.hide_set(False)
             obj.hide_viewport = False
 
-        if not obj.visible_get() and do_collection:
+        if not obj.visible_get() and do_collection and obj not in set(context.scene.collection.objects):
             # If the object is still not visible, move it to the root collection.
             context.scene.collection.objects.link(obj)
             self.moved_to_root_coll = True

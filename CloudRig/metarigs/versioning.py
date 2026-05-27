@@ -38,7 +38,6 @@ def preserve_old_default(pbone: PoseBone, param_name: str, old_default: float | 
 
 
 def version_cloud_metarig_editmode(context, metarig):
-    visibility = EnsureVisible(context, metarig)
 
     fix_corrective_actions_51(metarig)
 
@@ -49,11 +48,16 @@ def version_cloud_metarig_editmode(context, metarig):
     if metarig_version >= addon_metarig_version:
         return
 
-    with selection_state(context, active_obj=metarig, selected_obs=[metarig]):
-        bpy.ops.object.mode_set(mode='EDIT')
+    need_editmode = metarig_version < 10
+    if need_editmode:
+        visibility = EnsureVisible(context, metarig)
+        with selection_state(context, active_obj=metarig, selected_obs=[metarig]):
+            bpy.ops.object.mode_set(mode='EDIT')
+            version_cloud_metarig(metarig)
+            bpy.ops.object.mode_set(mode='OBJECT')
+        visibility.restore(context)
+    else:
         version_cloud_metarig(metarig)
-        bpy.ops.object.mode_set(mode='OBJECT')
-    visibility.restore(context)
 
 
 def version_cloud_metarig(metarig):
