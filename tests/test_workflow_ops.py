@@ -4,96 +4,160 @@ from bpy.types import EditBone, Object, PoseBone
 
 def test_copy_mirror_component(context_workflow):
     metarig = context_workflow.active_object
-    bpy.ops.object.mode_set(mode='POSE')
-    left_pbone = metarig.pose.bones['UpperArm.L']
-    right_pbone = metarig.pose.bones['UpperArm.R']
-    left_pbone.property_unset('cloudrig_component')
+    bpy.ops.object.mode_set(mode="POSE")
+    left_pbone = metarig.pose.bones["UpperArm.L"]
+    right_pbone = metarig.pose.bones["UpperArm.R"]
+    left_pbone.property_unset("cloudrig_component")
     select_pbone(right_pbone)
     bpy.ops.pose.cloudrig_symmetrize_components()
-    left_pbone = metarig.pose.bones['UpperArm.L']
-    assert left_pbone.cloudrig_component.component_type == 'Limb: Generic'
-    assert left_pbone.cloudrig_component.params.parenting.parent_slots[3].bone == 'ROOT-UpperArm.L'
+    left_pbone = metarig.pose.bones["UpperArm.L"]
+    assert left_pbone.cloudrig_component.component_type == "Limb: Generic"
+    assert (
+        left_pbone.cloudrig_component.params.parenting.parent_slots[3].bone
+        == "ROOT-UpperArm.L"
+    )
+
 
 def test_symmetrize(context_workflow):
     metarig = context_workflow.active_object
-    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.object.mode_set(mode="POSE")
     for pb in metarig.pose.bones:
         pb.select = pb.name.endswith(".L")
-    assert bpy.ops.pose.symmetrize_rigging() == {'FINISHED'}
+    assert bpy.ops.pose.symmetrize_rigging() == {"FINISHED"}
     # Test a couple of specifics...
     pbones = metarig.pose.bones
-    assert pbones['UpperArm.R'].cloudrig_component.params.parenting.parent_slots[3].bone == "ROOT-UpperArm.R", "Parenting settings didn't symmetrize."
-    assert pbones['LipRing3.R'].constraints[1].name == 'Armature@ACT-MouthCorner.R', "Constraint name didn't symmetrize."
-    assert pbones['LipRing3.R'].constraints[1].subtarget == 'ACT-MouthCorner.R', "Subtarget didn't symmetrize."
-    assert pbones['Monke.R'].constraints[0].target.name == 'Suzanne.R', "Target mesh object didn't symmetrize."
-    assert pbones['Monke.R'].constraints[0].subtarget == 'Ear.R', "Vertex Group name didn't symmetrize."
-    assert pbones['Monke.R'].constraints[1].name == 'Armature@Forehead_5_1.R@Temple1.R', "Constraint with multiple @ separators didn't symmetrize."
-    assert pbones['LipRing3.R'].constraints[0].targets[0].subtarget == 'ACT-MouthCorner.R', "Armature Constraint Subtarget didn't symmetrize."
-    fc = metarig.animation_data.drivers.find('pose.bones["LipRing3.R"].constraints["Armature@ACT-MouthCorner.R"].influence')
+    assert (
+        pbones["UpperArm.R"].cloudrig_component.params.parenting.parent_slots[3].bone
+        == "ROOT-UpperArm.R"
+    ), "Parenting settings didn't symmetrize."
+    assert pbones["LipRing3.R"].constraints[1].name == "Armature@ACT-MouthCorner.R", (
+        "Constraint name didn't symmetrize."
+    )
+    assert pbones["LipRing3.R"].constraints[1].subtarget == "ACT-MouthCorner.R", (
+        "Subtarget didn't symmetrize."
+    )
+    assert pbones["Monke.R"].constraints[0].target.name == "Suzanne.R", (
+        "Target mesh object didn't symmetrize."
+    )
+    assert pbones["Monke.R"].constraints[0].subtarget == "Ear.R", (
+        "Vertex Group name didn't symmetrize."
+    )
+    assert (
+        pbones["Monke.R"].constraints[1].name == "Armature@Forehead_5_1.R@Temple1.R"
+    ), "Constraint with multiple @ separators didn't symmetrize."
+    assert (
+        pbones["LipRing3.R"].constraints[0].targets[0].subtarget == "ACT-MouthCorner.R"
+    ), "Armature Constraint Subtarget didn't symmetrize."
+    fc = metarig.animation_data.drivers.find(
+        'pose.bones["LipRing3.R"].constraints["Armature@ACT-MouthCorner.R"].influence'
+    )
     assert fc, "Driver didn't get symmetrized."
-    assert fc.driver.variables[0].targets[0].bone_target == 'ACT-MouthCorner.R', "Driver variable target didn't get symmetrized."
+    assert fc.driver.variables[0].targets[0].bone_target == "ACT-MouthCorner.R", (
+        "Driver variable target didn't get symmetrized."
+    )
 
-    select_bone(metarig, 'LipRing3.L')
+    select_bone(metarig, "LipRing3.L")
     bpy.ops.pose.dissolve_selected()
-    assert metarig.data.bones['LipRing4.L'].parent.name == 'LipRing2.L'
-    select_bone(metarig, 'LipRing4.L')
+    assert metarig.data.bones["LipRing4.L"].parent.name == "LipRing2.L"
+    select_bone(metarig, "LipRing4.L")
     bpy.ops.pose.delete_selected()
+
 
 def test_better_bone_extrude(context_workflow):
     metarig = context_workflow.active_object
-    bpy.ops.object.mode_set(mode='EDIT')
-    my_bone = metarig.data.edit_bones['LipRing3.L']
+    bpy.ops.object.mode_set(mode="EDIT")
+    my_bone = metarig.data.edit_bones["LipRing3.L"]
     select_ebone(my_bone)
     metarig.data.use_mirror_x = True
     bpy.ops.armature.better_bone_duplicate()
     new_bone = context_workflow.active_bone
-    assert new_bone.name == 'LipRing6.L', f"Bone name didn't increment correctly: {new_bone.name}"
-    assert 'LipRing6.R' in metarig.data.edit_bones, "Mirror bone name didn't increment correctly"
-    bpy.ops.armature.select_all(action='DESELECT')
-    metarig.data.edit_bones['LipRing6.L'].select_tail = True
+    assert new_bone.name == "LipRing6.L", (
+        f"Bone name didn't increment correctly: {new_bone.name}"
+    )
+    assert "LipRing6.R" in metarig.data.edit_bones, (
+        "Mirror bone name didn't increment correctly"
+    )
+    bpy.ops.armature.select_all(action="DESELECT")
+    metarig.data.edit_bones["LipRing6.L"].select_tail = True
     bpy.ops.armature.better_bone_extrude()
     new_bone = context_workflow.active_bone
-    assert new_bone.name == 'LipRing7.L', f"Bone name didn't increment correctly: {new_bone.name}"
+    assert new_bone.name == "LipRing7.L", (
+        f"Bone name didn't increment correctly: {new_bone.name}"
+    )
+
 
 def test_bone_parent_ops(context_simple):
     metarig = context_simple.active_object
+
     def run_bone_parent_ops(mode, rig_ob):
         # Need to have the same state by the end of this function as at the start,
         # since we want to run it once for each mode supported by parneting operators.
         rig_ob.data.use_mirror_x = True
         bones = rig_ob.data.bones
         pbones = rig_ob.pose.bones
-        if mode=='EDIT':
+        if mode == "EDIT":
             bones = rig_ob.data.edit_bones
         prefix = ""
-        if context_simple.mode == 'PAINT_WEIGHT':
-            assert context_simple.pose_object is rig_ob is metarig.cloudrig.generator.target_rig is not None
+        if context_simple.mode == "PAINT_WEIGHT":
+            assert (
+                context_simple.pose_object
+                is rig_ob
+                is metarig.cloudrig.generator.target_rig
+                is not None
+            )
             prefix = "FK-"
-        select_bone(rig_ob, f'{prefix}Bone2.L')
+        select_bone(rig_ob, f"{prefix}Bone2.L")
         bpy.ops.pose.unparent_selected()
-        assert bones[f'{prefix}Bone2.L'].parent is bones[f'{prefix}Bone2.R'].parent is None, "Unparent op didn't unparent bones as expected."
-        select_bone(rig_ob, f'{prefix}Bone1.L', expand=True)
+        assert (
+            bones[f"{prefix}Bone2.L"].parent is bones[f"{prefix}Bone2.R"].parent is None
+        ), "Unparent op didn't unparent bones as expected."
+        select_bone(rig_ob, f"{prefix}Bone1.L", expand=True)
         bpy.ops.pose.parent_selected_to_active()
-        assert bones[f'{prefix}Bone2.L'].use_connect is bones[f'{prefix}Bone2.R'].use_connect is False, "Parenting op shouldn't connect bones."
-        assert bones[f'{prefix}Bone2.L'].parent == bones[f'{prefix}Bone1.L'], "Parenting op failed."
-        assert bones[f'{prefix}Bone2.R'].parent == bones[f'{prefix}Bone1.R'], "Parenting op didn't symmetrize."
+        assert (
+            bones[f"{prefix}Bone2.L"].use_connect
+            is bones[f"{prefix}Bone2.R"].use_connect
+            is False
+        ), "Parenting op shouldn't connect bones."
+        assert bones[f"{prefix}Bone2.L"].parent == bones[f"{prefix}Bone1.L"], (
+            "Parenting op failed."
+        )
+        assert bones[f"{prefix}Bone2.R"].parent == bones[f"{prefix}Bone1.R"], (
+            "Parenting op didn't symmetrize."
+        )
         bpy.ops.pose.unparent_selected()
-        if mode != 'EDIT':
+        if mode != "EDIT":
             bpy.ops.pose.parent_active_to_all_selected()
-            assert pbones[f'{prefix}Bone1.L'].constraints[0].targets[0].subtarget == f'{prefix}Bone2.L', "Parenting with Armature Constraint failed"
-            pbones[f'{prefix}Bone1.L'].constraints.remove(pbones[f'{prefix}Bone1.L'].constraints[0])
+            assert (
+                pbones[f"{prefix}Bone1.L"].constraints[0].targets[0].subtarget
+                == f"{prefix}Bone2.L"
+            ), "Parenting with Armature Constraint failed"
+            pbones[f"{prefix}Bone1.L"].constraints.remove(
+                pbones[f"{prefix}Bone1.L"].constraints[0]
+            )
         bpy.ops.pose.parent_and_connect()
-        assert bones[f'{prefix}Bone2.L'].use_connect is bones[f'{prefix}Bone2.R'].use_connect is True, "Parent & connect op failed to connect"
-        assert bones[f'{prefix}Bone2.L'].parent == bones[f'{prefix}Bone1.L'], "Parent & connect op failed to parent."
-        assert bones[f'{prefix}Bone2.R'].parent == bones[f'{prefix}Bone1.R'], "Parent & connect op didn't symmetrize."
+        assert (
+            bones[f"{prefix}Bone2.L"].use_connect
+            is bones[f"{prefix}Bone2.R"].use_connect
+            is True
+        ), "Parent & connect op failed to connect"
+        assert bones[f"{prefix}Bone2.L"].parent == bones[f"{prefix}Bone1.L"], (
+            "Parent & connect op failed to parent."
+        )
+        assert bones[f"{prefix}Bone2.R"].parent == bones[f"{prefix}Bone1.R"], (
+            "Parent & connect op didn't symmetrize."
+        )
         bpy.ops.pose.disconnect_selected()
-        assert bones[f'{prefix}Bone2.L'].use_connect is bones[f'{prefix}Bone2.R'].use_connect is False, "Disconnect op didn't disconnect bones as expected."
+        assert (
+            bones[f"{prefix}Bone2.L"].use_connect
+            is bones[f"{prefix}Bone2.R"].use_connect
+            is False
+        ), "Disconnect op didn't disconnect bones as expected."
 
-    for mode in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
-        bpy.ops.object.mode_set(mode='OBJECT')
+    for mode in ("POSE", "EDIT", "WEIGHT_PAINT"):
+        bpy.ops.object.mode_set(mode="OBJECT")
         rig_ob = metarig
-        if mode == 'WEIGHT_PAINT':
-            cylinder = context_simple.scene.objects['Cylinder']
+        if mode == "WEIGHT_PAINT":
+            cylinder = context_simple.scene.objects["Cylinder"]
             rig_ob = metarig.cloudrig.generator.target_rig
             rig_ob.select_set(True)
             cylinder.select_set(True)
@@ -102,46 +166,71 @@ def test_bone_parent_ops(context_simple):
         bpy.ops.object.mode_set(mode=mode)
         run_bone_parent_ops(mode, rig_ob)
 
+
 def test_separate_and_obj_parent(context_simple):
     rig = context_simple.active_object
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.armature.select_all(action='SELECT')
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.armature.select_all(action="SELECT")
     bpy.ops.armature.hide()
-    bpy.ops.object.mode_set(mode='POSE')
-    select_bone(rig, 'Bone3.L')
+    bpy.ops.object.mode_set(mode="POSE")
+    select_bone(rig, "Bone3.L")
     bpy.ops.pose.separate_selected_bones()
-    assert context_simple.active_object.name == 'META-Simple.001'
-    assert context_simple.active_object.pose.bones['Bone3.L']
-    cylinder = bpy.data.objects['Cylinder']
+    assert context_simple.active_object.name == "META-Simple.001"
+    assert context_simple.active_object.pose.bones["Bone3.L"]
+    cylinder = bpy.data.objects["Cylinder"]
     cylinder.select_set(True)
-    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.object.mode_set(mode="POSE")
     bpy.ops.pose.parent_object_to_selected_bones()
     arm_con_tar = cylinder.constraints[0].targets[0]
-    assert arm_con_tar.target.name == 'META-Simple.001' and arm_con_tar.subtarget == 'Bone3.L'
+    assert (
+        arm_con_tar.target.name == "META-Simple.001"
+        and arm_con_tar.subtarget == "Bone3.L"
+    )
+
 
 def test_bone_select_ops(context_workflow):
-    assert bpy.ops.object.cloudrig_metarig_toggle() == {'FINISHED'}, "Failed to toggle metarig"
-    for mode in ('POSE', 'EDIT', 'WEIGHT_PAINT'):
-        bpy.ops.object.mode_set(mode='OBJECT')
-        if mode == 'WEIGHT_PAINT':
-            suzanne = context_workflow.scene.objects['Suzanne']
+    assert bpy.ops.object.cloudrig_metarig_toggle() == {"FINISHED"}, (
+        "Failed to toggle metarig"
+    )
+    for mode in ("POSE", "EDIT", "WEIGHT_PAINT"):
+        bpy.ops.object.mode_set(mode="OBJECT")
+        if mode == "WEIGHT_PAINT":
+            suzanne = context_workflow.scene.objects["Suzanne"]
             suzanne.select_set(True)
             context_workflow.view_layer.objects.active = suzanne
-        assert bpy.ops.object.mode_set(mode=mode) == {'FINISHED'}
-        assert bpy.ops.pose.select_by_name_search(bone_name="IK-STR-UpperArm.L") == {'FINISHED'}
-        assert bpy.ops.pose.select_parent_bone() == {'FINISHED'}
-        assert bpy.ops.pose.select_bone_by_name(bone_name="FK-Finger_Index2.L") == {'FINISHED'}
-        assert bpy.ops.pose.select_bone_by_name_relation(increment=1) == {'FINISHED'}
+        assert bpy.ops.object.mode_set(mode=mode) == {"FINISHED"}
+        assert bpy.ops.pose.select_by_name_search(bone_name="IK-STR-UpperArm.L") == {
+            "FINISHED"
+        }
+        assert bpy.ops.pose.cloudrig_select_parent_bone() == {"FINISHED"}
+        assert bpy.ops.pose.select_bone_by_name(bone_name="FK-Finger_Index2.L") == {
+            "FINISHED"
+        }
+        assert bpy.ops.pose.select_bone_by_name_relation(increment=1) == {"FINISHED"}
 
-def select_bones(rig: Object, bone_names: list[str], select=True, *, expand=False, activate=True):
+
+def select_bones(
+    rig: Object, bone_names: list[str], select=True, *, expand=False, activate=True
+):
     for bone_name in bone_names:
         select_bone(rig, bone_name, select=select, expand=expand, activate=activate)
 
-def select_bone(rig: Object, bone_name: str, select=True, *, expand=False, activate=True):
-    if rig.mode == 'EDIT':
-        select_ebone(rig.data.edit_bones[bone_name], select=select, expand=expand, activate=activate)
+
+def select_bone(
+    rig: Object, bone_name: str, select=True, *, expand=False, activate=True
+):
+    if rig.mode == "EDIT":
+        select_ebone(
+            rig.data.edit_bones[bone_name],
+            select=select,
+            expand=expand,
+            activate=activate,
+        )
     else:
-        select_pbone(rig.pose.bones[bone_name], select=select, expand=expand, activate=activate)
+        select_pbone(
+            rig.pose.bones[bone_name], select=select, expand=expand, activate=activate
+        )
+
 
 def select_pbone(pbone: PoseBone, select=True, *, expand=False, activate=True):
     rig: Object = pbone.id_data
@@ -153,6 +242,7 @@ def select_pbone(pbone: PoseBone, select=True, *, expand=False, activate=True):
     if activate:
         rig.data.bones.active = rig.data.bones[pbone.name]
     pbone.select = select
+
 
 def select_ebone(ebone: EditBone, select=True, *, expand=False, activate=True):
     if not expand:

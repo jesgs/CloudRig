@@ -147,7 +147,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         # 1) < Parent Bone.
         if active_bone and active_bone.parent:
             op = pie.operator(
-                'pose.select_parent_bone',
+                'pose.cloudrig_select_parent_bone',
                 text="Parent: " + active_bone.parent.name,
                 icon='BONE_DATA',
             )

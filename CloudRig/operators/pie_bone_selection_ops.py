@@ -268,7 +268,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
 class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
     """Select parent of the current bone"""
 
-    bl_idname = "pose.select_parent_bone"
+    bl_idname = "pose.cloudrig_select_parent_bone"
     bl_label = "Select Parent Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
