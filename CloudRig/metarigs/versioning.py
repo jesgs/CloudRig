@@ -304,16 +304,33 @@ def update_generated_rig_ui_scripts():
 
 def fix_corrective_actions_51(metarig):
     # Action setups saved in 5.0 may need fixing in 5.1.
-    if bpy.app.version < (5, 1, 0):
-        return
     cloudrig = metarig.cloudrig
     action_setups = cloudrig.generator.action_setups
+
+    if bpy.app.version < (5, 1, 0):
+        for action_setup in action_setups:
+            if not action_setup.is_corrective:
+                continue
+            handle_a_str = action_setup['trigger_select_a'].replace("_", "")
+            handle_b_str = action_setup['trigger_select_b'].replace("_", "")
+            if str.isdecimal(handle_a_str):
+                handle_a = int(handle_a_str)
+                trigger_a = next((act_s for act_s in action_setups if act_s.unique_id == handle_a), None)
+                if trigger_a:
+                    action_setup.trigger_select_a = trigger_a.name
+            if str.isdecimal(handle_b_str):
+                handle_b = int(handle_b_str)
+                trigger_b = next((act_s for act_s in action_setups if act_s.unique_id == handle_b), None)
+                if trigger_b:
+                    action_setup.trigger_select_b = trigger_b.name
+        return
+
     for action_setup in action_setups:
         if not action_setup.is_corrective:
             continue
-        if not str.isdecimal(action_setup['trigger_select_a']):
+        if not str.isdecimal(action_setup['trigger_select_a'].replace("_", "")):
             action_setup.trigger_select_a = action_setup['trigger_select_a']
-        if not str.isdecimal(action_setup['trigger_select_b']):
+        if not str.isdecimal(action_setup['trigger_select_b'].replace("_", "")):
             action_setup.trigger_select_b = action_setup['trigger_select_b']
 
 
