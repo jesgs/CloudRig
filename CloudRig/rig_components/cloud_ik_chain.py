@@ -449,10 +449,18 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         # List of bone tuples to snap (from, to).
         # Which bone will be snapped to which when the custom property is set to 1.
-        map_ik_to_fk = [
-            (ik_mstr.name, fk_chain[-1].name),
-            (ik_chain[0].name, fk_chain[0].name),
-        ]
+        if self.params.ik_chain.at_tip:
+            snap_helper = self.bone_sets['Mechanism Bones'].new(
+                source=fk_chain[-1],
+                parent=fk_chain[-1],
+                name=self.naming.add_prefix(ik_mstr, "SNAP"),
+            )
+            snap_helper.put(fk_chain[-1].tail)
+            map_ik_to_fk = [(ik_mstr.name, snap_helper.name)]
+        else:
+            map_ik_to_fk = [(ik_mstr.name, fk_chain[-1].name)]
+        map_ik_to_fk += [(ik_chain[0].name, fk_chain[0].name)]
+
         # Which bone will be snapped to which when the custom property is set to 0.
         map_fk_to_ik = []
 
