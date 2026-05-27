@@ -4,6 +4,7 @@ import os
 
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import StringProperty
 from bpy.types import ID, Menu, Object, Operator
 from bpy_extras.id_map_utils import get_all_referenced_ids, get_id_reference_map
@@ -26,6 +27,31 @@ class CLOUDRIG_OT_metarig_add(Operator):
 
     metarig_name: StringProperty()
 
+    @classmethod
+    def description(cls, context, props) -> str:
+        if props.metarig_name == 'META-Sintel':
+            return tip_(
+                "Metarig showcasing advanced features:\n"
+                "- Bendy Bone Face Grid\n"
+                "- Actions & Corrective Actions\n"
+                "- Bendy Hips\n"
+                "- IK/FK Fingers\n"
+                "- Automated Bone Collection Visibility\n"
+                "- Bone Collections UI panel\n"
+                "- A less squishy, more realistic spine rig"
+            )
+        elif props.metarig_name == 'META-Cloud_Human':
+            return tip_(
+                "Basic Metarig showcasing the basics features in CloudRig:\n"
+                "- Bone Collection organization\n"
+                "- Customizable Rig Properties UI\n"
+                "- IK/FK Switching with Snapping & Baking\n"
+                "- Parent Switching with Snapping & Baking\n"
+                "- Footroll\n"
+                "- Stretchy IK\n"
+                "- A squishy, cartoony spine rig"
+            )
+
     def execute(self, context):
         metarig = append_metarig(context, self.metarig_name)
         if not metarig:
@@ -39,7 +65,7 @@ class CLOUDRIG_OT_metarig_add(Operator):
 class CLOUDRIG_OT_sample_add(Operator):
     bl_idname = "object.cloudrig_sample_add"
     bl_label = "Add CloudRig Sample"
-    bl_description = "Load component sample"
+    bl_description = "A component sample metarig showcases an example usage of a given rig component type."
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     sample_name: StringProperty()
@@ -47,15 +73,15 @@ class CLOUDRIG_OT_sample_add(Operator):
     def execute(self, context):
         if context.mode == 'EDIT_ARMATURE':
             sample_obj = add_sample_to_current_rig(context, self.sample_name)
-            self.report({'INFO'}, iface_("Added rig sample: ") + self.sample_name)
+            self.report({'INFO'}, iface_("Added component sample: ") + self.sample_name)
             return {'FINISHED'}
         else:
             sample_obj = append_sample(context, self.sample_name)
         if not sample_obj:
-            self.report({'ERROR'}, iface_("Failed to load rig sample: ") + self.sample_name)
+            self.report({'ERROR'}, iface_("Failed to load component sample: ") + self.sample_name)
             return {'CANCELLED'}
 
-        self.report({'INFO'}, iface_("Added rig sample: ") + sample_obj.name)
+        self.report({'INFO'}, iface_("Added component sample: ") + sample_obj.name)
         return {'FINISHED'}
 
 
@@ -140,6 +166,7 @@ def append_metarig(context, metarig_name) -> Object | None:
 
 def append_sample(context, sample_name) -> Object | None:
     """Append a rig sample."""
+    bpy.ops.object.select_all(action='DESELECT')
     if "Sample_" not in sample_name:
         sample_name = "Sample_" + sample_name
     return append_metarig_or_sample(context, sample_name)
@@ -214,6 +241,8 @@ def refresh_metarig_list():
                 ui_name = obj_name.replace("META-", "").replace("_", " ")
                 METARIG_NAMES.append((ui_name, obj_name))
 
+    METARIG_NAMES.sort(key=lambda t: t[0])
+
     return METARIG_NAMES
 
 
@@ -232,6 +261,8 @@ def refresh_rig_sample_list():
             if obj_name.startswith("Sample_"):
                 ui_name = obj_name.replace("Sample_", "").replace("_", " ").title()
                 SAMPLE_NAMES.append((ui_name, obj_name))
+
+    SAMPLE_NAMES.sort(key=lambda t: t[0])
 
     return SAMPLE_NAMES
 
