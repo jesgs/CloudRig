@@ -18,7 +18,7 @@ from mathutils import Color, Euler, Matrix, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.ui import label_split
-from ..generation.cloudrig import is_active_cloud_metarig
+from ..generation.cloudrig import active_rig, is_cloud_metarig, is_generated_cloudrig
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.widgets.widgets import ensure_widget
 from ..utils.maths import bounding_box_diagonal_size
@@ -363,8 +363,8 @@ def overlay_poll(context) -> bool:
         return False
     if context.mode not in ('EDIT_ARMATURE', 'POSE'):
         return False
-    active_metarig = is_active_cloud_metarig(context)
-    if not active_metarig:
+    active_rig_ob = active_rig(context)
+    if not active_rig_ob or not is_cloud_metarig(active_rig_ob) or is_generated_cloudrig(active_rig_ob):
         return False
     return True
 
