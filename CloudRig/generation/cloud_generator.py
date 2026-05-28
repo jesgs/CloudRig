@@ -52,8 +52,8 @@ from ..rig_component_features.widgets.widgets import (
     set_pbone_custom_shape_data,
 )
 from ..ui.actions_ui import ActionConstraintSetup
-from ..utils.collections import ensure_collection, assign_to_collection
-from ..utils.external.mechanism import refresh_all_drivers
+from ..utils.collections import assign_to_collection, ensure_collection
+from ..utils.mechanism import refresh_all_drivers
 from ..utils.misc import (
     check_addon,
     load_script,

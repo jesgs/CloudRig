@@ -36,7 +36,7 @@ from bpy.utils import flip_name
 from bpy_extras import anim_utils
 
 from ..bs_utils.ui import aligned_label, label_split
-from ..utils.external.naming import Side, get_name_side
+from ..utils.naming import Side, get_name_side
 
 ACTION_NAME_SEPARATOR = "➔"
 

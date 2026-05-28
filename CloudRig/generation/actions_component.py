@@ -14,13 +14,13 @@ from bpy.utils import flip_name as mirror_name
 
 from ..rig_component_features.properties_ui import make_property
 from ..ui.actions_ui import ACTION_NAME_SEPARATOR, ActionConstraintSetup
-from ..utils.external.mechanism import (
+from ..utils.mechanism import (
     driver_var_transform,
     make_constraint,
     make_driver,
     quote_property,
 )
-from ..utils.external.naming import Side, change_name_side, get_name_side
+from ..utils.naming import Side, change_name_side, get_name_side
 from .troubleshooting import LoggerMixin
 
 

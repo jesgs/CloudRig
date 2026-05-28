@@ -25,8 +25,8 @@ from rna_prop_ui import rna_idprop_has_properties
 
 from ..generation import naming
 from ..rig_component_features.mechanism import copy_relink_real_driver
-from ..utils.external.mechanism import make_driver
 from ..utils.maths import flat
+from ..utils.mechanism import make_driver
 from ..utils.rig import (
     calc_roll_to_align_axis,
     wrap_angle_pi,

@@ -1,6 +1,5 @@
 from . import (
     curve,
-    external,
     lattice,
     maths,
     misc,
@@ -10,7 +9,6 @@ from . import (
 
 modules = [
     curve,
-    external,
     lattice,
     maths,
     misc,

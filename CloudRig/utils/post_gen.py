@@ -9,7 +9,7 @@ import bpy
 from bpy.types import ID, Object, PoseBone
 from rna_prop_ui import rna_idprop_ui_prop_update
 
-from .external.mechanism import make_driver
+from .mechanism import make_driver
 
 sides = {'.L': 'Left', '.R': 'Right'}
 suffixes = list(sides.keys())
