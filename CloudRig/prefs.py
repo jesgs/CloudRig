@@ -26,25 +26,6 @@ from .rig_component_features.widgets.widgets import (
 )
 
 
-def init_component_module_list(context=None):
-    prefs = get_addon_prefs()
-    prefs.component_types.clear()
-
-    module_infos = []
-    for rig_file_name, rigcomp_module in rig_components.ALL_COMPONENT_MODULES.items():
-        if not hasattr(rigcomp_module, 'RIG_COMPONENT_CLASS'):
-            continue
-        component_class = rigcomp_module.RIG_COMPONENT_CLASS
-
-        module_infos.append((component_class.ui_name, rig_file_name))
-
-    module_infos.sort(key=lambda t: t[0])
-    for ui_name, file_name in module_infos:
-        type_info = prefs.component_types.add()
-        type_info.name = ui_name
-        type_info.module_name = file_name
-
-
 class CloudRigComponentTypeInfo(PropertyGroup):
     "Component Type Info"
 
@@ -88,7 +69,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
-    def on_library_set(self, context):
+    def on_library_set(self, _context):
         refresh_widget_list(force_external=True)
 
     widget_names: CollectionProperty(type=NameProperty)
@@ -236,8 +217,26 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         draw_bone_color_presets(layout)
 
 
-registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
+def init_component_module_list():
+    prefs = get_addon_prefs()
+    prefs.component_types.clear()
 
+    module_infos: list[tuple[str, str]] = []
+    for rig_file_name, rigcomp_module in rig_components.ALL_COMPONENT_MODULES.items():
+        if not hasattr(rigcomp_module, 'RIG_COMPONENT_CLASS'):
+            continue
+        component_class = rigcomp_module.RIG_COMPONENT_CLASS
+
+        module_infos.append((component_class.ui_name, rig_file_name))
+
+    module_infos.sort(key=lambda tup: tup[0])
+    for ui_name, file_name in module_infos:
+        type_info = prefs.component_types.add()
+        type_info.name = ui_name
+        type_info.module_name = file_name
+
+
+registry = [CloudRigComponentTypeInfo, CloudRigPreferences]
 
 def register():
     init_component_module_list()

@@ -11,7 +11,7 @@ from bpy_extras.id_map_utils import get_all_referenced_ids, get_id_reference_map
 
 from ..generation.cloudrig import is_cloud_metarig
 from ..generation.naming import get_blender_zeroes, strip_blender_zeroes
-from ..utils.external.collections import find_layer_collection_by_collection
+from ..utils.collections import find_layer_collection_by_collection
 from . import versioning
 
 # Global storage of available metarigs. List of UI name and object name tuples.

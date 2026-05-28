@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import random
 from math import degrees
+from typing import Iterator
 
 import bpy
 from bl_math import clamp
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
-from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
@@ -24,7 +24,9 @@ from bpy.types import (
     ActionChannelbag,
     ActionSlot,
     Armature,
+    Context,
     FCurve,
+    Object,
     Operator,
     PropertyGroup,
     UILayout,
@@ -40,7 +42,7 @@ ACTION_NAME_SEPARATOR = "➔"
 
 
 class ActionConstraintSetup(PropertyGroup):
-    def update_ui(self, context):
+    def update_ui(self, _context: Context):
         if not self.action:
             return
         # Initialize the unique ID the first time an Action is set.
@@ -57,7 +59,7 @@ class ActionConstraintSetup(PropertyGroup):
         update=update_ui,
     )
 
-    def slot_name_from_handle(self, curr_value, _is_set) -> str:
+    def slot_name_from_handle(self, curr_value: str, _is_set: bool) -> str:
         try:
             curr_value = int(curr_value)
         except ValueError:
@@ -67,7 +69,7 @@ class ActionConstraintSetup(PropertyGroup):
             return ""
         return action_slot.name_display
 
-    def slot_name_to_handle(self, new_value, curr_value, _is_set) -> str:
+    def slot_name_to_handle(self, new_value: str, _curr_value: str, _is_set: bool) -> str:
         action_slot = next(
             (s for s in self.action.slots if s.name_display == new_value and s.identifier.startswith("OB")), None
         )
@@ -89,8 +91,7 @@ class ActionConstraintSetup(PropertyGroup):
             return 0
         if 'unique_id' in self and self['unique_id'] != 0:
             return self.get('unique_id')
-        else:
-            self['unique_id'] = random.randint(0, 100_000_000)
+        self['unique_id'] = random.randint(0, 100_000_000)
         return self['unique_id']
 
     @property
@@ -98,7 +99,7 @@ class ActionConstraintSetup(PropertyGroup):
         return self.action.slots.get("OB" + self.action_slot_ui)
 
     @action_slot.setter
-    def action_slot(self, slot):
+    def action_slot(self, slot: ActionSlot):
         if slot:
             self.action_slot_ui = slot.name_display
 
@@ -129,7 +130,7 @@ class ActionConstraintSetup(PropertyGroup):
         default=True,
     )
 
-    def update_subtarget(self, context):
+    def update_subtarget(self, _context: Context):
         """Little UX sugar; We can take a pretty solid guess at the frame range,
         transform channel, and range, based on fcurves of the chosen bone in
         the chosen action slot.
@@ -139,7 +140,7 @@ class ActionConstraintSetup(PropertyGroup):
             return
 
         fcurves_of_subtarget = [fc for fc in channelbag.fcurves if f'pose.bones["{self.subtarget}"]' in fc.data_path]
-        transform_channel, min_frame, max_frame, value_min, value_max = get_fcurves_ranges(
+        transform_channel, min_frame, max_frame, value_min, value_max = guess_action_setup_props(
             fcurves_of_subtarget or channelbag.fcurves
         )
 
@@ -196,7 +197,7 @@ class ActionConstraintSetup(PropertyGroup):
         default="LOCAL",
     )
 
-    def update_frame_start(self, _context):
+    def update_frame_start(self, _context: Context):
         if self.frame_start > self.frame_end:
             self.frame_end = self.frame_start
 
@@ -206,7 +207,7 @@ class ActionConstraintSetup(PropertyGroup):
         update=update_frame_start,
     )
 
-    def update_frame_end(self, _context):
+    def update_frame_end(self, _context: Context):
         if self.frame_end < self.frame_start:
             self.frame_start = self.frame_end
 
@@ -231,23 +232,22 @@ class ActionConstraintSetup(PropertyGroup):
         "to the last frame. Rotations are in degrees",
     )
 
-    def update_is_corrective(self, context):
+    def update_is_corrective(self, _context: Context):
         channelbag = self.channelbag
         if not (channelbag and channelbag.fcurves):
             return
-        _chan, min_frame, max_frame, _vmin, _vmax = get_fcurves_ranges(channelbag.fcurves)
+        _chan, min_frame, max_frame, _vmin, _vmax = guess_action_setup_props(channelbag.fcurves)
         self.frame_start = min_frame
         self.frame_end = max_frame
 
     is_corrective: BoolProperty(
         name="Corrective",
         description="Indicate that this is a corrective action. Corrective actions will activate "
-        "based on the activation of two other actions"
-        "are at their End Frame, and Start Frame if either is at Start Frame)",
+        "based on the activation of two other actions",
         update=update_is_corrective,
     )
 
-    def setup_id_to_str(self, curr_value, _is_set):
+    def setup_id_to_str(self, curr_value: str, _is_set: bool):
         try:
             curr_value = int(curr_value.rstrip('_'))
         except ValueError:
@@ -258,7 +258,7 @@ class ActionConstraintSetup(PropertyGroup):
             return ""
         return action_setup.name
 
-    def setup_name_to_id(self, new_value, curr_value, _is_set):
+    def setup_name_to_id(self, new_value: str, curr_value: str, _is_set: bool):
         action_setups = self.id_data.cloudrig.generator.action_setups
         action_setup = next((setup for setup in action_setups if setup.name == new_value), None)
         if not action_setup:
@@ -307,7 +307,7 @@ class ActionConstraintSetup(PropertyGroup):
         return self.id_data.cloudrig.generator
 
     @property
-    def corrective_slots(self) -> list[ActionConstraintSetup]:
+    def corrective_slots(self) -> Iterator[ActionConstraintSetup]:
         """Return all corrective action setups targetting this setup."""
         for action_setup in self.generator.action_setups:
             if not action_setup.is_corrective:
@@ -326,21 +326,17 @@ class ActionConstraintSetup(PropertyGroup):
 
     @property
     def keyed_bone_names(self) -> list[str]:
-        """Return a list of bone names that have keyframes in the Action of this Setup."""
-        keyed_bones = []
-
         channelbag = self.channelbag
         if not channelbag:
             return []
         keyed_bones = []
         for fc in channelbag.fcurves:
             # Extracting bone name from fcurve data path
-            if fc.data_path.startswith('pose.bones["'):
-                bone_name = fc.data_path[12:].split('"]')[0]
-
-                if bone_name not in keyed_bones:
-                    keyed_bones.append(bone_name)
-
+            if not fc.data_path.startswith('pose.bones["'):
+                continue
+            bone_name = fc.data_path.removeprefix('pose.bones["').split('"]')[0]
+            if bone_name not in keyed_bones:
+                keyed_bones.append(bone_name)
         return keyed_bones
 
     @property
@@ -358,20 +354,20 @@ class ActionConstraintSetup(PropertyGroup):
                 return -self.trans_min, -self.trans_max
         return self.trans_min, self.trans_max
 
-    def get_factor_expression(self, var, side=Side.MIDDLE):
+    def get_factor_expression(self, var_name: str, side=Side.MIDDLE):
         assert not self.is_corrective
 
         trans_min, trans_max = self.get_min_max(side)
 
         if 'ROTATION' in self.transform_channel:
-            var = f'({var}*180/pi)'
+            var_name = f'({var_name}*180/pi)'
 
-        return f'clamp(({var} - {trans_min:.4}) / {trans_max - trans_min:.4})'
+        return f'clamp(({var_name} - {trans_min:.4}) / {trans_max - trans_min:.4})'
 
-    def get_trigger_expression(self, var_a, var_b):
+    def get_trigger_expression(self, var_a_name: str, var_b_name: str) -> str:
         assert self.is_corrective
 
-        return f'clamp({var_a} * {var_b})'
+        return f'clamp({var_a_name} * {var_b_name})'
 
     ##################################
     # Default Frame
@@ -380,38 +376,32 @@ class ActionConstraintSetup(PropertyGroup):
         # The default transformation value for rotation and location is 0, but for scale it's 1.
         return 1.0 if 'SCALE' in self.transform_channel else 0.0
 
-    def get_default_factor(self, side=Side.MIDDLE, *, triggers=None) -> float:
+    def get_default_factor(self, side=Side.MIDDLE) -> float:
         """Based on the transform channel, and transform range,
         calculate the evaluation factor in the default pose.
         """
         if self.is_corrective:
-            if not triggers or None in triggers:
-                return 0
+            return 0
 
-            val_a, val_b = [trigger.get_default_factor(side) for trigger in triggers]
+        trans_min, trans_max = self.get_min_max(side)
 
-            return clamp(val_a * val_b)
+        if trans_min == trans_max:
+            # Avoid division by zero
+            return 0
 
-        else:
-            trans_min, trans_max = self.get_min_max(side)
+        def_val = self.get_default_channel_value()
+        factor = (def_val - trans_min) / (trans_max - trans_min)
 
-            if trans_min == trans_max:
-                # Avoid division by zero
-                return 0
+        return clamp(factor)
 
-            def_val = self.get_default_channel_value()
-            factor = (def_val - trans_min) / (trans_max - trans_min)
-
-            return clamp(factor)
-
-    def get_default_frame(self, side=Side.MIDDLE, *, triggers=None) -> float:
+    def get_default_frame(self, side=Side.MIDDLE) -> float:
         """Based on the transform channel, frame range and transform range,
         we can calculate which frame within the action should have the keyframe
         which has the default pose.
         This is the frame which will be read when the transformation is at its default
         (so 1.0 for scale and 0.0 for loc/rot)
         """
-        factor = self.get_default_factor(side, triggers=triggers)
+        factor = self.get_default_factor(side)
 
         return self.frame_start * (1 - factor) + self.frame_end * factor
 
@@ -431,7 +421,7 @@ class CLOUDRIG_OT_action_new(Operator):
     bl_label = "New"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         generator = context.object.cloudrig.generator
         active_setup = generator.active_action_setup
         action = bpy.data.actions.new(name="Action")
@@ -448,7 +438,7 @@ class CLOUDRIG_OT_jump_to_action_setup(Operator):
 
     setup_id: IntProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         for i, action_setup in enumerate(context.object.cloudrig.generator.action_setups):
             if action_setup.unique_id == self.setup_id:
                 context.object.cloudrig.generator.active_action_index = i
@@ -460,15 +450,15 @@ class CLOUDRIG_OT_jump_to_action_setup(Operator):
 class CLOUDRIG_UL_action_setups(UIList):
     def draw_item(
         self,
-        context,
+        _context,
         layout: UILayout,
-        data: Armature,
+        _data: Armature,
         action_setup: ActionConstraintSetup,
-        icon_value: int,
-        active_data,
-        active_propname: str,
-        setup_index: int = 0,
-        flt_flag: int = 0,
+        _icon_value: int,
+        _active_data,
+        _active_propname: str,
+        _setup_index: int = 0,
+        _flt_flag: int = 0,
     ):
         assert self.layout_type == 'DEFAULT', "Other layouts not implemented for the Action Setup list."
 
@@ -541,6 +531,7 @@ class CLOUDRIG_UL_action_setups(UIList):
 
 
 def get_fcurve_transform_channel(fcurve: FCurve) -> str:
+    """Return the transform channel that an FCurve affects, in a form that can be assigned to Action constraints."""
     if fcurve.data_path.endswith("location"):
         return "LOCATION_" + "XYZ"[fcurve.array_index]
     if (
@@ -552,7 +543,14 @@ def get_fcurve_transform_channel(fcurve: FCurve) -> str:
     return ""
 
 
-def get_fcurves_ranges(fcurves: list[FCurve]) -> tuple[str, int, int, float, float]:
+def guess_action_setup_props(fcurves: list[FCurve]) -> tuple[str, int, int, float, float]:
+    """Analyze the given fcurves to determine and return:
+    - Transform channel of the f-curve with the greatest range of motion.
+    - First and last frame across all fcurves.
+    - Lowest and highest value across all fcurves.
+    Useful to determine the properties of an Action constraint,
+    if the passed fcurves are that of the Action's control bone.
+    """
     min_frame = fcurves[0].keyframe_points[0].co.x
     max_frame = fcurves[0].keyframe_points[0].co.x
     max_value_range = (get_fcurve_transform_channel(fcurves[0]), 0, 0, 0)
@@ -578,7 +576,7 @@ def get_fcurves_ranges(fcurves: list[FCurve]) -> tuple[str, int, int, float, flo
     return max_value_range[0], int(min_frame), int(max_frame), max_value_range[2], max_value_range[3]
 
 
-def draw_action_setup_list(context, layout):
+def draw_action_setup_list(context: Context, layout: UILayout):
     header, panel = layout.panel("CloudRig Actions", default_closed=True)
     header.label(text="Actions")
     if not panel:
@@ -603,7 +601,7 @@ def draw_action_setup_list(context, layout):
 
     active_setup = generator.active_action_setup
 
-    if len(action_setups) == 0 or not active_setup:
+    if not action_setups or not active_setup:
         return
 
     col = layout.column(align=True)
@@ -628,7 +626,7 @@ def draw_action_setup_list(context, layout):
     draw_status(layout, active_setup)
 
 
-def draw_ui_corrective(context, layout, action_setup):
+def draw_ui_corrective(context: Context, layout: UILayout, action_setup: ActionConstraintSetup):
     layout.prop(action_setup, 'frame_start', text="Frame Start")
     layout.prop(action_setup, 'frame_end', text="End")
     layout.separator()
@@ -637,7 +635,7 @@ def draw_ui_corrective(context, layout, action_setup):
         draw_ui_trigger(context, layout, action_setup, trigger_prop)
 
 
-def draw_ui_trigger(context, layout: UILayout, action_setup: ActionConstraintSetup, trigger_prop: str):
+def draw_ui_trigger(context: Context, layout: UILayout, action_setup: ActionConstraintSetup, trigger_prop: str):
     metarig = context.object
     generator = metarig.cloudrig.generator
     assert isinstance(metarig.data, Armature)
@@ -667,7 +665,7 @@ def draw_ui_trigger(context, layout: UILayout, action_setup: ActionConstraintSet
         col.separator()
 
 
-def draw_action_setup_ui(layout, action_setup, target_rig):
+def draw_action_setup_ui(layout: UILayout, action_setup: ActionConstraintSetup, target_rig: Object):
     if not target_rig:
         row = layout.row()
         row.alert = True
@@ -722,7 +720,7 @@ def draw_action_setup_ui(layout, action_setup, target_rig):
     layout.prop(action_setup, 'trans_max')
 
 
-def draw_status(layout, action_setup):
+def draw_status(layout: UILayout, action_setup: ActionConstraintSetup):
     """
     There are a lot of ways to create incorrect Action setups, so give
     the user a warning in those cases.

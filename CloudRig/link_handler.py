@@ -1,6 +1,6 @@
 import bpy
 from bpy.app.handlers import persistent
-from bpy.types import BlendImportContext, Context, Object, Scene
+from bpy.types import BlendImportContext, Context, Object, Text
 
 from .bs_utils.prefs import get_addon_prefs
 
@@ -40,11 +40,11 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
         for obj in context.selected_objects:
             obj.select_set(False)
 
-    select_armatures(context, armature_objs, scene)
+    select_armatures(context, armature_objs)
     autorun_scripts_of_objects(context, armature_objs)
 
 
-def select_armatures(context: Context, armature_objs: list[Object], scene: Scene, set_editable_override=True):
+def select_armatures(context: Context, armature_objs: list[Object], set_editable_override=True):
     for arm_ob in armature_objs:
         if arm_ob.override_library:
             arm_ob.override_library.is_system_override = not set_editable_override
@@ -60,7 +60,7 @@ def autorun_scripts_of_objects(context: Context, objects: list[Object]):
     datablocks = objects + [obj.data for obj in objects if obj.data]
     for datablock in datablocks:
         for value in datablock.values():
-            if isinstance(value, bpy.types.Text) and value.use_module:
+            if isinstance(value, Text) and value.use_module:
                 value.as_module()
 
 

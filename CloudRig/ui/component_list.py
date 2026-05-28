@@ -4,7 +4,7 @@ from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, StringProperty
-from bpy.types import Operator, UI_UL_list, UIList
+from bpy.types import Context, Event, Operator, PoseBone, UI_UL_list, UILayout, UIList
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig
@@ -23,7 +23,16 @@ class CLOUDRIG_UL_rig_components(UIList):
     filtered to only show the ones that have a CloudRig component type assigned.
     """
 
-    def draw_item(self, context, layout, data, item, icon_value, _active_data, _active_propname):
+    def draw_item(
+        self,
+        _context: Context,
+        layout: UILayout,
+        _data: object,
+        item: PoseBone,
+        _icon_value: int,
+        _active_data: object,
+        _active_propname: str,
+    ):
         pose_bone = item
         rig_component = pose_bone.cloudrig_component
         if not rig_component.component_type:
@@ -47,9 +56,6 @@ class CLOUDRIG_UL_rig_components(UIList):
         row.enabled = rig_component.is_enabled_component
         row.label(text=pose_bone.name, icon='BONE_DATA')
 
-        icon = 'ARMATURE_DATA'
-        if not rig_component.component_class:
-            icon = 'ERROR'
         main_row = main_split.row()
         row = main_row.row()
         row.enabled = rig_component.enabled_with_parents
@@ -62,13 +68,13 @@ class CLOUDRIG_UL_rig_components(UIList):
         icon = 'CHECKBOX_HLT' if rig_component.enabled_toggle else 'CHECKBOX_DEHLT'
         row.prop(rig_component, 'enabled_toggle', text="", emboss=False, icon=icon)
 
-    def draw_filter(self, context, layout):
+    def draw_filter(self, _context: Context, layout: UILayout):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS
         show the order in which the rig components will be executed during generation.
         """
         layout.row().prop(self, "filter_name", text="")
 
-    def filter_items(self, context, data, propname):
+    def filter_items(self, _context: Context, data: object, propname: str) -> tuple[list[int], list[int]]:
         pbones = getattr(data, propname)
 
         # Default return values.
@@ -89,7 +95,7 @@ class CLOUDRIG_UL_rig_components(UIList):
             filter_map = {pb: flt_flags[i] for i, pb in enumerate(pbones)}
             # Allow collections that contain any collections that match the filter.
             for i, pbone in enumerate(pbones):
-                if any([filter_map[child] for child in pbone.children_recursive]):
+                if any(filter_map[child] for child in pbone.children_recursive):
                     flt_flags[i] = 1073741824
 
         # Filter out bones that don't have a rig component.
@@ -120,13 +126,13 @@ class CLOUDRIG_OT_add_rig_component(Operator):
     )
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if not is_cloud_metarig(context.object):
             cls.poll_message_set("This button should only be visible on CloudRig metarigs!")
             return False
         return True
 
-    def invoke(self, context, _event):
+    def invoke(self, context: Context, _event: Event):
         if not self.bone_name:
             active_pb = get_pbone_of_active(context)
             if active_pb:
@@ -140,7 +146,7 @@ class CLOUDRIG_OT_add_rig_component(Operator):
 
         return context.window_manager.invoke_props_dialog(self, width=500)
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
@@ -153,7 +159,7 @@ class CLOUDRIG_OT_add_rig_component(Operator):
             return
         draw_component_type_selector_simple(context, row, self)
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = context.object
         if not self.bone_name:
             self.report({'ERROR'}, "A bone must be selected.")
@@ -192,13 +198,13 @@ class CLOUDRIG_OT_remove_rig_component(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if not is_cloud_metarig(context.object) and context.object.cloudrig.active_component:
             cls.poll_message_set("Select a component.")
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = context.object
         selected_pb = rig.pose.bones[rig.cloudrig.active_component_index]
 
@@ -233,7 +239,7 @@ class CLOUDRIG_OT_reorder_rig_component(Operator):
     direction: EnumProperty(name="Direction", items=[('UP', "Up", "Up"), ('DOWN', "Down", "Down")])
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig = context.object
         if not is_cloud_metarig(rig):
             cls.poll_message_set("Must be a CloudRig metarig.")
@@ -247,7 +253,7 @@ class CLOUDRIG_OT_reorder_rig_component(Operator):
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = context.object
         component = rig.cloudrig.active_component
 
@@ -276,7 +282,10 @@ class CLOUDRIG_OT_reorder_rig_component(Operator):
         return {'FINISHED'}
 
 
-def draw_component_type_selector_simple(context, layout, prop_owner, icon='ARMATURE_DATA'):
+def draw_component_type_selector_simple(
+    context: Context, layout: UILayout, prop_owner: object, icon: str = 'ARMATURE_DATA'
+):
+    """Draw a prop_search for the component type without a label."""
     prefs = get_addon_prefs(context)
     layout.prop_search(
         prop_owner,
@@ -288,7 +297,8 @@ def draw_component_type_selector_simple(context, layout, prop_owner, icon='ARMAT
     )
 
 
-def draw_rig_component_list(context, layout, default_closed=True):
+def draw_rig_component_list(context: Context, layout: UILayout, default_closed: bool = True):
+    """Draw the collapsible rig component list panel."""
     header, panel = layout.panel("CloudRig Rig Components", default_closed=default_closed)
     header.label(text="Components")
     if not panel:

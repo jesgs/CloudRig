@@ -1,0 +1,20 @@
+This is a Blender Python add-on repository called "CloudRig". It is a rig generation and workflow add-on.
+
+Instructions for formatting and in general:
+- Add type annotations to function definitions.
+    - Skip return type annotations for all `None` return values, as well as the following built-in Blender operator functions: `execute()`, `invoke()`, `poll()`.
+- Type annotations should be short, so instead of `context: bpy.types.Context`, import Context at the top of the file: `from bpy.types import Context` and then do `context: Context`.
+- Unused function variable names always start with _, and still be type annotated.
+- Avoid inserting comments that tell linters to ignore errors. Instead, notify the user about the linter's complaints, so user can decide what to do.
+- Add missing docstrings to functions, unless you find them not needed.
+- Do NOT remove existing docstrings or comments, even if you don't find them useful.
+- Keep code human readable:
+    - Avoid single-letter variable names except maybe `for i in range()`
+    - Make function names descriptive and accurate
+    - Avoid long functions, split them up to smaller functions instead.
+    - Inner functions are acceptable.
+- Code order should be high level code at the top (menus, then operators), helper functions underneath, and registration at the bottom.
+- Seek out opportunities for re-using code.
+- When modifying a file, make sure it has a license header at the top, and that the end year is the current year.
+- If you feel that a file or code block is in need of significant refactor (eg. splitting up into multiple files, moving some code to another file, etc), notify the user and make a proposal.
+- Be extra careful about making any potentially semantically significant changes. If you do, explain why, and check callsites to verify logic doesn't break.

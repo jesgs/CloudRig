@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
-from bpy.types import Panel
+from bpy.types import Context, Panel, UILayout
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.ui import aligned_label, label_split
@@ -21,7 +21,7 @@ class CLOUDRIG_PT_rig_component(Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         prefs = get_addon_prefs(context)
         if not prefs:
             return False
@@ -36,11 +36,11 @@ class CLOUDRIG_PT_rig_component(Panel):
             return False
         return True
 
-    def draw(self, context):
+    def draw(self, context: Context):
         draw_rig_component_panel(context, self.layout)
 
 
-def draw_rig_component_panel(context, layout):
+def draw_rig_component_panel(context: Context, layout: UILayout):
     layout = layout.column()
     layout.use_property_split = True
     layout.use_property_decorate = False
@@ -66,7 +66,7 @@ def draw_rig_component_panel(context, layout):
         text=text,
     )
     if rig_component.component_type == 'Spine: Squashy':
-        # TODO 5.1: Remove Spine: Cartoon.
+        # TODO 6.0: Remove Spine: Cartoon.
         aligned_label(layout, text=rpt_("DEPRECATED! Please use Spine: Cartoon!"), alert=True, icon='ERROR')
     if rig_component.component_type in ("", "Raw Copy") or row.alert:
         return
@@ -75,7 +75,7 @@ def draw_rig_component_panel(context, layout):
     draw_params_subpanels(context, rig_component, layout)
 
 
-def draw_inherited_component(layout, rig_component):
+def draw_inherited_component(layout: UILayout, rig_component: object):
     if rig_component.component_type == "":
         comp_pb = rig_component.component_pbone
         if comp_pb:
@@ -100,7 +100,8 @@ class CloudRigPanel:
     func_name: str
     is_advanced: bool = False
 
-    def poll(self, context):
+    def poll(self, context: Context):
+        """Check if this panel should be drawn, optionally deferring to a component-class-defined poll function."""
         comp = get_component_in_ui(context)
         component_class = comp.component_class
         if hasattr(component_class, 'poll_' + self.func_name):
@@ -109,15 +110,15 @@ class CloudRigPanel:
                 return poll_func(context, comp)
         return True
 
-    def draw_header(self, context, layout):
+    def draw_header(self, _context: Context, _layout: UILayout):
         pass
 
 
 class AnimPanel(CloudRigPanel):
-    def poll(self, context):
+    def poll(self, context: Context):
         return context.object.cloudrig.generator.generate_test_action
 
-    def draw_header(self, context, layout):
+    def draw_header(self, context: Context, layout: UILayout):
         comp = get_component_in_ui(context)
         params = comp.params
         layout.use_property_split = False
@@ -125,7 +126,7 @@ class AnimPanel(CloudRigPanel):
 
 
 class BoneSetPanel(CloudRigPanel):
-    def poll(self, context):
+    def poll(self, context: Context):
         if not super().poll(context):
             return False
 
@@ -159,12 +160,13 @@ PANEL_DATAS = OrderedDict(
 )
 
 
-def draw_params_subpanels(context, rig_component, layout):
+def draw_params_subpanels(context: Context, rig_component: object, layout: UILayout):
     for panel_name in PANEL_DATAS:
         draw_params_subpanel_single(context, rig_component, layout, panel_name)
 
 
-def draw_params_subpanel_single(context, rig_component, layout, panel_name: str):
+def draw_params_subpanel_single(context: Context, rig_component: object, layout: UILayout, panel_name: str):
+    """Draw a single component parameter sub-panel, with early-outs for advanced mode, poll, and missing draw functions."""
     panel_data = PANEL_DATAS.get(panel_name)
     if not panel_data:
         return
@@ -188,7 +190,7 @@ def draw_params_subpanel_single(context, rig_component, layout, panel_name: str)
         draw_component_params(context, panel.column(), rig_component, panel_data.func_name)
 
 
-def draw_component_params(context, layout, rig_component, func_name: str):
+def draw_component_params(context: Context, layout: UILayout, rig_component: object, func_name: str):
     component_class = rig_component.component_class
     draw_func = getattr(component_class, func_name)
     draw_func(layout, context, rig_component)

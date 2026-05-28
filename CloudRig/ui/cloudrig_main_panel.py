@@ -2,7 +2,7 @@
 
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
-from bpy.types import Object, Panel
+from bpy.types import Context, Object, Panel, UILayout
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig, is_generated_cloudrig
@@ -17,17 +17,17 @@ class CloudRig_MainPanel:
     bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig = context.object
         if not rig or rig.type != 'ARMATURE':
             return False
-        return rig and not is_generated_cloudrig(rig)
+        return not is_generated_cloudrig(rig)
 
-    def draw_header(self, context):
+    def draw_header(self, context: Context):
         layout = self.layout
         layout.prop(context.object.cloudrig, 'enabled', text="")
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
 
         metarig = context.object
@@ -54,7 +54,6 @@ class CloudRig_MainPanel:
 
         draw_log_panel(context, layout)
 
-        prefs = get_addon_prefs(context)
         if prefs.advanced_mode:
             draw_custom_shapes_panel(context, layout)
 
@@ -69,7 +68,7 @@ class POSE_PT_CloudRig_Popover(CloudRig_MainPanel, Panel):
     bl_ui_units_x = 20
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         prefs = get_addon_prefs(context)
         if not prefs:
             return False
@@ -78,7 +77,7 @@ class POSE_PT_CloudRig_Popover(CloudRig_MainPanel, Panel):
             return arm_ob and arm_ob.type == 'ARMATURE' and not is_generated_cloudrig(arm_ob)
         return super().poll(context)
 
-    def draw_header(self, context):
+    def draw_header(self, context: Context):
         prefs = get_addon_prefs(context)
         if prefs.ui_mode != 'HEADER':
             return
@@ -91,7 +90,7 @@ class POST_PT_CloudRig_Properties(CloudRig_MainPanel, Panel):
     bl_context = 'data'
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         prefs = get_addon_prefs(context)
         if not prefs:
             return False
@@ -100,7 +99,7 @@ class POST_PT_CloudRig_Properties(CloudRig_MainPanel, Panel):
         return super().poll(context)
 
 
-def metarig_contains_fk_chain(metarig: Object) -> bool:
+def metarig_contains_fk_chain(metarig: Object):
     """Return whether or not a metarig contains an FK rig. Used to determine
     whether animation generation checkbox should appear or not."""
     for pb in metarig.pose.bones:
@@ -112,7 +111,7 @@ def metarig_contains_fk_chain(metarig: Object) -> bool:
     return False
 
 
-def draw_general_panel(context, layout):
+def draw_general_panel(context: Context, layout: UILayout):
     header, panel = layout.panel("CloudRig General", default_closed=True)
     header.label(text="General")
     if not panel:
@@ -160,7 +159,7 @@ def draw_general_panel(context, layout):
     layout.prop_search(generator, 'properties_bone', metarig.data, 'bones')
 
 
-def draw_custom_shapes_panel(context, layout):
+def draw_custom_shapes_panel(context: Context, layout: UILayout):
     header, panel = layout.panel("CloudRig Custom Shapes", default_closed=True)
     header.label(text="Custom Shapes")
     if not panel:
@@ -190,7 +189,7 @@ def draw_custom_shapes_panel(context, layout):
         col.row().prop(generator, 'base_wire_width')
 
 
-def draw_cloudrig_popover(self, context):
+def draw_cloudrig_popover(self, context: Context):
     prefs = get_addon_prefs(context)
     if not prefs:
         return

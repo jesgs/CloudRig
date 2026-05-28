@@ -45,12 +45,11 @@ def mark_overlay_dirty(self):
             component.overlay_is_dirty = True
 
 
-def inject_update_callback(pg_class) -> dict:
-    def wrap_setter(prop_name: str, set_transform: Callable | None):
+def inject_update_callback(pg_class: type) -> type:
+    def wrap_setter(_prop_name: str, set_transform: Callable | None):
         def set_transform_wrapper(self, new_value, curr_value, is_set):
             if new_value != curr_value:
                 mark_overlay_dirty(self)
-                # print(f"Marked overlay as dirty. {prop_name} changed from `{curr_value}` to `{new_value}`.")
 
             if set_transform:
                 # Call the original call-back function.
@@ -59,10 +58,9 @@ def inject_update_callback(pg_class) -> dict:
 
         return set_transform_wrapper
 
-    def wrap_update(prop_name: str, update: Callable | None):
+    def wrap_update(_prop_name: str, update: Callable | None):
         def update_wrapper(self, context):
             mark_overlay_dirty(self)
-            # print(f"Marked overlay as dirty. {prop_name} changed to `{getattr(self, prop_name)}`.")
             if update:
                 update(self, context)
 
@@ -249,12 +247,11 @@ class RigComponent(PropertyGroup):
     )
 
     def update_caches(self, _context=None):
-        # Update pbone chain stuff for the overlay and generation.
+        """Ensures everything is up-to-date for overlay drawing and generation."""
         self.last_bone_name = ""
         self.bone_name = ""
-        self.component_pbone_chain
+        self.component_pbone_chain  # Triggers last_bone_name cache rebuild.
 
-        # Update parent UI stuff for the Rig Component List
         if not self.parent:
             self.should_draw = True
             self.enabled_with_parents = True
@@ -309,13 +306,11 @@ class RigComponent(PropertyGroup):
             return
         bone_set_name = self.active_ui_bone_set.name
         if hasattr(self.params.bone_sets, bone_set_name):
-            return getattr(self.params.bone_sets, self.active_ui_bone_set.name)
-        else:
-            return
+            return getattr(self.params.bone_sets, bone_set_name)
 
     @property
     def active_ui_bone_set(self):
-        if len(self.ui_bone_sets) == 0:
+        if not self.ui_bone_sets:
             return
         return self.ui_bone_sets[self.bone_sets_active_index]
 
@@ -324,8 +319,6 @@ class RigComponent(PropertyGroup):
         return {key: getattr(self.params.bone_sets, key) for key in self.params.bone_sets.keys()}
 
     def update_ui_bone_sets(self):
-        # Update UI Bone Sets, which are the ones displayed under the "Bone Organization"
-        # sub-panel of the CloudRig Component.
         self.ui_bone_sets.clear()
         for prop_name in BoneSets.bone_set_property_groups.keys():
             bone_set = getattr(self.params.bone_sets, prop_name)
@@ -337,9 +330,8 @@ class RigComponent(PropertyGroup):
             ui_bone_set.name = prop_name
             ui_bone_set.ui_name = bone_set.ui_name
 
-            # Also update the collection list of each BoneSet, such that if a BoneSet
-            # doesn't have any collections yet, its defaults are assigned.
-            if len(bone_set.collections) == 0:
+            # Also assign default collections if none are set yet.
+            if not bone_set.collections:
                 self.reset_collections_of_bone_set(bone_set)
         self.bone_sets_active_index = min(self.bone_sets_active_index, len(self.ui_bone_sets) - 1)
 
@@ -612,7 +604,7 @@ class RigComponent(PropertyGroup):
         return f"{self.base_bone_name}: {self.component_type or 'No Component'}"
 
 
-def get_component_ui_name(component_module_name: str):
+def get_component_ui_name(component_module_name: str) -> str:
     prefs = get_addon_prefs()
     comp_info = next((comp for comp in prefs.component_types if comp.module_name == component_module_name), None)
     if not comp_info and component_module_name:
@@ -627,7 +619,7 @@ def get_component_ui_name(component_module_name: str):
 
 class Properties_CloudRig(PropertyGroup):
     def active_component_update_callback(self, _context=None):
-        if self.active_component_index < 0 or len(self.rig_component_bones) == 0:
+        if self.active_component_index < 0 or not self.rig_component_bones:
             return
 
         # Select the bone of this rig component

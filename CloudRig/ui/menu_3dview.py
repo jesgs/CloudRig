@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
-from bpy.types import Menu
+from bpy.types import Context, Menu
 
 from ..generation.cloudrig import is_cloud_metarig, is_generated_cloudrig
 
@@ -10,7 +10,7 @@ class VIEW3D_MT_cloudrig(Menu):
     bl_label = "CloudRig"
     bl_idname = "VIEW3D_MT_cloudrig"
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         active_obj = context.active_object
         is_active_generated = is_generated_cloudrig(active_obj)
@@ -32,7 +32,7 @@ class VIEW3D_MT_cloudrig(Menu):
             )
 
 
-def draw_cloudrig_menu(self, context):
+def draw_cloudrig_menu(self, context: Context):
     obj = context.active_object
     if is_cloud_metarig(obj) or is_generated_cloudrig(obj):
         self.layout.menu(VIEW3D_MT_cloudrig.bl_idname)

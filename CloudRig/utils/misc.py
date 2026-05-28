@@ -62,11 +62,6 @@ class Timer:
         print(string + "%.3f" % (t - self.start_time))
 
 
-def assign_to_collection(obj, collection):
-    if obj.name not in collection.objects:
-        collection.objects.link(obj)
-
-
 def check_addon(context, addon_name: str) -> bool:
     """Same as addon_utils.check() but account for workspace-specific disabling.
     Return whether an addon is enabled in this context.

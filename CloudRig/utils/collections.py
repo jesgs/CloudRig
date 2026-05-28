@@ -1,5 +1,13 @@
 import bpy
-from bpy.types import Collection, Context, LayerCollection
+from bpy.types import Collection, Context, LayerCollection, Object
+
+
+def assign_to_collection(obj: Object, collection: Collection) -> bool:
+    """Returns whether assignment was performed or skipped."""
+    if obj not in set(collection.objects):
+        collection.objects.link(obj)
+        return True
+    return False
 
 
 def ensure_collection(

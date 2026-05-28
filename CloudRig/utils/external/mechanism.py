@@ -4,18 +4,16 @@ import bpy
 from bpy.types import (
     ID,
     ArmatureConstraint,
+    Constraint,
     Driver,
     DriverTarget,
     FCurve,
-    FModifierGenerator,
     Object,
     PoseBone,
     bpy_prop_collection,
     bpy_struct,
 )
 from rna_prop_ui import rna_idprop_quote_path as quote_property
-
-from .misc import Lazy, OptionalLazy, force_lazy
 
 _TRACK_AXIS_MAP = {
     'X': 'TRACK_X',
@@ -30,8 +28,6 @@ _TRACK_AXIS_MAP = {
 def make_constraint(
     owner: Object | PoseBone,
     con_type: str,
-    target: Object | None = None,
-    subtarget: OptionalLazy[str] = None,
     *,
     insert_index: int | None = None,
     space: str | None = None,
@@ -39,15 +35,14 @@ def make_constraint(
     use_xyz: Sequence[bool] | None = None,
     use_limit_xyz: Sequence[bool] | None = None,
     invert_xyz: Sequence[bool] | None = None,
-    targets: list[Lazy[str | tuple | dict]] | None = None,
+    targets: list[str | tuple | dict] | None = None,
     **options,
-):
+) -> Constraint:
     """
     Creates and initializes constraint of the specified type for the owner bone.
 
     Specially handled keyword arguments:
 
-      target, subtarget: if both not None, passed through to the constraint
       insert_index     : insert at the specified index in the stack, instead of at the end
       space            : assigned to both owner_space and target_space
       track_axis       : allows shorter X, Y, Z, -X, -Y, -Z notation
@@ -59,8 +54,6 @@ def make_constraint(
 
     Other keyword arguments are directly assigned to the constraint options.
     Returns the newly created constraint.
-
-    Target bone names can be provided via 'lazy' callable closures without arguments.
     """
     con = owner.constraints.new(con_type)
 
@@ -71,58 +64,43 @@ def make_constraint(
             con_target = con.targets.new()
             con_target.target = owner.id_data
             # List element can be a string, a tuple or a dictionary.
-            target_info = force_lazy(target_info)
             if isinstance(target_info, str):
                 con_target.subtarget = target_info
             elif isinstance(target_info, tuple):
                 if len(target_info) == 2:
-                    con_target.subtarget, con_target.weight = map(force_lazy, target_info)
+                    con_target.subtarget, con_target.weight = target_info
                 else:
-                    con_target.target, con_target.subtarget, con_target.weight = map(force_lazy, target_info)
+                    con_target.target, con_target.subtarget, con_target.weight = target_info
             else:
                 assert isinstance(target_info, dict)
                 for key, val in target_info.items():
-                    setattr(con_target, key, force_lazy(val))
+                    setattr(con_target, key, val)
 
     if insert_index is not None:
         owner.constraints.move(len(owner.constraints) - 1, insert_index)
 
-    if target is not None and hasattr(con, 'target'):
-        con.target = target
-
-    if subtarget is not None:
-        con.subtarget = force_lazy(subtarget)
-
     if space is not None:
-        _set_default_attr(con, options, 'owner_space', space)
-        _set_default_attr(con, options, 'target_space', space)
+        if hasattr(con, 'owner_space'):
+            con.owner_space = space
+        if hasattr(con, 'target_space'):
+            con.target_space = space
 
-    if track_axis is not None:
+    if track_axis:
         con.track_axis = _TRACK_AXIS_MAP.get(track_axis, track_axis)
 
-    if use_xyz is not None:
+    if use_xyz:
         con.use_x, con.use_y, con.use_z = use_xyz[0:3]
 
-    if use_limit_xyz is not None:
+    if use_limit_xyz:
         con.use_limit_x, con.use_limit_y, con.use_limit_z = use_limit_xyz[0:3]
 
-    if invert_xyz is not None:
+    if invert_xyz:
         con.invert_x, con.invert_y, con.invert_z = invert_xyz[0:3]
 
-    # for key in ['min_x', 'max_x', 'min_y', 'max_y', 'min_z', 'max_z']:
-    #     if key in options:
-    #         _set_default_attr(con, options, 'use_' + key, True)
-    #         _set_default_attr(con, options, 'use_limit_' + key[-1], True)
-
-    for p, v in options.items():
-        setattr(con, p, force_lazy(v))
+    for prop_name, prop_value in options.items():
+        setattr(con, prop_name, prop_value)
 
     return con
-
-
-def _set_default_attr(obj, options, attr, value):
-    if hasattr(obj, attr):
-        options.setdefault(attr, value)
 
 
 def make_driver(
@@ -133,7 +111,6 @@ def make_driver(
     type='SUM',
     expression: str | None = None,
     variables: Iterable | dict = (),
-    polynomial: list[float] | None = None,
     target_id: ID | None = None,
 ) -> FCurve:
     """
@@ -146,7 +123,6 @@ def make_driver(
       type            : built-in driver math operation (incompatible with expression)
       expression      : custom driver expression
       variables       : either a list or dictionary of variable specifications.
-      polynomial      : coefficients of the POLYNOMIAL driver modifier
       target_id       : specifies the target ID of variables implicitly
 
     Specification format:
@@ -185,8 +161,6 @@ def make_driver(
             'targets':[{ 'id': target_id, 'data_path': subtarget.path_from_id() + '.foo["bar"]' }] }
 
     Returns the newly created driver FCurve.
-
-    Target bone names can be provided via 'lazy' callable closures without arguments.
     """
     fcu = owner.driver_add(prop, index)
     drv = fcu.driver
@@ -215,18 +189,10 @@ def make_driver(
         for var_name, var_info in variables.items():
             _add_driver_variable(drv, var_name, var_info, target_id)
 
-    if polynomial is not None:
-        drv_modifier = fcu.modifiers.new('GENERATOR')
-        assert isinstance(drv_modifier, FModifierGenerator)
-        drv_modifier.mode = 'POLYNOMIAL'
-        drv_modifier.poly_order = len(polynomial) - 1
-        for i, v in enumerate(polynomial):
-            drv_modifier.coefficients[i] = v
-
     return fcu
 
 
-def _add_driver_variable(drv: Driver, var_name: str, var_info, target_id: ID | None):
+def _add_driver_variable(drv: Driver, var_name: str, var_info: dict | tuple, target_id: ID | None):
     """Add and initialize a driver variable."""
 
     var = drv.variables.new()
@@ -249,7 +215,7 @@ def _add_driver_variable(drv: Driver, var_name: str, var_info, target_id: ID | N
                 for i, tdata in enumerate(v):
                     _init_driver_target(var.targets[i], tdata, target_id)
             elif p != 'type':
-                setattr(var, p, force_lazy(v))
+                setattr(var, p, v)
 
 
 def _init_driver_target(drv_target: DriverTarget, var_info, target_id: ID | None):
@@ -265,7 +231,6 @@ def _init_driver_target(drv_target: DriverTarget, var_info, target_id: ID | None
         else:
             subtarget, *refs = var_info
 
-        subtarget = force_lazy(subtarget)
         if hasattr(subtarget, 'name'):
             subtarget = subtarget.name
 
@@ -304,7 +269,7 @@ def _init_driver_target(drv_target: DriverTarget, var_info, target_id: ID | None
             drv_target.id = target_id
 
         for tp, tv in var_info.items():
-            setattr(drv_target, tp, force_lazy(tv))
+            setattr(drv_target, tp, tv)
 
 
 def driver_var_transform(
@@ -314,14 +279,13 @@ def driver_var_transform(
     type='LOC_X',
     space='WORLD',
     rotation_mode='AUTO',
-):
+) -> dict:
     """
     Create a Transform Channel driver variable specification.
 
     Usage:
         make_driver(..., variables=[driver_var_transform(...)])
 
-    Target bone name can be provided via a 'lazy' callable closure without arguments.
     """
 
     assert space in {'WORLD', 'TRANSFORM', 'LOCAL'}
@@ -339,11 +303,11 @@ def driver_var_transform(
     return {'type': 'TRANSFORMS', 'targets': [target_map]}
 
 
-def refresh_drivers(obj):
+def refresh_drivers(id: ID):
     """Cause all drivers belonging to the object to be re-evaluated, clearing any errors."""
 
     # Refresh object's own drivers if any
-    anim_data = getattr(obj, 'animation_data', None)
+    anim_data = getattr(id, 'animation_data', None)
 
     if anim_data:
         for fcu in anim_data.drivers:
@@ -354,7 +318,6 @@ def refresh_drivers(obj):
 def refresh_all_drivers():
     """Cause all drivers in the file to be re-evaluated, clearing any errors."""
 
-    # Iterate over all data blocks in the file
     for attr in dir(bpy.data):
         coll = getattr(bpy.data, attr, None)
 

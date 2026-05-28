@@ -5,7 +5,7 @@ from math import atan2
 from mathutils import Vector
 
 
-def lerp(a, b, t):
+def lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t
 
 
@@ -32,23 +32,20 @@ def bounding_box_diagonal_size(points: list[Vector]) -> float:
 
 
 def bounding_box_center(points: list[Vector]) -> Vector:
-    """Find the bounding box center of some points."""
     bbox_low, bbox_high = bounding_box(points)
     return bbox_low + (bbox_high - bbox_low) / 2
 
 
 def scale_points_from_center(points, scale) -> list[Vector]:
-    """Scale some points from their bounding box center."""
     center = bounding_box_center(points)
     new_points = []
     for p in points:
-        new_points.append(center + (center - p) * (scale))
+        new_points.append(center + (center - p) * scale)
     return new_points
 
 
-def project_vector_on_plane(vec: Vector, plane_x: Vector, plane_y: Vector = None) -> Vector:
-    """Flatten a vector onto a plane."""
-    # if plane_y wasn't passed, we assume that plane_x is the normal of the plane.
+def project_vector_on_plane(vec: Vector, plane_x: Vector, plane_y: Vector | None = None) -> Vector:
+    # If plane_y wasn't passed, plane_x is treated as the plane's normal.
     normal = plane_x
     if plane_y:
         normal = plane_x.cross(plane_y).normalized()
@@ -66,12 +63,7 @@ def project_points_on_plane(points: list[Vector], projection_axis: Vector) -> li
     projection_direction = projection_axis.normalized()
     plane_x = projection_direction.cross(Vector((0, 0, 1)))
     plane_y = projection_direction.cross(plane_x)
-
     projected_points = []
-    points_sum = Vector()
-    for point in points:
-        points_sum += point
-
     points_center = bounding_box_center(points)
 
     for point in points:
@@ -83,9 +75,9 @@ def project_points_on_plane(points: list[Vector], projection_axis: Vector) -> li
         projected_points.append((projected_point, angle_from_axis))
 
     # Sort points by their angle from the projection axis
-    projected_points.sort(key=lambda x: x[1])
+    projected_points.sort(key=lambda entry: entry[1])
 
-    return [p[0] for p in projected_points]
+    return [entry[0] for entry in projected_points]
 
 
 def flat(vec: Vector) -> Vector:
@@ -101,14 +93,14 @@ def flat(vec: Vector) -> Vector:
             maxabs = abs(val)
             max_index = i
 
-    for i in range(0, len(vec)):
+    for i in range(len(vec)):
         if i != max_index:
             new_vec[i] = 0
 
     return new_vec
 
 
-def clamp(val, _min=0, _max=1) -> float or int:
+def clamp(val: float | int, _min=0, _max=1) -> float | int:
     if val < _min:
         return _min
     if val > _max:

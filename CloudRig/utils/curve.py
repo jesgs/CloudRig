@@ -47,7 +47,7 @@ def find_opposite_point_on_spline(spline: Spline, point_idx: int) -> tuple[Vecto
 
 
 def find_opposite_point_on_curve(curve: Curve, spline_idx: int, point_idx: int) -> tuple[Spline, int, float]:
-    """Return the spline, point index, and position, of the closest point on the
+    """Return the spline, point index, and distance, of the closest point on the
     curve to the coordinate of the given point with its X component inverted."""
 
     spline = curve.splines[spline_idx]
@@ -66,9 +66,9 @@ def find_opposite_point_on_curve(curve: Curve, spline_idx: int, point_idx: int) 
     spline_points = get_spline_points(spline)
     co = spline_points[point_idx].co.xyz
     flipped_co = Vector([-co.x, co.y, co.z])
-    opp_co, opp_kd_idx, offset = kd.find(flipped_co)
+    _opp_co, opp_kd_idx, offset = kd.find(flipped_co)
 
-    opp_spline, opp_point_idx, opp_co = point_list[opp_kd_idx]
+    opp_spline, opp_point_idx, _opp_co = point_list[opp_kd_idx]
     return opp_spline, opp_point_idx, offset
 
 
@@ -85,7 +85,7 @@ def evaluate_bezier_spline(spline: Spline, segment_resolution=64) -> list[list[V
     segments = []
     for point_a, point_b in pairwise(points):
         segment = interpolate_bezier(
-            point_a.co, point_a.handle_right, point_b.handle_left, point_b.co.xyz, segment_resolution
+            point_a.co.xyz, point_a.handle_right, point_b.handle_left, point_b.co.xyz, segment_resolution
         )
         segments.append(segment)
     return segments
