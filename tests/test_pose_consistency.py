@@ -221,7 +221,7 @@ def assert_matching_pose(
                     np.array(new_value), precision=8, floatmode="fixed"
                 )
             elif type(old_value) is float:
-                is_equal = np.isclose(new_value, old_value, atol=absolute_tolerance)
+                is_equal = np.isclose(new_value, old_value, rtol=1e-5, atol=1e-5)
                 old_value = np.array2string(
                     np.array(old_value), precision=8, floatmode="fixed"
                 )
