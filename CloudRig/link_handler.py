@@ -1,6 +1,6 @@
 import bpy
 from bpy.app.handlers import persistent
-from bpy.types import BlendImportContext, Context, Object, Text
+from bpy.types import BlendImportContext, Collection, Context, Object, Text
 
 from .bs_utils.prefs import get_addon_prefs
 
@@ -23,8 +23,13 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
     )
     if not root_coll:
         return
+    cleanup(context, root_coll, is_link)
+
+
+def cleanup(context: Context, root_coll: Collection, is_link: bool):
     if is_link:
-        # Delete the instancer empty.
+        # File->Link creates the instancer before this handler fires.
+        # Asset Browser drag creates it after, so it may not exist yet.
         instancer_empty = next(
             (
                 obj
@@ -33,9 +38,16 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
             ),
             None,
         )
-        if instancer_empty and instancer_empty == context.active_object:
+        if instancer_empty:
             bpy.data.objects.remove(instancer_empty)
         else:
+            # HACK: instancer_empty doesn't exist yet after asset browser drag&drop.
+            # Schedule removal for the next event loop tick, after the asset
+            # browser finishes placing the instancer into the scene.
+            def recall():
+                cleanup(context, root_coll, is_link)
+
+            bpy.app.timers.register(recall, first_interval=0.0)
             return
 
         # Override the root collection and its contents.
@@ -45,11 +57,10 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
 
         armature_objs = [obj for obj in override_root_coll.all_objects if obj.type == 'ARMATURE']
     else:
-        armature_objs = [
-            item.id for item in lapp_context.import_items if item.id.id_type == 'OBJECT' and item.id.type == 'ARMATURE'
-        ]
-        for obj in context.selected_objects:
-            obj.select_set(False)
+        armature_objs = [obj for obj in root_coll.all_objects if obj.type == 'ARMATURE']
+
+    for obj in context.selected_objects:
+        obj.select_set(False)
 
     select_armatures(context, armature_objs)
     autorun_scripts_of_objects(context, armature_objs)
