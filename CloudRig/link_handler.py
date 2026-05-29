@@ -11,7 +11,6 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
     prefs = get_addon_prefs(context)
     if not prefs.improve_link_append:
         return
-    scene = context.scene
     is_link = 'LINK' in lapp_context.options
 
     root_coll = next(
@@ -25,12 +24,24 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
     if not root_coll:
         return
     if is_link:
+        # Delete the instancer empty.
+        instancer_empty = next(
+            (
+                obj
+                for obj in context.scene.objects
+                if obj.instance_type == 'COLLECTION' and obj.instance_collection == root_coll
+            ),
+            None,
+        )
+        if instancer_empty and instancer_empty == context.active_object:
+            bpy.data.objects.remove(instancer_empty)
+        else:
+            return
+
         # Override the root collection and its contents.
         override_root_coll = root_coll.override_hierarchy_create(context.scene, context.view_layer)
         # Mark root collection as editable override, to enable visibility toggles.
         override_root_coll.override_library.is_system_override = False
-        # Delete the instancer empty.
-        bpy.data.objects.remove(context.active_object)
 
         armature_objs = [obj for obj in override_root_coll.all_objects if obj.type == 'ARMATURE']
     else:
