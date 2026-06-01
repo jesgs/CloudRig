@@ -2,6 +2,7 @@ This is a Blender Python add-on repository called "CloudRig". It is a rig genera
 
 Instructions for formatting and in general:
 - Add type annotations to function definitions.
+    - Do not add type annotations to parameters where the default value clearly communicates the type, ie. probably all non-None default values. Although, do flag if you sense a potential mix-up between floats and ints. (eg. developer lazily wrote 0 instead of 0.0).
     - Skip return type annotations for all `None` return values, as well as the following built-in Blender operator functions: `execute()`, `invoke()`, `poll()`.
 - Type annotations should be short, so instead of `context: bpy.types.Context`, import Context at the top of the file: `from bpy.types import Context` and then do `context: Context`.
 - Unused function variable names always start with _, and still be type annotated.

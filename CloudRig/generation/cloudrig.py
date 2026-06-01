@@ -19,6 +19,7 @@ import bpy
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -223,6 +224,7 @@ class SnappingOpMixin:
 
     def invoke(self, context: Context, _event: Event):
         self.init(context)
+        return self.execute(context)
 
     def init(self, context: Context):
         self.rig = find_cloudrig(context)
@@ -791,8 +793,7 @@ def closest_point_on_line(
 
     line_length_squared = line_direction.dot(line_direction)
     if line_length_squared == 0.0:
-        # Degenerate line (start == end)
-        return line_start.copy(), 0.0
+        raise ValueError("Failed to find closest point on line: Passed line is 0-length!")
 
     factor = vector_to_point.dot(line_direction) / line_length_squared
 
@@ -1283,7 +1284,7 @@ def draw_rig_settings_per_label(
                 continue
             texts = slider_data.get('texts', [])
             if texts:
-                if texts.startswith("["):
+                if type(texts) is str and texts.startswith("["):
                     texts = ast.literal_eval(texts)
                 else:
                     texts = [t.strip() for t in texts]
@@ -1541,16 +1542,16 @@ def draw_operator(
     op_icon='BLANK1',
     op_kwargs={},
     text="",
-):
+) -> OperatorProperties | None:
     if not op_icon or op_icon == 'NONE':
         op_icon = 'BLANK1'
     if op_exists(bl_idname):
         op_props = layout.operator(bl_idname, text=text, icon=op_icon)
+        feed_op_props(op_props, op_kwargs)
+        return op_props
     elif is_ui_edit_mode(obj):
         layout.alert = True
         layout.label(text="Missing Operator", icon='ERROR')
-    feed_op_props(op_props, op_kwargs)
-    return op_props
 
 
 def draw_drag_operator(
@@ -1741,17 +1742,16 @@ class CloudRig_RigPreferences(PropertyGroup):
 
         if flt_flags[new_idx] == 0:
             # If the new active element would be hidden, keep going up the list until a visible one is found.
-            while flt_flags[new_idx] == 0 and new_idx > 0:
+            while new_idx > 0 and flt_flags[new_idx] == 0:
                 new_idx -= 1
         if flt_flags[new_idx] == 0:
             # If that failed, go down the list instead.
             new_idx = self.active_collection_index + 1
-            while flt_flags[new_idx] == 0 and new_idx < len(all_colls):
+            while new_idx < len(all_colls) and flt_flags[new_idx] == 0:
                 new_idx += 1
-        if flt_flags[new_idx] == 0:
+        if new_idx < len(all_colls) and flt_flags[new_idx] == 0:
             # If that fails too, don't allow an active element.
             new_idx = -1
-
         if new_idx != self.active_collection_index:
             # This will cause this function to get called again, but this time,
             # none of the if-statements should trigger.
@@ -1905,9 +1905,10 @@ class CloudRigBoneCollection(PropertyGroup):
         coll = self.collection
         coll.is_expanded = self.is_expanded
         rig = find_cloudrig(context)
+        if not rig:
+            return
         rig.cloudrig_prefs.active_collection_index = rig.data.collections_all.find(self.name)
-        if rig:
-            rig.cloudrig_prefs.active_collection_index = coll.index
+        rig.cloudrig_prefs.active_collection_index = coll.index
 
     is_expanded: BoolProperty(
         name="Is Expanded",
@@ -2123,7 +2124,7 @@ class CLOUDRIG_UL_collections(UIList):
         return sorted_colls
 
     @staticmethod
-    def get_collection_order(rig) -> list[int]:
+    def get_collection_order(rig: Object) -> list[int]:
         # Order collections by CloudRig hierarchy, such that children come after their
         # parents, but the original order is otherwise preserved.
 
@@ -2132,7 +2133,7 @@ class CLOUDRIG_UL_collections(UIList):
         return [sorted_colls.index(coll) for coll in rig.data.collections_all]
 
     @staticmethod
-    def get_filter_flags(all_collections, filter_name):
+    def get_filter_flags(all_collections: list[BoneCollection], filter_name: str):
         flt_flags = [1 << 30] * len(all_collections)
         # Filtering by name search.
         if filter_name:
@@ -2147,7 +2148,7 @@ class CLOUDRIG_UL_collections(UIList):
             filter_map = {coll: flt_flags[i] for i, coll in enumerate(all_collections)}
             # Allow collections that contain any collections that match the filter.
             for i, coll in enumerate(all_collections):
-                if any([filter_map[child] for child in get_coll_children_recursive(coll)]):
+                if any([filter_map[child] for child in coll.cloudrig_info.children_recursive]):
                     flt_flags[i] = 1073741824
 
         # Filter out collections whose parents are collapsed
@@ -2164,15 +2165,7 @@ class CLOUDRIG_UL_collections(UIList):
 
 
 def any_solo(armature: Armature) -> bool:
-    return any([c.is_solo for c in armature.collections_all])
-
-
-def get_coll_children_recursive(coll: BoneCollection) -> list[BoneCollection]:
-    children = []
-    for child in coll.children:
-        children.append(child)
-        children += get_coll_children_recursive(child)
-    return children
+    return any((c.is_solo for c in armature.collections_all))
 
 
 def draw_cloudrig_collections(self, context: Context, rig: Object):
@@ -2183,7 +2176,9 @@ def draw_cloudrig_collections(self, context: Context, rig: Object):
     # Figure out property path to the Bone Collection list in this context,
     # considering that this function should work in a number of cases
     # where the rig is not the active object.
-    rig_of_mesh, modifier_name = get_cloudrig_of_mesh(context.active_object)
+    if not context.active_object:
+        return
+    _rig_of_mesh, modifier_name = get_cloudrig_of_mesh(context.active_object)
     if context.active_object == rig:
         context_path_to_rig = 'active_object'
     elif modifier_name:
@@ -2792,10 +2787,13 @@ class POSE_OT_cloudrig_collection_assign(Operator):
 
     @classmethod
     def description(cls, _context: Context, props: OperatorProperties):
-        if not props.assign:
-            words = ("Assign", "to") if props.assign else ("Unassign", "from")
-            colls = "all collections" if props.all_collections else "active collection"
-            return f"{words[0]} selected bones {words[1]} {colls}"
+        msg_start = (
+            tip_("Assign selected bones to {collection}")
+            if props.assign
+            else tip_("Unassign selected bones from {collection}")
+        )
+        msg_collections = tip_("all collections") if props.all_collections else tip_("active collection")
+        return msg_start.format(collection=msg_collections)
 
     def invoke(self, context: Context, event: Event):
         if self.assign:

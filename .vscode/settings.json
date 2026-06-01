@@ -10,12 +10,17 @@
     "files.insertFinalNewline": true,
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
-        "editor.rulers": [120]
+        "editor.rulers": [
+            120
+        ]
     },
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
         "source.organizeImports": "explicit"
     },
+    "ruff.fixAll": false,
+    "ruff.organizeImports": false,
     "editor.formatOnSaveMode": "file",
     "python.testing.pytestArgs": [
         "tests"
