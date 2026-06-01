@@ -12,6 +12,8 @@ from ..utils.rig import get_current_rigs
 
 
 class ARMATURE_OT_post_process_new_bones(Operator):
+    """Rename the duplicated bones with a more sane number incrementation logic"""
+
     bl_idname = "armature.post_process_new_bones"
     bl_label = "Post-Process New Bones"
     bl_options = {'REGISTER', 'INTERNAL'}

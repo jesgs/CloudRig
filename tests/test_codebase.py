@@ -1,6 +1,6 @@
 # fmt: off
 """
-Tests that certain regex patterns do not appear anywhere in the CloudRig codebase.
+Tests that certain patterns do not appear anywhere in the CloudRig codebase.
 """
 
 import ast
@@ -54,11 +54,32 @@ FORBIDDEN_PATTERNS: dict[str, str] = {
 # Helpers
 # ---------------------------------------------------------------------------
 
+ParsedFiles = dict[Path, tuple[str, ast.Module]]
+
+
 def collect_files(root: Path, extensions: set[str]) -> list[Path]:
     return [
         p for p in root.rglob("*")
         if p.suffix in extensions and p.is_file() and p.name not in IGNORED_FILES
     ]
+
+
+def parse_files(files: list[Path]) -> tuple[ParsedFiles, list[Path]]:
+    """Read and parse all files, returning (parsed, syntax_error_paths).
+    Files that cannot be read (OSError) are silently skipped.
+    Files with syntax errors are collected separately so they can be reported.
+    """
+    parsed: ParsedFiles = {}
+    syntax_errors: list[Path] = []
+    for path in files:
+        try:
+            source = path.read_text(encoding="utf-8", errors="replace")
+            parsed[path] = (source, ast.parse(source))
+        except OSError:
+            continue
+        except SyntaxError:
+            syntax_errors.append(path)
+    return parsed, syntax_errors
 
 
 def find_matches(pattern: str, files: list[Path]) -> list[tuple[Path, int, str]]:
@@ -77,6 +98,83 @@ def find_matches(pattern: str, files: list[Path]) -> list[tuple[Path, int, str]]
     return hits
 
 
+def find_bpy_types_outside_register(parsed: ParsedFiles) -> list[str]:
+    """Return formatted hit strings for any `bpy.types.X` access outside register()/unregister()."""
+    hits: list[str] = []
+    for path, (source, tree) in parsed.items():
+        exempt: set[int] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name in ('register', 'unregister'):
+                exempt.update(range(node.lineno, node.end_lineno + 1))
+
+        source_lines = source.splitlines()
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Attribute)
+                    and isinstance(node.value, ast.Attribute)
+                    and isinstance(node.value.value, ast.Name)
+                    and node.value.value.id == 'bpy'
+                    and node.value.attr == 'types'
+                    and node.lineno not in exempt):
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                line_text = source_lines[node.lineno - 1].strip()
+                hits.append(f"    {rel}:{node.lineno}  →  {line_text}")
+
+    return hits
+
+
+def find_operators_without_tooltips(parsed: ParsedFiles) -> list[str]:
+    """Return formatted hit strings for any concrete Operator subclass missing a tooltip.
+    A tooltip is any of: a class docstring, a bl_description assignment, or a description classmethod.
+    Mixins (classes without bl_idname) are skipped.
+    """
+    hits: list[str] = []
+    for path, (_, tree) in parsed.items():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+
+            base_names = {
+                base.id if isinstance(base, ast.Name)
+                else base.attr if isinstance(base, ast.Attribute)
+                else ''
+                for base in node.bases
+            }
+            if 'Operator' not in base_names:
+                continue
+
+            has_bl_idname = any(
+                isinstance(stmt, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == 'bl_idname' for t in stmt.targets)
+                for stmt in node.body
+            )
+            if not has_bl_idname:
+                continue
+
+            has_docstring = (
+                node.body
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+                and isinstance(node.body[0].value.value, str)
+            )
+            has_bl_description = any(
+                isinstance(stmt, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == 'bl_description' for t in stmt.targets)
+                for stmt in node.body
+            )
+            has_description_method = any(
+                isinstance(stmt, ast.FunctionDef)
+                and stmt.name == 'description'
+                and any(isinstance(d, ast.Name) and d.id == 'classmethod' for d in stmt.decorator_list)
+                for stmt in node.body
+            )
+
+            if not (has_docstring or has_bl_description or has_description_method):
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                hits.append(f"    {rel}:{node.lineno}  →  class {node.name}")
+
+    return hits
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -90,45 +188,30 @@ def codebase_files() -> list[Path]:
     return files
 
 
+@pytest.fixture(scope="session")
+def parsed_codebase(codebase_files: list[Path]) -> ParsedFiles:
+    parsed, syntax_errors = parse_files(codebase_files)
+    if syntax_errors:
+        rel = [str(p.relative_to(CODEBASE_ROOT.resolve().parent)) for p in syntax_errors]
+        pytest.fail("Files with syntax errors:\n\n" + "\n".join(f"    {p}" for p in rel))
+    return parsed
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
-def test_no_forbidden_patterns(codebase_files: list[Path]):
+def test_no_forbidden_patterns(codebase_files: list[Path], parsed_codebase: ParsedFiles):
     """Assert that none of the forbidden patterns appear anywhere in the codebase."""
     failures: list[str] = []
 
-    def no_bpy_types_outside_register():
-        # Fail a test if `bpy.types.` is typed out outside of register() or unregister()
-        hits: list[str] = []
-        for path in codebase_files:
-            try:
-                source = path.read_text(encoding="utf-8", errors="replace")
-                tree = ast.parse(source)
-            except (OSError, SyntaxError):
-                continue
+    hits = find_bpy_types_outside_register(parsed_codebase)
+    if hits:
+        failures.append("  Do not write out `bpy.types.` outside of register()/unregister():\n" + "\n".join(hits))
 
-            exempt: set[int] = set()
-            for node in ast.walk(tree):
-                if isinstance(node, ast.FunctionDef) and node.name in ('register', 'unregister'):
-                    exempt.update(range(node.lineno, node.end_lineno + 1))
-
-            source_lines = source.splitlines()
-            for node in ast.walk(tree):
-                if (isinstance(node, ast.Attribute)
-                        and isinstance(node.value, ast.Attribute)
-                        and isinstance(node.value.value, ast.Name)
-                        and node.value.value.id == 'bpy'
-                        and node.value.attr == 'types'
-                        and node.lineno not in exempt):
-                    rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
-                    line_text = source_lines[node.lineno - 1].strip()
-                    hits.append(f"    {rel}:{node.lineno}  →  {line_text}")
-
-        if hits:
-            failures.append("  Do not write out `bpy.types.` outside of register()/unregister():\n" + "\n".join(hits))
-
-    no_bpy_types_outside_register()
+    hits = find_operators_without_tooltips(parsed_codebase)
+    if hits:
+        failures.append("  All operators must have a tooltip (docstring, bl_description, or description classmethod):\n" + "\n".join(hits))
 
     for description, pattern in FORBIDDEN_PATTERNS.items():
         matches = find_matches(pattern, codebase_files)
