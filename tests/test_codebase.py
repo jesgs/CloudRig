@@ -1,6 +1,8 @@
 # fmt: off
 """
-Tests that certain patterns do not appear anywhere in the CloudRig codebase.
+Generic Blender Python codebase quality tests.
+Checks that apply to any well-maintained Blender Python add-on.
+CloudRig-specific checks live in test_codebase_cloudrig.py.
 """
 
 import ast
@@ -27,27 +29,17 @@ IGNORED_FILES = [
 
 # Patterns that must not match anywhere in the codebase.
 # Keys are human-readable descriptions; values are regex strings.
-FORBIDDEN_PATTERNS: dict[str, str] = {
-    # CODE QUALITY - GENERAL
+FORBIDDEN_PYTHON_PATTERNS: dict[str, str] = {
     "Do not use 'bare excepts'":                                        r'''except:''',
     "Do not import wildcards":                                          r'''import \*''',
-    # TRANSLATABILITY - GENERAL
+}
+FORBIDDEN_TRANSLATION_PATTERNS: dict[str, str] = {
     "`report()` must not use f-string":                                 r'''report\([^)]*,\s*f["']''',
     "`report()` must not use .format() (unless already translated)":    r'''self\.report\((?![^)]*rpt_)[^)]*["']\s*\.format\(''',
     "`report()` must not combine strings without translation wrappers": r'''self\.report\(\{'\w+'\},\s*"[^"]*"\s*\+''',
     "`text` kwarg must not use f-string":                               r'''text\s*=\s*f"''',
     "'.format()' must be outside of translation function, not inside":  r'''(_|n_|iface_|tip_|rpt_|data_)\(.*?(?<!\))\.format''',
     "Do not call long version of translation functions":                r'''pgettext_[data|rpt|tip|iface|n]\(''',
-    # TRANSLATABILITY - CLOUDRIG-SPECIFIC
-    "`log()` first argument must be wrapped by `rpt_()`":               r'''log\([\n\s]*f?"''',
-    "`description` must be wrapped by `tip_()`":                        r'''['"]description['"]:[\s]*f?['"]''',
-    "`description` must not use f-string":                              r'''description\s*=[\n\s\(]*f''',
-    "`raise_generation_error()` 1st arg must be wrapped by `rpt_()`":   r'''raise_generation_error\([\s\nf]*"''',
-    "`draw_control_label()` 2nd arg must be wrapped by `iface_()`":     r'''\.draw_control_label\(.*,[\s\n]*f?"''',
-    "`parent_switch_behaviour` must be wrapped by `n_()`":              r'''parent_switch_behaviour\s*=\s*f?["']''',
-    "`define_bone_set()` 1st arg must be wrapped in `iface_()`":        r'''define_bone_set\(([\n\s]*)["|'](.*?)["|']''',
-    "`label_name` or `panel_name` must be wrapped in `n_()`":           r'''(label_name|panel_name)\s*=\s*"(.+)"''',
-    "`aligned_label(text=` kwarg must be wrapped by `iface_()`":        r'''aligned_label.*text=f?"''',
 }
 
 # bpy.props types that must have name= and description= kwargs.
@@ -89,20 +81,9 @@ def parsed_codebase(codebase_files: list[Path]) -> ParsedFiles:
 # Tests
 # ---------------------------------------------------------------------------
 
-def test_no_forbidden_patterns(codebase_files: list[Path], parsed_codebase: ParsedFiles):
+def test_no_forbidden_patterns(codebase_files: list[Path]):
     """Assert that none of the forbidden patterns appear anywhere in the codebase."""
-    failures: list[str] = []
-
-    hits = find_bpy_types_outside_register(parsed_codebase)
-    if hits:
-        failures.append("  Do not write out `bpy.types.` outside of register()/unregister():\n" + "\n".join(hits))
-
-    for description, pattern in FORBIDDEN_PATTERNS.items():
-        matches = find_matches(pattern, codebase_files)
-        if matches:
-            lines = [f"    {path}:{line_no}  →  {text}" for path, line_no, text in matches]
-            failures.append(f"  {description}:\n" + "\n".join(lines))
-
+    failures = check_forbidden_patterns({**FORBIDDEN_PYTHON_PATTERNS, **FORBIDDEN_TRANSLATION_PATTERNS}, codebase_files)
     if failures:
         pytest.fail("Forbidden patterns found:\n\n" + "\n\n".join(failures))
 
@@ -263,6 +244,17 @@ def parse_files(files: list[Path]) -> tuple[ParsedFiles, list[Path]]:
     return parsed, syntax_errors
 
 
+def check_forbidden_patterns(patterns: dict[str, str], files: list[Path]) -> list[str]:
+    """Return formatted failure strings for any pattern that matches in the given files."""
+    failures: list[str] = []
+    for description, pattern in patterns.items():
+        matches = find_matches(pattern, files)
+        if matches:
+            lines = [f"    {path}:{line_no}  →  {text}" for path, line_no, text in matches]
+            failures.append(f"  {description}:\n" + "\n".join(lines))
+    return failures
+
+
 def find_matches(pattern: str, files: list[Path]) -> list[tuple[Path, int, str]]:
     """Return a list of (file, line_number, line_text) for every match."""
     compiled = re.compile(pattern, re.MULTILINE)
@@ -279,25 +271,3 @@ def find_matches(pattern: str, files: list[Path]) -> list[tuple[Path, int, str]]
     return hits
 
 
-def find_bpy_types_outside_register(parsed: ParsedFiles) -> list[str]:
-    """Return formatted hit strings for any `bpy.types.X` access outside register()/unregister()."""
-    hits: list[str] = []
-    for path, (source, tree) in parsed.items():
-        exempt: set[int] = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name in ('register', 'unregister'):
-                exempt.update(range(node.lineno, node.end_lineno + 1))
-
-        source_lines = source.splitlines()
-        for node in ast.walk(tree):
-            if (isinstance(node, ast.Attribute)
-                    and isinstance(node.value, ast.Attribute)
-                    and isinstance(node.value.value, ast.Name)
-                    and node.value.value.id == 'bpy'
-                    and node.value.attr == 'types'
-                    and node.lineno not in exempt):
-                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
-                line_text = source_lines[node.lineno - 1].strip()
-                hits.append(f"    {rel}:{node.lineno}  →  {line_text}")
-
-    return hits
