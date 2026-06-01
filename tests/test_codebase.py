@@ -215,6 +215,51 @@ def test_props_have_tooltips(parsed_codebase: ParsedFiles):
     if hits:
         pytest.fail("bpy.props declarations missing name= and/or description=:\n\n" + "\n".join(hits))
 
+
+def test_no_bpy_context_in_functions_with_context_param(parsed_codebase: ParsedFiles):
+    """Assert that functions with a `context` parameter do not use `bpy.context` internally."""
+
+    def walk_within_function(node):
+        """Yield child nodes without crossing into nested function definitions."""
+        for child in ast.iter_child_nodes(node):
+            if not isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                yield child
+                yield from walk_within_function(child)
+
+    hits: list[str] = []
+    for path, (source, tree) in parsed_codebase.items():
+        source_lines = source.splitlines()
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+            if not any(arg.arg == 'context' for arg in all_args):
+                continue
+            # Exempt functions where context=None default value is used.
+            regular_args = node.args.posonlyargs + node.args.args
+            args_with_defaults = zip(regular_args[len(regular_args) - len(node.args.defaults):], node.args.defaults)
+            kwonly_with_defaults = zip(node.args.kwonlyargs, node.args.kw_defaults)
+            context_has_none_default = any(
+                arg.arg == 'context' and isinstance(default, ast.Constant) and default.value is None
+                for arg, default in list(args_with_defaults) + list(kwonly_with_defaults)
+                if default is not None
+            )
+            if context_has_none_default:
+                continue
+
+            for inner in walk_within_function(node):
+                if (isinstance(inner, ast.Attribute)
+                        and isinstance(inner.value, ast.Name)
+                        and inner.value.id == 'bpy'
+                        and inner.attr == 'context'):
+                    rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                    line_text = source_lines[inner.lineno - 1].strip()
+                    hits.append(f"    {rel}:{inner.lineno}  →  {line_text}")
+
+    if hits:
+        pytest.fail("Use the `context` parameter instead of `bpy.context`:\n\n" + "\n".join(hits))
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -269,5 +314,3 @@ def find_matches(pattern: str, files: list[Path]) -> list[tuple[Path, int, str]]
             line_text = source.splitlines()[line_no - 1].strip()
             hits.append((path.relative_to(CODEBASE_ROOT.resolve().parent), line_no, line_text))
     return hits
-
-
