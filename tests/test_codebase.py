@@ -50,12 +50,193 @@ FORBIDDEN_PATTERNS: dict[str, str] = {
     "`aligned_label(text=` kwarg must be wrapped by `iface_()`":        r'''aligned_label.*text=f?"''',
 }
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+# bpy.props types that must have name= and description= kwargs.
+BPY_PROPS = {
+    'BoolProperty', 'IntProperty', 'FloatProperty', 'StringProperty',
+    'EnumProperty', 'PointerProperty', 'CollectionProperty',
+    'FloatVectorProperty', 'IntVectorProperty', 'BoolVectorProperty',
+}
+
+# These props are exempt from name=/description= if their type= class has a docstring.
+POINTER_LIKE_PROPS = {'PointerProperty', 'CollectionProperty'}
+
 
 ParsedFiles = dict[Path, tuple[str, ast.Module]]
 
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def codebase_files() -> list[Path]:
+    root = CODEBASE_ROOT.resolve()
+    assert root.exists(), f"Codebase root not found: {root}"
+    files = collect_files(root, SCANNED_EXTENSIONS)
+    assert files, f"No {SCANNED_EXTENSIONS} files found under {root}"
+    return files
+
+
+@pytest.fixture(scope="session")
+def parsed_codebase(codebase_files: list[Path]) -> ParsedFiles:
+    parsed, syntax_errors = parse_files(codebase_files)
+    if syntax_errors:
+        rel = [str(p.relative_to(CODEBASE_ROOT.resolve().parent)) for p in syntax_errors]
+        pytest.fail("Files with syntax errors:\n\n" + "\n".join(f"    {p}" for p in rel))
+    return parsed
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+def test_no_forbidden_patterns(codebase_files: list[Path], parsed_codebase: ParsedFiles):
+    """Assert that none of the forbidden patterns appear anywhere in the codebase."""
+    failures: list[str] = []
+
+    hits = find_bpy_types_outside_register(parsed_codebase)
+    if hits:
+        failures.append("  Do not write out `bpy.types.` outside of register()/unregister():\n" + "\n".join(hits))
+
+    for description, pattern in FORBIDDEN_PATTERNS.items():
+        matches = find_matches(pattern, codebase_files)
+        if matches:
+            lines = [f"    {path}:{line_no}  →  {text}" for path, line_no, text in matches]
+            failures.append(f"  {description}:\n" + "\n".join(lines))
+
+    if failures:
+        pytest.fail("Forbidden patterns found:\n\n" + "\n\n".join(failures))
+
+
+def test_operators_have_tooltips(parsed_codebase: ParsedFiles):
+    """Assert that all concrete operators have a tooltip.
+    A tooltip is any of: a class docstring, a bl_description assignment, or a description classmethod.
+    Mixins (classes without bl_idname) are skipped.
+    """
+    hits: list[str] = []
+    for path, (_, tree) in parsed_codebase.items():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+
+            base_names = {
+                base.id if isinstance(base, ast.Name)
+                else base.attr if isinstance(base, ast.Attribute)
+                else ''
+                for base in node.bases
+            }
+            if 'Operator' not in base_names:
+                continue
+
+            has_bl_idname = any(
+                isinstance(stmt, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == 'bl_idname' for t in stmt.targets)
+                for stmt in node.body
+            )
+            if not has_bl_idname:
+                continue
+
+            has_docstring = (
+                node.body
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+                and isinstance(node.body[0].value.value, str)
+            )
+            has_bl_description = any(
+                isinstance(stmt, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == 'bl_description' for t in stmt.targets)
+                for stmt in node.body
+            )
+            has_description_method = any(
+                isinstance(stmt, ast.FunctionDef)
+                and stmt.name == 'description'
+                and any(isinstance(d, ast.Name) and d.id == 'classmethod' for d in stmt.decorator_list)
+                for stmt in node.body
+            )
+
+            if not (has_docstring or has_bl_description or has_description_method):
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                hits.append(f"    {rel}:{node.lineno}  →  class {node.name}")
+
+    if hits:
+        pytest.fail("Operators missing a tooltip (docstring, bl_description, or description classmethod):\n\n" + "\n".join(hits))
+
+
+def test_props_have_tooltips(parsed_codebase: ParsedFiles):
+    """Assert that all bpy.props declarations have name= and description=.
+    Declarations using **kwargs unpacking are skipped since they can't be checked statically.
+    PointerProperty/CollectionProperty are exempt if their type= class has a docstring or __longdoc__.
+    """
+    # Build a map of class name -> is_documented across the whole codebase,
+    # used to verify the type= exemption for pointer-like props.
+    class_is_documented: dict[str, bool] = {}
+    for _, (_, tree) in parsed_codebase.items():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                has_docstring = (
+                    node.body
+                    and isinstance(node.body[0], ast.Expr)
+                    and isinstance(node.body[0].value, ast.Constant)
+                    and isinstance(node.body[0].value.value, str)
+                )
+                has_longdoc = any(
+                    isinstance(stmt, ast.Assign)
+                    and any(isinstance(t, ast.Name) and t.id == '__longdoc__' for t in stmt.targets)
+                    for stmt in node.body
+                )
+                class_is_documented[node.name] = has_docstring or has_longdoc
+
+    hits: list[str] = []
+    for path, (source, tree) in parsed_codebase.items():
+        source_lines = source.splitlines()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.AnnAssign):
+                value = node.value
+            elif (isinstance(node, ast.Assign)
+                    and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name)):
+                value = node.value
+            else:
+                continue
+            if not isinstance(value, ast.Call):
+                continue
+            func = value.func
+            prop_name = (
+                func.id if isinstance(func, ast.Name)
+                else func.attr if isinstance(func, ast.Attribute)
+                else None
+            )
+            if prop_name not in BPY_PROPS:
+                continue
+            # Skip if kwargs are unpacked — can't statically verify what's passed.
+            if any(kw.arg is None for kw in value.keywords):
+                continue
+            kwarg_names = {kw.arg for kw in value.keywords}
+            missing = [m for m in ('name', 'description') if m not in kwarg_names]
+            if not missing:
+                continue
+            # PointerProperty/CollectionProperty are exempt if type= names a
+            # locally-defined class that is documented.
+            hint = None
+            if prop_name in POINTER_LIKE_PROPS:
+                type_kw = next((kw for kw in value.keywords if kw.arg == 'type'), None)
+                if type_kw and isinstance(type_kw.value, ast.Name):
+                    type_class_name = type_kw.value.id
+                    if class_is_documented.get(type_class_name):
+                        continue
+                    if type_class_name in class_is_documented:
+                        hint = f"add a docstring to {type_class_name}, or add name= and description="
+            if hint is None:
+                hint = "missing " + " and ".join(f"{m}=" for m in missing)
+            rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+            line_text = source_lines[node.lineno - 1].strip()
+            hits.append(f"    {rel}:{node.lineno}  →  {line_text}  ({hint})")
+
+    if hits:
+        pytest.fail("bpy.props declarations missing name= and/or description=:\n\n" + "\n".join(hits))
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def collect_files(root: Path, extensions: set[str]) -> list[Path]:
     return [
@@ -120,104 +301,3 @@ def find_bpy_types_outside_register(parsed: ParsedFiles) -> list[str]:
                 hits.append(f"    {rel}:{node.lineno}  →  {line_text}")
 
     return hits
-
-
-def find_operators_without_tooltips(parsed: ParsedFiles) -> list[str]:
-    """Return formatted hit strings for any concrete Operator subclass missing a tooltip.
-    A tooltip is any of: a class docstring, a bl_description assignment, or a description classmethod.
-    Mixins (classes without bl_idname) are skipped.
-    """
-    hits: list[str] = []
-    for path, (_, tree) in parsed.items():
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ClassDef):
-                continue
-
-            base_names = {
-                base.id if isinstance(base, ast.Name)
-                else base.attr if isinstance(base, ast.Attribute)
-                else ''
-                for base in node.bases
-            }
-            if 'Operator' not in base_names:
-                continue
-
-            has_bl_idname = any(
-                isinstance(stmt, ast.Assign)
-                and any(isinstance(t, ast.Name) and t.id == 'bl_idname' for t in stmt.targets)
-                for stmt in node.body
-            )
-            if not has_bl_idname:
-                continue
-
-            has_docstring = (
-                node.body
-                and isinstance(node.body[0], ast.Expr)
-                and isinstance(node.body[0].value, ast.Constant)
-                and isinstance(node.body[0].value.value, str)
-            )
-            has_bl_description = any(
-                isinstance(stmt, ast.Assign)
-                and any(isinstance(t, ast.Name) and t.id == 'bl_description' for t in stmt.targets)
-                for stmt in node.body
-            )
-            has_description_method = any(
-                isinstance(stmt, ast.FunctionDef)
-                and stmt.name == 'description'
-                and any(isinstance(d, ast.Name) and d.id == 'classmethod' for d in stmt.decorator_list)
-                for stmt in node.body
-            )
-
-            if not (has_docstring or has_bl_description or has_description_method):
-                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
-                hits.append(f"    {rel}:{node.lineno}  →  class {node.name}")
-
-    return hits
-
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="session")
-def codebase_files() -> list[Path]:
-    root = CODEBASE_ROOT.resolve()
-    assert root.exists(), f"Codebase root not found: {root}"
-    files = collect_files(root, SCANNED_EXTENSIONS)
-    assert files, f"No {SCANNED_EXTENSIONS} files found under {root}"
-    return files
-
-
-@pytest.fixture(scope="session")
-def parsed_codebase(codebase_files: list[Path]) -> ParsedFiles:
-    parsed, syntax_errors = parse_files(codebase_files)
-    if syntax_errors:
-        rel = [str(p.relative_to(CODEBASE_ROOT.resolve().parent)) for p in syntax_errors]
-        pytest.fail("Files with syntax errors:\n\n" + "\n".join(f"    {p}" for p in rel))
-    return parsed
-
-
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
-
-def test_no_forbidden_patterns(codebase_files: list[Path], parsed_codebase: ParsedFiles):
-    """Assert that none of the forbidden patterns appear anywhere in the codebase."""
-    failures: list[str] = []
-
-    hits = find_bpy_types_outside_register(parsed_codebase)
-    if hits:
-        failures.append("  Do not write out `bpy.types.` outside of register()/unregister():\n" + "\n".join(hits))
-
-    hits = find_operators_without_tooltips(parsed_codebase)
-    if hits:
-        failures.append("  All operators must have a tooltip (docstring, bl_description, or description classmethod):\n" + "\n".join(hits))
-
-    for description, pattern in FORBIDDEN_PATTERNS.items():
-        matches = find_matches(pattern, codebase_files)
-        if matches:
-            lines = [f"    {path}:{line_no}  →  {text}" for path, line_no, text in matches]
-            failures.append(f"  {description}:\n" + "\n".join(lines))
-
-    if failures:
-        pytest.fail("Forbidden patterns found:\n\n" + "\n\n".join(failures))

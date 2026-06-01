@@ -1251,6 +1251,8 @@ def redraw_viewport():
 
 
 class UIPathProperty(PropertyGroup):
+    """Properties to facilitate drawing a CloudRig UI element selector in the UI."""
+
     name: StringProperty()
     ui_path: StringProperty()
     current: StringProperty(description="Current value of this property. Used for pre-filling the Parent Values field")

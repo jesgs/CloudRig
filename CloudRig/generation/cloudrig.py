@@ -1641,6 +1641,8 @@ def supports_custom_props(thing: Any) -> bool:
 
 
 class CloudRig_RigPreferences(PropertyGroup):
+    """Properties stored on CloudRig armatures, to toggle some UI settings."""
+
     hide_during_transform: BoolProperty(
         name="Hide UI During Transformations",
         description="Drawing this UI can be expensive depending on rig complexity. This option can alleviate that by disabling drawing during transformations. However, this can cause the scrollbar to reset to the top due to transformations.",
