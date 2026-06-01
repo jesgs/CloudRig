@@ -3,7 +3,7 @@
 import bpy
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
-from bpy.props import BoolProperty, FloatProperty, PointerProperty, StringProperty
+from bpy.props import BoolProperty, FloatProperty, PointerProperty
 from bpy.types import BezierSplinePoint, Curve, Object, PropertyGroup, Spline
 from mathutils import Matrix, Vector
 
@@ -755,7 +755,7 @@ class Component_Curve_Hooked(Component_Base):
             cls.draw_prop(context, layout, params.curve, "root_per_spline")
 
         cls.draw_prop(context, layout, params.curve, "x_axis_symmetry")
-        if curve_ob.data and any([spline.type == 'BEZIER' for spline in curve_ob.data.splines]):
+        if curve_ob.data and any((spline.type == 'BEZIER' for spline in curve_ob.data.splines)):
             cls.draw_prop(context, layout, params.curve, "controls_for_handles")
             if params.curve.controls_for_handles:
                 cls.draw_prop(context, layout, params.curve, "rotatable_handles")
@@ -787,7 +787,7 @@ class Component_Curve_Hooked(Component_Base):
         if cls.creates_spline_roots(params):
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_spline_root')
         if (
-            any([spline.type == 'BEZIER' for spline in curve_ob.data.splines])
+            any((spline.type == 'BEZIER' for spline in curve_ob.data.splines))
             and params.curve.controls_for_handles
             and params.curve.separate_radius
         ):

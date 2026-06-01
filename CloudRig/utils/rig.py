@@ -77,7 +77,7 @@ def bone_is_visible(bone: Bone | PoseBone | EditBone):
         pbone = bone
         bone = bone.bone
 
-    if bone.collections and not any([coll.is_visible_effectively for coll in bone.collections]):
+    if bone.collections and not any((coll.is_visible_effectively for coll in bone.collections)):
         return False
 
     if pbone and pbone.id_data.mode != 'EDIT':
@@ -282,7 +282,7 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
         wrapped_roll = wrap_angle_pi(ebone.roll)
         # Allow any 90-degree increment.
         good_rolls = (wrapped_roll, wrapped_roll + pi, wrapped_roll - pi, wrapped_roll + pi / 2, wrapped_roll - pi / 2)
-        if not any([abs(desired_roll - good_roll) < ROLL_THREHSOLD for good_roll in good_rolls]):
+        if not any((abs(desired_roll - good_roll) < ROLL_THREHSOLD for good_roll in good_rolls)):
             return False
 
     return True

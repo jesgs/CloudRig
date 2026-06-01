@@ -658,7 +658,7 @@ class CloudLogManager:
                     target_bone = target.id.pose.bones.get(target.bone_target)
                     if not target_bone:
                         continue
-                    if not any([con.type == 'ARMATURE' for con in target_bone.constraints]):
+                    if not any((con.type == 'ARMATURE' for con in target_bone.constraints)):
                         continue
 
                     self.log(

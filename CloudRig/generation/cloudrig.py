@@ -346,7 +346,7 @@ def ensure_visible_bone_collection(bone: Bone | EditBone | PoseBone):
     if len(bone.collections) == 0:
         return
 
-    if not any([coll.is_visible_effectively for coll in bone.collections]):
+    if not any((coll.is_visible_effectively for coll in bone.collections)):
         coll = bone.collections[0]
         while coll:
             if collections.is_solo_active:
@@ -1959,7 +1959,7 @@ class CloudRigBoneCollection(PropertyGroup):
         if not self.parent_collection:
             return True
 
-        return all([parent.is_expanded for parent in self.parents_recursive])
+        return all((parent.is_expanded for parent in self.parents_recursive))
 
     @property
     def hierarchy_depth(self):
@@ -2031,12 +2031,12 @@ class CLOUDRIG_UL_collections(UIList):
                 bone
                 for bone in collection.bones
                 if not pbones[bone.name].hide
-                and any([c.is_visible for c in bone.collections])
+                and any((c.is_visible for c in bone.collections))
                 and pbones[bone.name].select
             ]
             indirect_bones = collection.bones_recursive
             indirect_visible_bones = [
-                b for b in indirect_bones if not pbones[b.name].hide and any([c.is_visible for c in b.collections])
+                b for b in indirect_bones if not pbones[b.name].hide and any((c.is_visible for c in b.collections))
             ]
             indirect_selected_bones = [bone for bone in indirect_visible_bones if pbones[bone.name].select]
 
@@ -2150,7 +2150,7 @@ class CLOUDRIG_UL_collections(UIList):
             filter_map = {coll: flt_flags[i] for i, coll in enumerate(all_collections)}
             # Allow collections that contain any collections that match the filter.
             for i, coll in enumerate(all_collections):
-                if any([filter_map[child] for child in coll.cloudrig_info.children_recursive]):
+                if any((filter_map[child] for child in coll.cloudrig_info.children_recursive)):
                     flt_flags[i] = 1073741824
 
         # Filter out collections whose parents are collapsed

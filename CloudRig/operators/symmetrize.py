@@ -334,7 +334,7 @@ def symmetrize_drivers(
                 # If one of the driving values is something that needs to be inverted, invert only that value in the expression.
                 if (dst_var.type == 'TRANSFORM' and dst_tgt.transform_type in {'ROT_Y', 'ROT_Z', 'LOC_X'}) or (
                     dst_var.type == 'SINGLE_PROP'
-                    and any([dst_tgt.data_path.endswith(thing) for thing in invert_values])
+                    and any((dst_tgt.data_path.endswith(thing) for thing in invert_values))
                 ):
                     expression = expression.replace(dst_var.name, f"-({dst_var.name})")
 
@@ -345,7 +345,7 @@ def symmetrize_drivers(
             if is_array and new_fc.array_index > -1:
                 data_path_with_index += f"[{new_fc.array_index}]"
 
-            if any([data_path_with_index.endswith(key) for key in invert_values]):
+            if any((data_path_with_index.endswith(key) for key in invert_values)):
                 expression = f"-({expression})"
 
             if new_fc.data_path.endswith('pole_angle'):

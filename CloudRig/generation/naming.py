@@ -98,8 +98,8 @@ def side_is_left(thing: Any) -> bool | None:
         return is_left_prefix
 
     # If no relevant suffix or prefix found, try anywhere.
-    any_left = any([side in name for side in left])
-    any_right = any([side in name for side in right])
+    any_left = any((side in name for side in left))
+    any_right = any((side in name for side in right))
     if not any_left and not any_right:
         # If neither side found, return None.
         return None
@@ -149,7 +149,7 @@ def strip_trailing_numbers(thing: Any) -> tuple[str, str]:
         before_last_period = ".".join(slices[:-1])
 
         # If there are only digits after the last period, discard them
-        if all([c in "0123456789" for c in after_last_period]):
+        if all((c in "0123456789" for c in after_last_period)):
             return before_last_period, "." + after_last_period
 
     return name, ""
@@ -367,7 +367,7 @@ def combine_names(things: list[Any]) -> str:
     base_start = ""
     # Don't repeat matching characters, eg. "Lip_Top1" and "Lip_Bot1" should combine into "Lip_Top1+Bot1" instead of "Lip_Top1+Lip_Bot1"
     for i, char in enumerate(shortest_base):
-        matching = all([base[i] == char for base in bases])
+        matching = all((base[i] == char for base in bases))
         if matching:
             base_start += char
             continue

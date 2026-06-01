@@ -260,6 +260,27 @@ def test_no_bpy_context_in_functions_with_context_param(parsed_codebase: ParsedF
         pytest.fail("Use the `context` parameter instead of `bpy.context`:\n\n" + "\n".join(hits))
 
 
+def test_no_any_all_with_list_comprehension(parsed_codebase: ParsedFiles):
+    """Assert that any()/all() are not called with a list comprehension argument.
+    Use a generator expression instead: any(x for x in y) not any((x for x in y)).
+    """
+    hits: list[str] = []
+    for path, (source, tree) in parsed_codebase.items():
+        source_lines = source.splitlines()
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id in ('any', 'all')
+                    and len(node.args) == 1
+                    and isinstance(node.args[0], ast.ListComp)):
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                line_text = source_lines[node.lineno - 1].strip()
+                hits.append(f"    {rel}:{node.lineno}  →  {line_text}")
+
+    if hits:
+        pytest.fail("Use a generator expression instead of a list comprehension with any()/all():\n\n" + "\n".join(hits))
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

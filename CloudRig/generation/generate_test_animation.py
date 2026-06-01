@@ -29,10 +29,10 @@ class TestAnimationGeneratorMixin:
         """
 
         if not any(
-            [
+            (
                 hasattr(rig.params.fk_chain, 'test_animation_generate') and rig.params.fk_chain.test_animation_generate
                 for rig in self.component_map.values()
-            ]
+            )
         ):
             return
 

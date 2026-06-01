@@ -197,7 +197,7 @@ class POSE_OT_edit_widget_of_selected_bones(Operator):
         if len(context.selected_pose_bones) == 0:
             cls.poll_message_set("Must have a selected pose bone.")
             return False
-        if not any([pb.custom_shape for pb in context.selected_pose_bones]):
+        if not any((pb.custom_shape for pb in context.selected_pose_bones)):
             cls.poll_message_set("At least one selected bone must have a custom shape.")
             return False
         return True
@@ -207,7 +207,7 @@ class POSE_OT_edit_widget_of_selected_bones(Operator):
         if not cls.poll_without_linked_check(context):
             return False
 
-        if all([pb.custom_shape.library for pb in context.selected_pose_bones if pb.custom_shape]):
+        if all((pb.custom_shape.library for pb in context.selected_pose_bones if pb.custom_shape)):
             cls.poll_message_set("All selected bones' custom shapes are linked, they cannot be edited.")
             return False
 

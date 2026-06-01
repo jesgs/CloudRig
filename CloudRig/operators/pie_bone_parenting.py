@@ -217,7 +217,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         if len(bone_tuples_to_parent) < 1:
             cls.poll_message_set("At least two bones must be selected.")
             return False
-        if any([b.id_data != active_bone.id_data for rig, b in bone_tuples_to_parent]):
+        if any((b.id_data != active_bone.id_data for rig, b in bone_tuples_to_parent)):
             cls.poll_message_set("All selected bones must be from the same armature.")
             return False
         return True
@@ -232,7 +232,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
-        if all([b.parent == active_bone for rig, b in bone_tuples_to_parent]):
+        if all((b.parent == active_bone for rig, b in bone_tuples_to_parent)):
             cls.poll_message_set("Selected bones are already parented to the active one.")
             return False
         return True
@@ -306,7 +306,7 @@ class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
         if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
-        if all([b.parent == active_bone and b.use_connect for rig, b in bone_tuples_to_parent]):
+        if all((b.parent == active_bone and b.use_connect for rig, b in bone_tuples_to_parent)):
             cls.poll_message_set("Selected bones are already parented and connected to the active one.")
             return False
         return True
