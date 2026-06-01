@@ -5,7 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import bpy
-from bpy.types import MeshVertex
+from bpy.types import MeshVertex, Object
 
 
 def pre_save(scene, context):
@@ -49,7 +49,7 @@ def pre_save(scene, context):
         obj.data.name = "Data_" + obj.name
 
 
-def rebuild_mesh_topology(obj: bpy.types.Object):
+def rebuild_mesh_topology(obj: Object):
     """
     Rebuild a mesh with deterministic vertex and edge ordering.
     WARNING: All vertex and edge data will be lost. Only useful for widgets!

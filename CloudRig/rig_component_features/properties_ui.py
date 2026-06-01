@@ -27,6 +27,7 @@ from bpy.types import (
     UILayout,
     bpy_struct,
 )
+from bpy.types import EnumProperty as EnumProperty_type
 from rna_prop_ui import rna_idprop_ui_create, rna_idprop_value_item_type
 
 from ..generation.cloudrig import (
@@ -548,7 +549,7 @@ class CloudRigUIEditOpMixin:
         if type(prop_value) in (float, int):
             panel_box.prop(self, 'use_slider')
         bl_prop = prop_owner.bl_rna.properties.get(brackets_prop_name)
-        is_enum = isinstance(bl_prop, bpy.types.EnumProperty)
+        is_enum = isinstance(bl_prop, EnumProperty_type)
         if type(prop_value) is str and is_enum:
             panel_box.prop(self, 'use_expand_enum')
 

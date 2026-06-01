@@ -29,7 +29,7 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
-from bpy.types import Object, Operator, PropertyGroup, UIList
+from bpy.types import DriverTarget, Object, Operator, PropertyGroup, UIList
 from mathutils import Color, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -231,7 +231,7 @@ def get_datablock_type_icon(datablock):
     typ = datablock.type
     if datablock.type == 'SHADER':
         typ = 'NODETREE'
-    return bpy.types.DriverTarget.bl_rna.properties['id_type'].enum_items[typ].icon
+    return DriverTarget.bl_rna.properties['id_type'].enum_items[typ].icon
 
 
 class CloudRigLogEntry(PropertyGroup):

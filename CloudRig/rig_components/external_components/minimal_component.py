@@ -1,4 +1,5 @@
-import bpy
+from bpy.props import BoolProperty
+from bpy.types import PropertyGroup
 
 from ..cloud_base import Component_Base
 
@@ -38,8 +39,8 @@ class MinimalComponentExample(Component_Base):
         cls.draw_prop(context, layout, params.minimal_component, "create_control")
 
 
-class Params(bpy.types.PropertyGroup):
-    create_control: bpy.props.BoolProperty(name="Create Control", description="Create a Control bone", default=True)
+class Params(PropertyGroup):
+    create_control: BoolProperty(name="Create Control", description="Create a Control bone", default=True)
 
 
 # Un-comment the below line to make this component appear in Blender.

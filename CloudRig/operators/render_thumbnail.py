@@ -11,7 +11,7 @@ from bpy.props import (
     IntProperty,
     IntVectorProperty,
 )
-from bpy.types import Area, Object, Operator
+from bpy.types import Area, Image, Object, Operator
 from mathutils import Vector
 
 from ..rig_component_features.properties_ui import redraw_viewport
@@ -452,7 +452,7 @@ def get_thumbnail_path(obj) -> Path:
 
 
 class ImageProcessor:
-    def __init__(self, bpy_img: bpy.types.Image, name: str):
+    def __init__(self, bpy_img: Image, name: str):
         self.width = bpy_img.size[0]
         self.height = bpy_img.size[1]
         self.bpy_img = bpy_img

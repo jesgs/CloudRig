@@ -3,6 +3,7 @@
 Tests that certain regex patterns do not appear anywhere in the CloudRig codebase.
 """
 
+import ast
 import re
 from pathlib import Path
 
@@ -27,21 +28,26 @@ IGNORED_FILES = [
 # Patterns that must not match anywhere in the codebase.
 # Keys are human-readable descriptions; values are regex strings.
 FORBIDDEN_PATTERNS: dict[str, str] = {
+    # CODE QUALITY - GENERAL
+    "Do not use 'bare excepts'":                                        r'''except:''',
+    "Do not import wildcards":                                          r'''import \*''',
+    # TRANSLATABILITY - GENERAL
     "`report()` must not use f-string":                                 r'''report\([^)]*,\s*f["']''',
     "`report()` must not use .format() (unless already translated)":    r'''self\.report\((?![^)]*rpt_)[^)]*["']\s*\.format\(''',
     "`report()` must not combine strings without translation wrappers": r'''self\.report\(\{'\w+'\},\s*"[^"]*"\s*\+''',
-    "`aligned_label(text=` kwarg must be wrapped by `iface_()`":        r'''aligned_label.*text=f?"''',
+    "`text` kwarg must not use f-string":                               r'''text\s*=\s*f"''',
+    "'.format()' must be outside of translation function, not inside":  r'''(_|n_|iface_|tip_|rpt_|data_)\(.*?(?<!\))\.format''',
+    "Do not call long version of translation functions":                r'''pgettext_[data|rpt|tip|iface|n]\(''',
+    # TRANSLATABILITY - CLOUDRIG-SPECIFIC
     "`log()` first argument must be wrapped by `rpt_()`":               r'''log\([\n\s]*f?"''',
     "`description` must be wrapped by `tip_()`":                        r'''['"]description['"]:[\s]*f?['"]''',
     "`description` must not use f-string":                              r'''description\s*=[\n\s\(]*f''',
     "`raise_generation_error()` 1st arg must be wrapped by `rpt_()`":   r'''raise_generation_error\([\s\nf]*"''',
     "`draw_control_label()` 2nd arg must be wrapped by `iface_()`":     r'''\.draw_control_label\(.*,[\s\n]*f?"''',
-    "`text` kwarg must not use f-string":                               r'''text\s*=\s*f"''',
     "`parent_switch_behaviour` must be wrapped by `n_()`":              r'''parent_switch_behaviour\s*=\s*f?["']''',
     "`define_bone_set()` 1st arg must be wrapped in `iface_()`":        r'''define_bone_set\(([\n\s]*)["|'](.*?)["|']''',
     "`label_name` or `panel_name` must be wrapped in `n_()`":           r'''(label_name|panel_name)\s*=\s*"(.+)"''',
-    "'.format()' must be outside of translation function, not inside":  r'''(_|n_|iface_|tip_|rpt_|data_)\(.*?(?<!\))\.format''',
-    "Do not call long version of translation functions":                r'''pgettext_[data|rpt|tip|iface|n]\(''',
+    "`aligned_label(text=` kwarg must be wrapped by `iface_()`":        r'''aligned_label.*text=f?"''',
 }
 
 # ---------------------------------------------------------------------------
@@ -91,6 +97,38 @@ def codebase_files() -> list[Path]:
 def test_no_forbidden_patterns(codebase_files: list[Path]):
     """Assert that none of the forbidden patterns appear anywhere in the codebase."""
     failures: list[str] = []
+
+    def no_bpy_types_outside_register():
+        # Fail a test if `bpy.types.` is typed out outside of register() or unregister()
+        hits: list[str] = []
+        for path in codebase_files:
+            try:
+                source = path.read_text(encoding="utf-8", errors="replace")
+                tree = ast.parse(source)
+            except (OSError, SyntaxError):
+                continue
+
+            exempt: set[int] = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef) and node.name in ('register', 'unregister'):
+                    exempt.update(range(node.lineno, node.end_lineno + 1))
+
+            source_lines = source.splitlines()
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Attribute)
+                        and isinstance(node.value, ast.Attribute)
+                        and isinstance(node.value.value, ast.Name)
+                        and node.value.value.id == 'bpy'
+                        and node.value.attr == 'types'
+                        and node.lineno not in exempt):
+                    rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                    line_text = source_lines[node.lineno - 1].strip()
+                    hits.append(f"    {rel}:{node.lineno}  →  {line_text}")
+
+        if hits:
+            failures.append("  Do not write out `bpy.types.` outside of register()/unregister():\n" + "\n".join(hits))
+
+    no_bpy_types_outside_register()
 
     for description, pattern in FORBIDDEN_PATTERNS.items():
         matches = find_matches(pattern, codebase_files)

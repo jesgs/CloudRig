@@ -5,7 +5,8 @@ from pathlib import Path
 
 import bpy
 from bpy.app.handlers import persistent
-from bpy.types import PoseBone
+from bpy.types import Action, PoseBone
+from bpy.types import EnumProperty as EnumProperty_type
 from mathutils import Euler, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -20,7 +21,7 @@ RIG_TYPE_MAP = {key: module.RIG_COMPONENT_CLASS.ui_name for key, module in ALL_C
 
 
 def setattr_safe(thing, key, value):
-    if hasattr(thing, 'bl_rna') and type(thing.bl_rna.properties[key]) is bpy.types.EnumProperty and type(value) is int:
+    if hasattr(thing, 'bl_rna') and type(thing.bl_rna.properties[key]) is EnumProperty_type and type(value) is int:
         enum_value = thing.bl_rna.properties[key].enum_items[value].identifier
         setattr(thing, key, enum_value)
     else:
@@ -99,7 +100,7 @@ def version_cloud_metarig(metarig):
                 if hasattr(new_setup, key):
                     setattr_safe(new_setup, key, value)
 
-        def find_first_setup_using_action(action: bpy.types.Action) -> ActionConstraintSetup | None:
+        def find_first_setup_using_action(action: Action) -> ActionConstraintSetup | None:
             if not action:
                 return
             for action_setup in cloudrig.generator.action_setups:
