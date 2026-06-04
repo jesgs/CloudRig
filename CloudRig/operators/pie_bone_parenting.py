@@ -411,7 +411,7 @@ class POSE_OT_separate_selected_bones(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_MT_PIE_bone_parenting(Menu):
+class CLOUDRIG_MT_pie_bone_parenting(Menu):
     bl_label = iface_("Bone Parenting")
 
     def draw(self, context):
@@ -475,7 +475,7 @@ registry = [
     POSE_OT_parent_selected_to_active,
     POSE_OT_parent_object_to_selected_bones,
     POSE_OT_separate_selected_bones,
-    CLOUDRIG_MT_PIE_bone_parenting,
+    CLOUDRIG_MT_pie_bone_parenting,
 ]
 
 
@@ -485,5 +485,5 @@ def register():
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "P", 'value': "PRESS"},
             keymap_name=keymap_name,
-            op_kwargs={'name': 'CLOUDRIG_MT_PIE_bone_parenting'},
+            op_kwargs={'name': 'CLOUDRIG_MT_pie_bone_parenting'},
         )

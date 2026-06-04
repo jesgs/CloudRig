@@ -281,6 +281,43 @@ def test_no_any_all_with_list_comprehension(parsed_codebase: ParsedFiles):
         pytest.fail("Use a generator expression instead of a list comprehension with any()/all():\n\n" + "\n".join(hits))
 
 
+def test_class_names(parsed_codebase: ParsedFiles):
+    """Assert that Operator, Menu, etc subclasses follow Blender's naming convention.
+    Violating this can cause Blender to print a warning on registration.
+    """
+    BLENDER_TYPES = {
+        'Operator': 'OT',
+        'Menu':     'MT',
+        'Panel':    'PT',
+        'Header':   'HT',
+        'UIList':   'UL',
+    }
+
+    hits: list[str] = []
+    for path, (_, tree) in parsed_codebase.items():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+
+            base_names = {
+                base.id if isinstance(base, ast.Name)
+                else base.attr if isinstance(base, ast.Attribute)
+                else ''
+                for base in node.bases
+            }
+
+            sep = next((BLENDER_TYPES[b] for b in base_names if b in BLENDER_TYPES), None)
+            if sep is None:
+                continue
+
+            if not re.match(rf'^[A-Z][A-Z0-9_]*_{sep}_[a-z][a-z0-9_]*$', node.name):
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                hits.append(f"    {rel}:{node.lineno}  →  class {node.name}  (expected UPPER_{sep}_lower)")
+
+    if hits:
+        pytest.fail("Operator/Menu/Panel class names don't follow Blender's naming convention:\n\n" + "\n".join(hits))
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -22,7 +22,7 @@ from ..utils.rig import bone_is_visible
 PREFIX_PRIORITY = ['FK', 'IK', 'DEF', 'STR', 'ORG']
 
 
-class CLOUDRIG_OT_MetarigToggle(Operator):
+class CLOUDRIG_OT_toggle_metarig(Operator):
     """Toggle visibility and selection between the Metarig and the Target Rig."""
 
     bl_idname = "object.cloudrig_metarig_toggle"
@@ -236,12 +236,12 @@ def __get_visible_bone_with_similar_name(rig: Object, bone_name: str) -> PoseBon
                     return armature.bones[match]
 
 
-registry = [CLOUDRIG_OT_MetarigToggle]
+registry = [CLOUDRIG_OT_toggle_metarig]
 
 
 def register():
     register_hotkey(
-        CLOUDRIG_OT_MetarigToggle.bl_idname,
+        CLOUDRIG_OT_toggle_metarig.bl_idname,
         hotkey_kwargs={'type': "T", 'value': "PRESS", 'shift': True},
         keymap_name="3D View",
     )

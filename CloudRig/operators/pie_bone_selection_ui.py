@@ -52,7 +52,7 @@ def get_target_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:
     return entries
 
 
-class POSE_MT_PIE_bone_constraint_targets(Menu):
+class POSE_MT_pie_bone_constraint_targets(Menu):
     bl_label = "Constraint Targets"
 
     @classmethod
@@ -79,7 +79,7 @@ class POSE_MT_PIE_bone_constraint_targets(Menu):
             self.draw_select_bone(layout, con, subtarget)
 
 
-class POSE_MT_PIE_constrained_bones(Menu):
+class POSE_MT_pie_constrained_bones(Menu):
     bl_label = "Constrained Bones"
 
     @classmethod
@@ -108,7 +108,7 @@ class POSE_MT_PIE_constrained_bones(Menu):
             self.draw_select_bone(layout, con, bone_name)
 
 
-class POSE_MT_PIE_child_bones(Menu):
+class POSE_MT_pie_child_bones(Menu):
     bl_label = "Child Bones"
 
     @classmethod
@@ -124,7 +124,7 @@ class POSE_MT_PIE_child_bones(Menu):
             op.bone_name = child_pb.name
 
 
-class CLOUDRIG_MT_PIE_select_bone(Menu):
+class CLOUDRIG_MT_pie_select_bone(Menu):
     bl_label = iface_("Select Bone")
 
     def draw(self, context):
@@ -166,7 +166,7 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
                 )
                 op.bone_name = child.name
         elif len(active_bone.children) > 1:
-            pie.menu('POSE_MT_PIE_child_bones', icon='COLLAPSEMENU')
+            pie.menu('POSE_MT_pie_child_bones', icon='COLLAPSEMENU')
         else:
             pie.separator()
 
@@ -190,9 +190,9 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         target_bones = get_target_bones(active_pb)
         if len(target_bones) == 1:
             con, bone_name = target_bones[0]
-            POSE_MT_PIE_bone_constraint_targets.draw_select_bone(pie, con, bone_name, start_text="Constraint Target: ")
+            POSE_MT_pie_bone_constraint_targets.draw_select_bone(pie, con, bone_name, start_text="Constraint Target: ")
         elif len(target_bones) > 1:
-            pie.menu('POSE_MT_PIE_bone_constraint_targets', icon='COLLAPSEMENU')
+            pie.menu('POSE_MT_pie_bone_constraint_targets', icon='COLLAPSEMENU')
         else:
             pie.separator()
 
@@ -200,9 +200,9 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
         constrained_bones = get_constrained_bones(active_pb)
         if len(constrained_bones) == 1:
             con, bone_name = constrained_bones[0]
-            POSE_MT_PIE_constrained_bones.draw_select_bone(pie, con, bone_name, start_text="Constrained Bone: ")
+            POSE_MT_pie_constrained_bones.draw_select_bone(pie, con, bone_name, start_text="Constrained Bone: ")
         elif len(constrained_bones) > 1:
-            pie.menu('POSE_MT_PIE_constrained_bones', icon='COLLAPSEMENU')
+            pie.menu('POSE_MT_pie_constrained_bones', icon='COLLAPSEMENU')
         else:
             pie.separator()
 
@@ -244,10 +244,10 @@ class CLOUDRIG_MT_PIE_select_bone(Menu):
 
 
 registry = [
-    POSE_MT_PIE_constrained_bones,
-    POSE_MT_PIE_bone_constraint_targets,
-    POSE_MT_PIE_child_bones,
-    CLOUDRIG_MT_PIE_select_bone,
+    POSE_MT_pie_constrained_bones,
+    POSE_MT_pie_bone_constraint_targets,
+    POSE_MT_pie_child_bones,
+    CLOUDRIG_MT_pie_select_bone,
 ]
 
 
@@ -257,5 +257,5 @@ def register():
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "D", 'value': "PRESS", 'alt': True},
             keymap_name=keymap_name,
-            op_kwargs={'name': 'CLOUDRIG_MT_PIE_select_bone'},
+            op_kwargs={'name': 'CLOUDRIG_MT_pie_select_bone'},
         )

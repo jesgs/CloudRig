@@ -523,7 +523,7 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
         return {'FINISHED'}
 
 
-class CLOUDRIG_MT_PIE_edit_custom_shape(Menu):
+class CLOUDRIG_MT_pie_edit_custom_shape(Menu):
     bl_label = iface_("Edit Custom Shape")
 
     def draw(self, context):
@@ -594,7 +594,7 @@ registry = [
     MESH_OT_return_to_pose_mode,
     POSE_OT_assign_selected_object_as_custom_shape,
     POSE_OT_edit_bone_display_props,
-    CLOUDRIG_MT_PIE_edit_custom_shape,
+    CLOUDRIG_MT_pie_edit_custom_shape,
 ]
 
 
@@ -604,7 +604,7 @@ def register():
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "E", 'value': "PRESS", 'alt': True, 'ctrl': True},
             keymap_name=keymap_name,
-            op_kwargs={'name': 'CLOUDRIG_MT_PIE_edit_custom_shape'},
+            op_kwargs={'name': 'CLOUDRIG_MT_pie_edit_custom_shape'},
         )
 
     register_hotkey(

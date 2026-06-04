@@ -109,7 +109,7 @@ def remove_drivers_of_bone(
                 db.animation_data.drivers.remove(fc)
 
 
-class CLOUDRIG_MT_PIE_bone_specials(Menu):
+class CLOUDRIG_MT_pie_bone_specials(Menu):
     bl_label = iface_("Bone Specials")
 
     def draw(self, context):
@@ -178,7 +178,7 @@ class CLOUDRIG_MT_PIE_bone_specials(Menu):
 registry = [
     POSE_OT_delete_bones,
     POSE_OT_dissolve_bones,
-    CLOUDRIG_MT_PIE_bone_specials,
+    CLOUDRIG_MT_pie_bone_specials,
 ]
 
 
@@ -188,5 +188,5 @@ def register():
             'wm.call_menu_pie',
             hotkey_kwargs={'type': "X", 'value': "PRESS"},
             keymap_name=keymap_name,
-            op_kwargs={'name': 'CLOUDRIG_MT_PIE_bone_specials'},
+            op_kwargs={'name': 'CLOUDRIG_MT_pie_bone_specials'},
         )

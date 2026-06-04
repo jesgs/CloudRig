@@ -493,7 +493,7 @@ class CloudLogManager:
                     note=widget.name,
                     icon='X',
                     description=rpt_('Custom Shape "{widget.name}" is not used by any bones.'),
-                    operator=CLOUDRIG_OT_Unlink_Widget.bl_idname,
+                    operator=CLOUDRIG_OT_unlink_widget.bl_idname,
                     op_kwargs={'ob_name': widget.name},
                 )
 
@@ -506,7 +506,7 @@ class CloudLogManager:
                         description=rpt_(
                             'There exists a custom shape called "{good}", that should be used instead of "{bad}".'
                         ).format(good=unprefixed, bad=widget.name),
-                        operator=CLOUDRIG_OT_Swap_Bone_Shape.bl_idname,
+                        operator=CLOUDRIG_OT_swap_bone_shape.bl_idname,
                         op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
                     )
                 else:
@@ -517,7 +517,7 @@ class CloudLogManager:
                         description=rpt_(
                             'The "{suffix}" suffix in the name of this custom shape name is not necessary.'
                         ).format(suffix=widget.name[-4:]),
-                        operator=CLOUDRIG_OT_Rename_Object.bl_idname,
+                        operator=CLOUDRIG_OT_rename_object.bl_idname,
                         op_kwargs={'old_name': widget.name, 'new_name': unprefixed},
                     )
 
@@ -544,7 +544,7 @@ class CloudLogManager:
                         'Action Setup "{action_setup}" has no transformation range. '
                         'This will cause the action to always be in the same state!'
                     ).format(action_setup=action_setup.name),
-                    operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
+                    operator=CLOUDRIG_OT_edit_action_setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
             if action_setup.frame_start == action_setup.frame_end:
@@ -556,7 +556,7 @@ class CloudLogManager:
                         'Action Setup "{action_setup}" has no frame range. '
                         'This will cause the action to always be in the same state!'
                     ).format(action_setup=action_setup.name),
-                    operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
+                    operator=CLOUDRIG_OT_edit_action_setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
 
@@ -573,7 +573,7 @@ class CloudLogManager:
                         'of all affected bones in the default position. Otherwise, the rig will be deformed in '
                         'its default pose.'
                     ).format(action_setup=action_setup.name, default_frame=default_frame),
-                    operator=CLOUDRIG_OT_Edit_Action_Setup.bl_idname,
+                    operator=CLOUDRIG_OT_edit_action_setup.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
 
@@ -618,7 +618,7 @@ class CloudLogManager:
                         'Action setup "{action}" has {num_curves} '
                         'curves with only a single keyframe. These curves will be ignored by the action setup!'
                     ).format(action=action_setup.name, num_curves=len(single_point_curves)),
-                    operator=CLOUDRIG_OT_Clear_Single_Keyframes.bl_idname,
+                    operator=CLOUDRIG_OT_clear_single_keyframes.bl_idname,
                     op_kwargs={'action_setup_idx': i},
                 )
             if wrong_curves:
@@ -816,7 +816,7 @@ def draw_log_panel(context, layout):
         row.prop_search(log, 'base_bone_name', metarig.data, 'bones', text="")
         row.enabled = False
         row = main_row.row(align=True)
-        op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
+        op = row.operator(CLOUDRIG_OT_jump_to_bone.bl_idname, text="", icon='LOOP_FORWARDS')
         op.use_target_rig = False
         op.target_bone = log.base_bone_name
 
@@ -828,7 +828,7 @@ def draw_log_panel(context, layout):
         row.prop_search(log, 'trouble_bone', metarig.data, 'bones', text="")
         row.enabled = False
         row = main_row.row(align=True)
-        op = row.operator(CLOUDRIG_OT_Jump_To_Bone.bl_idname, text="", icon='LOOP_FORWARDS')
+        op = row.operator(CLOUDRIG_OT_jump_to_bone.bl_idname, text="", icon='LOOP_FORWARDS')
         op.use_target_rig = True
         op.target_bone = log.trouble_bone
 
@@ -860,7 +860,7 @@ def draw_log_panel(context, layout):
 ########################################
 ######### Quick-Fix Operators ##########
 ########################################
-class CLOUDRIG_OT_Jump_To_Bone(Operator):
+class CLOUDRIG_OT_jump_to_bone(Operator):
     """Make a bone visible and active in the 3D View."""
 
     bl_idname = "armature.jump_to_bone"
@@ -902,7 +902,7 @@ class CLOUDRIG_OT_Jump_To_Bone(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Change_Rotation_Mode(Operator):
+class CLOUDRIG_OT_change_rotation_mode(Operator):
     """Change rotation mode of a bone"""
 
     bl_idname = "pose.cloudrig_troubleshoot_rotationmode"
@@ -931,7 +931,7 @@ class CLOUDRIG_OT_Change_Rotation_Mode(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Report_Bug(Operator):
+class CLOUDRIG_OT_report_bug(Operator):
     """Report a bug on the CloudRig repository"""
 
     bl_idname = "wm.cloudrig_report_bug"
@@ -1009,7 +1009,7 @@ class RenameThingOp:
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Rename_Bone(RenameThingOp, Operator):
+class CLOUDRIG_OT_rename_bone(RenameThingOp, Operator):
     """Rename a bone"""
 
     bl_idname = "object.cloudrig_rename_bone"
@@ -1020,7 +1020,7 @@ class CLOUDRIG_OT_Rename_Bone(RenameThingOp, Operator):
         return context.object.data.bones
 
 
-class CLOUDRIG_OT_Rename_Object(RenameThingOp, Operator):
+class CLOUDRIG_OT_rename_object(RenameThingOp, Operator):
     """Rename an Object"""
 
     bl_idname = "object.cloudrig_rename_object"
@@ -1049,7 +1049,7 @@ class CLOUDRIG_OT_rename_bone_collection(RenameThingOp, Operator):
         super().set_name(thing, name)
 
 
-class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
+class CLOUDRIG_OT_swap_bone_shape(Operator):
     """Redirect custom bone shape references from one object to another"""
 
     bl_idname = "object.cloudrig_swap_bone_shape"
@@ -1098,7 +1098,7 @@ class CLOUDRIG_OT_Swap_Bone_Shape(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Delete_Object(Operator):
+class CLOUDRIG_OT_delete_object(Operator):
     """Delete an Object"""
 
     bl_idname = "object.cloudrig_delete_object"
@@ -1127,7 +1127,7 @@ class CLOUDRIG_OT_Delete_Object(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Unlink_Widget(Operator):
+class CLOUDRIG_OT_unlink_widget(Operator):
     """Unlink a custom shape from the Custom Shape Collection"""
 
     bl_idname = "object.cloudrig_unlink_widget"
@@ -1161,7 +1161,7 @@ class CLOUDRIG_OT_Unlink_Widget(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Clear_Pointer(Operator):
+class CLOUDRIG_OT_clear_pointer(Operator):
     """Set a datablock pointer parameter to None"""
 
     bl_idname = "object.cloudrig_clear_pointer_param"
@@ -1188,7 +1188,7 @@ class CLOUDRIG_OT_Clear_Pointer(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
+class CLOUDRIG_OT_clear_single_keyframes(Operator):
     """Remove FCurves with only one keyframe"""
 
     bl_idname = "object.cloudrig_clear_single_keyframes"
@@ -1214,7 +1214,7 @@ class CLOUDRIG_OT_Clear_Single_Keyframes(Operator):
         return {'FINISHED'}
 
 
-class CLOUDRIG_OT_Edit_Action_Setup(Operator):
+class CLOUDRIG_OT_edit_action_setup(Operator):
     """Edit an Action Setup in a pop-up panel"""
 
     bl_idname = "object.cloudrig_edit_action_setup_popup"
@@ -1456,18 +1456,18 @@ def find_leftover_properties(metarig) -> list[tuple[str, str]]:
 registry = [
     CLOUDRIG_UL_log_entry_slots,
     CloudRigLogEntry,
-    CLOUDRIG_OT_Jump_To_Bone,
-    CLOUDRIG_OT_Change_Rotation_Mode,
-    CLOUDRIG_OT_Report_Bug,
-    CLOUDRIG_OT_Rename_Bone,
-    CLOUDRIG_OT_Rename_Object,
+    CLOUDRIG_OT_jump_to_bone,
+    CLOUDRIG_OT_change_rotation_mode,
+    CLOUDRIG_OT_report_bug,
+    CLOUDRIG_OT_rename_bone,
+    CLOUDRIG_OT_rename_object,
     CLOUDRIG_OT_rename_bone_collection,
-    CLOUDRIG_OT_Swap_Bone_Shape,
-    CLOUDRIG_OT_Delete_Object,
-    CLOUDRIG_OT_Unlink_Widget,
-    CLOUDRIG_OT_Clear_Pointer,
-    CLOUDRIG_OT_Clear_Single_Keyframes,
-    CLOUDRIG_OT_Edit_Action_Setup,
+    CLOUDRIG_OT_swap_bone_shape,
+    CLOUDRIG_OT_delete_object,
+    CLOUDRIG_OT_unlink_widget,
+    CLOUDRIG_OT_clear_pointer,
+    CLOUDRIG_OT_clear_single_keyframes,
+    CLOUDRIG_OT_edit_action_setup,
     CLOUDRIG_OT_delete_bone_collection,
     CLOUDRIG_OT_edit_bone_transform,
     CLOUDRIG_OT_link_obj_to_scene,

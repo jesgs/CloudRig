@@ -62,7 +62,7 @@ class CloudRig_MainPanel:
         draw_rig_component_list(context, layout, default_closed=False)
 
 
-class POSE_PT_CloudRig_Popover(CloudRig_MainPanel, Panel):
+class POSE_PT_cloudrig_popover(CloudRig_MainPanel, Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'HEADER'
     bl_ui_units_x = 20
@@ -84,7 +84,7 @@ class POSE_PT_CloudRig_Popover(CloudRig_MainPanel, Panel):
         super().draw_header(context)
 
 
-class POST_PT_CloudRig_Properties(CloudRig_MainPanel, Panel):
+class POSE_PT_cloudrig_properties(CloudRig_MainPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'data'
@@ -199,7 +199,7 @@ def draw_cloudrig_popover(self, context: Context):
         return
     layout = self.layout
     layout.popover(
-        panel="POSE_PT_CloudRig_Popover",
+        panel="POSE_PT_cloudrig_popover",
         icon='OUTLINER_DATA_ARMATURE',
         text="",
     )
@@ -214,6 +214,6 @@ def unregister():
 
 
 registry = [
-    POSE_PT_CloudRig_Popover,
-    POST_PT_CloudRig_Properties,
+    POSE_PT_cloudrig_popover,
+    POSE_PT_cloudrig_properties,
 ]

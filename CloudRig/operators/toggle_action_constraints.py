@@ -6,7 +6,7 @@ from bpy.props import BoolProperty
 from bpy.types import Action, ActionSlot, Constraint, Operator
 
 
-class CLOUDRIG_OT_Toggle_Action_Constraints(Operator):
+class CLOUDRIG_OT_toggle_action_constraints(Operator):
     """Toggle Action Constraints of the active Action on all bones of this Armature object"""
 
     bl_idname = "armature.toggle_action_constraints"
@@ -65,14 +65,14 @@ def draw_toggle_but(self, context):
     st = context.space_data
     if st.mode != 'ACTION':
         return
-    if not CLOUDRIG_OT_Toggle_Action_Constraints.poll(context):
+    if not CLOUDRIG_OT_toggle_action_constraints.poll(context):
         return
     rig = context.active_object
-    first_con = CLOUDRIG_OT_Toggle_Action_Constraints.get_first_referencing_constraint(
+    first_con = CLOUDRIG_OT_toggle_action_constraints.get_first_referencing_constraint(
         rig, rig.animation_data.action, rig.animation_data.action_slot
     )
     op = layout.operator(
-        CLOUDRIG_OT_Toggle_Action_Constraints.bl_idname,
+        CLOUDRIG_OT_toggle_action_constraints.bl_idname,
         text="Action Constraints",
         icon='CONSTRAINT_BONE',
         depress=first_con.enabled,
@@ -80,7 +80,7 @@ def draw_toggle_but(self, context):
     op.enable = not first_con.enabled
 
 
-registry = [CLOUDRIG_OT_Toggle_Action_Constraints]
+registry = [CLOUDRIG_OT_toggle_action_constraints]
 
 
 def register():
