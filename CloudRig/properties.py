@@ -22,6 +22,7 @@ from .bs_utils.prefs import get_addon_prefs
 from .generation.cloud_generator import GeneratorProperties
 from .metarigs.versioning import version_cloud_metarig_editmode
 from .rig_components.cloud_raw_copy import Component_RawCopy
+from .utils import post_gen
 
 
 def get_param_classes() -> dict:
@@ -618,6 +619,8 @@ def get_component_ui_name(component_module_name: str) -> str:
 
 
 class Properties_CloudRig(PropertyGroup):
+    post_gen = post_gen
+
     def active_component_update_callback(self, _context=None):
         if self.active_component_index < 0 or not self.rig_component_bones:
             return

@@ -246,6 +246,26 @@ def update_bone_collection(rig: Object, bone_name: str, collection_name: str, op
         collection.unassign(bone)
 
 
+def set_bone_collections(rig: Object, bone_name: str, collection_names: list[str], additive=False):
+    bone = rig.pose.bones.get(bone_name)
+    if not bone:
+        return
+
+    collections = []
+    for name in collection_names:
+        collection = rig.data.collections_all.get(name)
+        if not collection:
+            raise ValueError(f"Collection not found: '{name}'")
+        collections.append(collection)
+
+    if not additive:
+        for col in list(bone.bone.collections):
+            col.unassign(bone)
+
+    for col in collections:
+        col.assign(bone)
+
+
 def update_widget_properties(rig: Object, bone_name: str, **kwargs):
     """Apply custom properties to the specified bone.
 
