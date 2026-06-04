@@ -7,7 +7,14 @@ Generic checks that apply to any Blender add-on live in test_codebase.py.
 import ast
 
 import pytest
-from .test_codebase import CODEBASE_ROOT, SCANNED_EXTENSIONS, collect_files, parse_files, check_forbidden_patterns
+
+from .test_codebase import (
+    CODEBASE_ROOT,
+    SCANNED_EXTENSIONS,
+    check_forbidden_patterns,
+    collect_files,
+    parse_files,
+)
 
 # Patterns that must not match anywhere in the CloudRig codebase.
 # Keys are human-readable descriptions; values are regex strings.

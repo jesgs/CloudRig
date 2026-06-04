@@ -318,6 +318,32 @@ def test_class_names(parsed_codebase: ParsedFiles):
         pytest.fail("Operator/Menu/Panel class names don't follow Blender's naming convention:\n\n" + "\n".join(hits))
 
 
+def test_no_legacy_typing(parsed_codebase: ParsedFiles):
+    """Assert that deprecated typing module generics are not used.
+    Use native types instead: list, dict, tuple, set, X | None, X | Y, etc.
+    """
+    LEGACY_NAMES = {'Dict', 'List', 'Tuple', 'Set', 'FrozenSet', 'Type', 'Optional', 'Union'}
+
+    hits: list[str] = []
+    for path, (source, tree) in parsed_codebase.items():
+        source_lines = source.splitlines()
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Attribute)
+                    and isinstance(node.value, ast.Name)
+                    and node.value.id == 'typing'
+                    and node.attr in LEGACY_NAMES):
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                hits.append(f"    {rel}:{node.lineno}  →  {source_lines[node.lineno - 1].strip()}")
+            elif (isinstance(node, ast.ImportFrom)
+                    and node.module == 'typing'
+                    and any(alias.name in LEGACY_NAMES for alias in node.names)):
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                hits.append(f"    {rel}:{node.lineno}  →  {source_lines[node.lineno - 1].strip()}")
+
+    if hits:
+        pytest.fail("Use native types instead of typing.Dict/List/Tuple/etc.:\n\n" + "\n".join(hits))
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
