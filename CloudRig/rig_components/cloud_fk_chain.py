@@ -152,13 +152,14 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if self.params.fk_chain.hinge:
             self.__make_hinge_setup(
                 bone=hng_child,
-                bone_set=self.bone_sets["Mechanism Bones"],
                 category=self.base_name,
-                parent_bone=self.root_bone,
-                hng_name=self.naming.add_prefix(self.base_bone_name, "FK-HNG"),
                 prop_bone=self.properties_bone,
                 prop_name=self.fk_hinge_name,
+                default_value=self.params.fk_chain.default_hinge,
+                parent_bone=self.root_bone,
+                hng_name=self.naming.add_prefix(self.base_bone_name, "FK-HNG"),
                 ui_name=self.base_name_ui,
+                bone_set=self.bone_sets["Mechanism Bones"],
                 fk_chain=fk_chain,
             )
 
@@ -443,6 +444,13 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return layout
 
     @classmethod
+    def draw_custom_prop_params(cls, layout, context, component):
+        super().draw_custom_prop_params(layout, context, component)
+        if component.params.fk_chain.hinge:
+            layout.separator()
+            cls.draw_prop(context, layout, component.params.fk_chain, 'default_hinge', slider=True)
+
+    @classmethod
     def draw_control_params(cls, layout, context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
@@ -581,6 +589,13 @@ class Params(PropertyGroup):
 
     shape_fk: Component_ToonChain.make_custom_shape_params(identifier="FK", default="Square 2")
     shape_fk_root: Component_ToonChain.make_custom_shape_params(identifier="FK Root", default="Cube")
+
+    default_hinge: FloatProperty(
+        name="Default FK Hinge",
+        min=0,
+        max=1,
+        default=0,
+    )
 
 
 RIG_COMPONENT_CLASS = Component_Chain_FK
