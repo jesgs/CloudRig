@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 import enum
 import re
@@ -21,7 +23,7 @@ class Side(enum.IntEnum):
             return Side.MIDDLE
 
     @staticmethod
-    def to_string(parts: NameParts, side: 'Side'):
+    def to_string(parts: NameParts, side: Side):
         if side != Side.MIDDLE:
             side_char = 'L' if side == Side.LEFT else 'R'
             side_str = parts.side or parts.side_z
@@ -38,7 +40,7 @@ class Side(enum.IntEnum):
             return ''
 
     @staticmethod
-    def to_name(parts: NameParts, side: 'Side'):
+    def to_name(parts: NameParts, side: Side):
         new_side = Side.to_string(parts, side)
         return combine_name(parts, side=new_side)
 
@@ -59,7 +61,7 @@ class SideZ(enum.IntEnum):
             return SideZ.MIDDLE
 
     @staticmethod
-    def to_string(parts: NameParts, side: 'SideZ'):
+    def to_string(parts: NameParts, side: SideZ):
         if side != SideZ.MIDDLE:
             side_char = 'T' if side == SideZ.TOP else 'B'
             side_str = parts.side_z or parts.side
@@ -76,7 +78,7 @@ class SideZ(enum.IntEnum):
             return ''
 
     @staticmethod
-    def to_name(parts: NameParts, side: 'SideZ'):
+    def to_name(parts: NameParts, side: SideZ):
         new_side = SideZ.to_string(parts, side)
         return combine_name(parts, side_z=new_side)
 

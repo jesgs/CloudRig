@@ -115,16 +115,16 @@ class CloudMechanismMixin:
 
     def create_ik_pole_control(
         self,
-        bone_set: 'BoneSet',
+        bone_set: BoneSet,
         name: str,
         pole_location: Vector,
         pole_vector: Vector,
         pole_tail_length: float,
-        elbow_bone: 'BoneInfo',
-        chain_root: 'BoneInfo',
+        elbow_bone: BoneInfo,
+        chain_root: BoneInfo,
         custom_shape_name: str,
-        parent: 'BoneInfo | None' = None,
-    ) -> 'BoneInfo':
+        parent: BoneInfo | None = None,
+    ) -> BoneInfo:
         """Create an IK pole target control bone with an accompanying visual
         line that stretches from the pole to the chain's elbow.
 

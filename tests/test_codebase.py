@@ -344,6 +344,36 @@ def test_no_legacy_typing(parsed_codebase: ParsedFiles):
         pytest.fail("Use native types instead of typing.Dict/List/Tuple/etc.:\n\n" + "\n".join(hits))
 
 
+def test_no_string_annotations(parsed_codebase: ParsedFiles):
+    """Assert that type annotations are not written as strings.
+    Use `from __future__ import annotations` for forward references instead.
+    """
+    def is_str_const(node) -> bool:
+        return isinstance(node, ast.Constant) and isinstance(node.value, str)
+
+    hits: list[str] = []
+    for path, (source, tree) in parsed_codebase.items():
+        source_lines = source.splitlines()
+        flagged_lines: set[int] = set()
+
+        for node in ast.walk(tree):
+            anno = None
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                anno = node.returns
+            elif isinstance(node, ast.AnnAssign):
+                anno = node.annotation
+            elif isinstance(node, ast.arg):
+                anno = node.annotation
+
+            if anno is not None and is_str_const(anno) and anno.lineno not in flagged_lines:
+                flagged_lines.add(anno.lineno)
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                hits.append(f"    {rel}:{anno.lineno}  →  {source_lines[anno.lineno - 1].strip()}")
+
+    if hits:
+        pytest.fail("Use `from __future__ import annotations` instead of string annotations:\n\n" + "\n".join(hits))
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
