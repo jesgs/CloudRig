@@ -12,6 +12,9 @@ def cloudrig_append_link_handler(lapp_context: BlendImportContext):
     if not prefs.improve_link_append:
         return
     is_link = 'LINK' in lapp_context.options
+    is_instance = 'COLLECTION_INSTANCE' in lapp_context.options
+    if is_link and not is_instance:
+        return
 
     root_coll = next(
         (
