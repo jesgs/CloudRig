@@ -1,26 +1,12 @@
 ########################################
 ### Import CloudRig's utility functions
 
-import importlib
-import sys
 
 import bpy
 
-
-def import_cloudrig():
-    # Importing add-on code from a text datablock is tricky because the name of the
-    # extension repository ends up in the module name.
-    module_name = next((m for m in sys.modules if m.endswith("CloudRig")), None)
-    if module_name:
-        return importlib.import_module(module_name)
-    raise ModuleNotFoundError("Failed to import CloudRig.")
-
-
-CloudRig = import_cloudrig()
-post_gen = CloudRig.utils.post_gen
-
 # Grab a reference to the rig that was just generated.
 rig = bpy.context.active_object
+post_gen = rig.cloudrig.post_gen
 
 #########################################
 ### Examples (You can delete everything below!)

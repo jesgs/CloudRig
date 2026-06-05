@@ -2,10 +2,11 @@
 
 from math import pi
 from pathlib import Path
+from typing import Any
 
 import bpy
 from bpy.app.handlers import persistent
-from bpy.types import Action, PoseBone
+from bpy.types import Action, Context, Object, PoseBone
 from bpy.types import EnumProperty as EnumProperty_type
 from mathutils import Euler, Vector
 
@@ -20,7 +21,8 @@ from ..utils.misc import load_script
 RIG_TYPE_MAP = {key: module.RIG_COMPONENT_CLASS.ui_name for key, module in ALL_COMPONENT_MODULES.items()}
 
 
-def setattr_safe(thing, key, value):
+def setattr_safe(thing: Any, key: str, value: Any):
+    """Set an attribute, converting integer values to enum identifiers when needed."""
     if hasattr(thing, 'bl_rna') and type(thing.bl_rna.properties[key]) is EnumProperty_type and type(value) is int:
         enum_value = thing.bl_rna.properties[key].enum_items[value].identifier
         setattr(thing, key, enum_value)
@@ -29,6 +31,7 @@ def setattr_safe(thing, key, value):
 
 
 def preserve_old_default(pbone: PoseBone, param_name: str, old_default: float | int | bool | str):
+    """Set a parameter to its old default value if it has not been explicitly set in the metarig."""
     parts = param_name.split(".")
     params = pbone.cloudrig_component.params
     while len(parts) > 1 and hasattr(params, parts[0]):
@@ -38,8 +41,7 @@ def preserve_old_default(pbone: PoseBone, param_name: str, old_default: float | 
         setattr(params, parts[0], old_default)
 
 
-def version_cloud_metarig_editmode(context, metarig):
-
+def version_cloud_metarig_editmode(context: Context, metarig: Object):
     fix_corrective_actions_51(metarig)
 
     cloudrig = metarig.cloudrig
@@ -61,7 +63,7 @@ def version_cloud_metarig_editmode(context, metarig):
         version_cloud_metarig(metarig)
 
 
-def version_cloud_metarig(metarig):
+def version_cloud_metarig(metarig: Object):
     """Convert older CloudRig metarigs to work with the current version of
     CloudRig as well as possible. They will still need some manual cleanup!!!
 
@@ -217,7 +219,7 @@ def version_cloud_metarig(metarig):
                 heel_bone = pbone.cloudrig_component.params.leg.heel_bone
                 if not heel_bone:
                     continue
-                ebone = metarig.data.edit_bones[heel_bone]
+                ebone = metarig.data.edit_bones.get(heel_bone)
                 if not ebone:
                     continue
                 center = ebone.head + (ebone.tail - ebone.head) * 0.5
@@ -316,8 +318,8 @@ def update_generated_rig_ui_scripts():
         load_script(file_path=str(generation_dir), file_name='cloudrig.py', datablock=text)
 
 
-def fix_corrective_actions_51(metarig):
-    # Action setups saved in 5.0 may need fixing in 5.1.
+def fix_corrective_actions_51(metarig: Object):
+    """Fix corrective action setup trigger references that were saved in Blender 5.0 format."""
     cloudrig = metarig.cloudrig
     action_setups = cloudrig.generator.action_setups
 
@@ -327,12 +329,12 @@ def fix_corrective_actions_51(metarig):
                 continue
             handle_a_str = action_setup['trigger_select_a'].replace("_", "")
             handle_b_str = action_setup['trigger_select_b'].replace("_", "")
-            if str.isdecimal(handle_a_str):
+            if handle_a_str.isdecimal():
                 handle_a = int(handle_a_str)
                 trigger_a = next((act_s for act_s in action_setups if act_s.unique_id == handle_a), None)
                 if trigger_a:
                     action_setup.trigger_select_a = trigger_a.name
-            if str.isdecimal(handle_b_str):
+            if handle_b_str.isdecimal():
                 handle_b = int(handle_b_str)
                 trigger_b = next((act_s for act_s in action_setups if act_s.unique_id == handle_b), None)
                 if trigger_b:
@@ -342,14 +344,15 @@ def fix_corrective_actions_51(metarig):
     for action_setup in action_setups:
         if not action_setup.is_corrective:
             continue
-        if not str.isdecimal(action_setup['trigger_select_a'].replace("_", "")):
+        if not action_setup['trigger_select_a'].replace("_", "").isdecimal():
             action_setup.trigger_select_a = action_setup['trigger_select_a']
-        if not str.isdecimal(action_setup['trigger_select_b'].replace("_", "")):
+        if not action_setup['trigger_select_b'].replace("_", "").isdecimal():
             action_setup.trigger_select_b = action_setup['trigger_select_b']
 
 
 @persistent
-def update_all_metarigs(dummy=None):
+def update_all_metarigs(_dummy: str | None = None):
+    """Version all CloudRig metarigs in the current blend file. Called on load_post and on register."""
     if not hasattr(bpy.data, 'objects'):
         # We want this function to run on Register, because we want to version metarigs in current scene
         # when user enables CloudRig. But this is not allowed by PyAPI, so we defer the call to until after

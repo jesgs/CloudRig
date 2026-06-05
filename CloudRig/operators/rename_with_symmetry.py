@@ -5,7 +5,7 @@ from typing import Any
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import BoolProperty, StringProperty
-from bpy.types import EditBone, Object, Operator, PoseBone, UILayout
+from bpy.types import Context, EditBone, Event, Object, Operator, OperatorProperties, PoseBone, UILayout
 from bpy.utils import flip_name
 
 from ..bs_utils.hotkeys import register_hotkey
@@ -21,7 +21,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
     bl_options = {'REGISTER', 'UNDO'}
     bl_property = 'new_name'
 
-    def update_new_name(self, context):
+    def update_new_name(self, context: Context):
         for item, (op_prop_name, _desired_name, new_name) in get_future_names(self, context).items():
             setattr(self, op_prop_name, new_name)
 
@@ -46,17 +46,17 @@ class OBJECT_OT_rename_with_symmetry(Operator):
     )
 
     @property
-    def new_name_opposite(self):
+    def new_name_opposite(self) -> str:
         return flip_name(self.new_name)
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if get_active_item(context) is None:
             cls.poll_message_set("Nothing to rename.")
             return False
         return True
 
-    def invoke(self, context, _event):
+    def invoke(self, context: Context, _event: Event):
         self.rename_map = {}
         item = get_active_item(context)
         self.new_name = item.name
@@ -66,7 +66,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
 
         return context.window_manager.invoke_props_dialog(self, width=320)
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
@@ -89,11 +89,11 @@ class OBJECT_OT_rename_with_symmetry(Operator):
 
         warn = 0
         for (
-            item,
+            rename_item,
             (op_prop_name, desired_name, new_name),
         ) in get_future_names(self, context).items():
-            icon_id = UILayout.icon(item)
-            self.draw_rename_preview(box, item, op_prop_name, icon_value=icon_id)
+            icon_id = UILayout.icon(rename_item)
+            self.draw_rename_preview(box, rename_item, op_prop_name, icon_value=icon_id)
             if new_name != desired_name:
                 warn += 1
         if warn:
@@ -101,7 +101,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
             row.alert = True
             row.label(text="Names will be incremented.", icon='ERROR')
 
-    def draw_rename_preview(self, layout, item, op_prop_name: str, icon_value: int):
+    def draw_rename_preview(self, layout: UILayout, item: Any, op_prop_name: str, icon_value: int):
         split = layout.row().split(align=True, factor=0.45)
         split.enabled = False
         row = split.row()
@@ -110,7 +110,7 @@ class OBJECT_OT_rename_with_symmetry(Operator):
         split.row().label(text="\u279c")
         split.row().prop(self, op_prop_name, text="", icon_value=icon_value)
 
-    def execute(self, context):
+    def execute(self, context: Context):
         counter = 0
         for item, (_prop_name, _desired_name, new_name) in get_future_names(self, context).items():
             if item.name != new_name:
@@ -132,7 +132,8 @@ class OBJECT_OT_rename_with_symmetry(Operator):
         return {'FINISHED'}
 
 
-def get_collprop(item):
+def get_collprop(item: Any):
+    """Return the collection property that contains the given item (objects, pose bones, or edit bones)."""
     if isinstance(item, Object):
         return bpy.data.objects
     elif isinstance(item, PoseBone):
@@ -143,31 +144,33 @@ def get_collprop(item):
         raise NotImplementedError(f"Data type not yet supported: {type(item)}")
 
 
-def get_future_names(self, context) -> dict[Any, tuple[str, str, str]]:
+def get_future_names(operator: OperatorProperties, context: Context) -> dict[Any, tuple[str, str, str]]:
+    """Return a mapping of items to their (prop_name, desired_name, actual_new_name) rename tuples."""
     rename_dict = {}
     item = get_active_item(context)
     collprop = get_collprop(item)
     rename_dict[item] = (
         'name_display',
-        self.new_name,
-        uniqify(self.new_name, collprop, datablock=item, strip_first=False),
+        operator.new_name,
+        uniqify(operator.new_name, collprop, datablock=item, strip_first=False),
     )
 
-    if not self.use_symmetry:
+    if not operator.use_symmetry:
         return rename_dict
 
     opposite_item = collprop.get(flip_name(item.name))
     if opposite_item and opposite_item != item:
         rename_dict[opposite_item] = (
             'name_display_flipped',
-            flip_name(self.new_name),
-            uniqify(flip_name(self.new_name), collprop, datablock=opposite_item, strip_first=False),
+            flip_name(operator.new_name),
+            uniqify(flip_name(operator.new_name), collprop, datablock=opposite_item, strip_first=False),
         )
 
     return rename_dict
 
 
-def get_active_item(context) -> Any | None:
+def get_active_item(context: Context) -> Any | None:
+    """Return the currently active renameable item: an Object, PoseBone, or EditBone."""
     if context.mode == 'OBJECT' and context.object:
         return context.object
     elif context.mode in ('POSE', 'WEIGHT_PAINT') and context.active_pose_bone:
@@ -176,7 +179,8 @@ def get_active_item(context) -> Any | None:
         return context.active_bone
 
 
-def get_opposite_item(item) -> Any | None:
+def get_opposite_item(item: Any) -> Any | None:
+    """Return the symmetrical counterpart of item by flipping its name, or None if no counterpart exists."""
     collprop = get_collprop(item)
     return collprop.get(flip_name(item.name))
 

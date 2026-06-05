@@ -20,18 +20,18 @@ class ARMATURE_OT_post_process_new_bones(Operator):
 
     is_extrude: BoolProperty(default=False)
 
-    def invoke(self, context: Context, event: Event) -> set[str]:
+    def invoke(self, context: Context, event: Event):
         if event.alt:
             return {'FINISHED'}
         return self.execute(context)
 
-    def execute(self, context: Context) -> set[str]:
+    def execute(self, context: Context):
         rigs = list(get_current_rigs(context))
         driver_renames = {}
 
         for rig in rigs:
             driver_renames[rig] = {}
-            bones_to_rename = set()
+            bones_to_rename = []
 
             for ebone in rig.data.edit_bones:
                 if not (ebone.select or ebone.select_head or ebone.select_tail):
@@ -42,7 +42,7 @@ class ARMATURE_OT_post_process_new_bones(Operator):
                     continue
                 if ebone.name[:-4] not in rig.data.edit_bones:
                     continue
-                bones_to_rename.add(ebone)
+                bones_to_rename.append(ebone)
                 if self.is_extrude:
                     # Weird Blender behaviour workaround:
                     # When mirror is enabled and a bone body is selected, the opposite bone is also considered selected,
@@ -55,7 +55,7 @@ class ARMATURE_OT_post_process_new_bones(Operator):
                         and flipped.endswith('.001')
                         and flipped[:-4] in rig.data.edit_bones
                     ):
-                        bones_to_rename.add(rig.data.edit_bones[flipped])
+                        bones_to_rename.append(rig.data.edit_bones[flipped])
 
             for ebone in bones_to_rename:
                 old_name = ebone.name[:-4]
@@ -77,10 +77,10 @@ class ARMATURE_OT_post_process_new_bones(Operator):
                 flipped = bpy.utils.flip_name(arm.edit_bones.active.name)
                 if flipped != arm.edit_bones.active.name and flipped in arm.edit_bones:
                     flipped_bone = arm.edit_bones[flipped]
-                    sel = flipped_bone.select, flipped_bone.select_head, flipped_bone.select_tail
+                    saved_selection = flipped_bone.select, flipped_bone.select_head, flipped_bone.select_tail
                     arm.edit_bones.active = flipped_bone
                     # For some reason, setting active state affects selection state, so, to fix that...
-                    flipped_bone.select, flipped_bone.select_head, flipped_bone.select_tail = sel
+                    flipped_bone.select, flipped_bone.select_head, flipped_bone.select_tail = saved_selection
 
         if not any(driver_renames.values()) or self.is_extrude:
             return {'FINISHED'}
@@ -108,12 +108,12 @@ class ARMATURE_OT_better_bone_extrude(Macro):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context: Context) -> bool:
+    def poll(cls, context: Context):
         if context.mode != 'EDIT_ARMATURE':
             cls.poll_message_set("Active Armature must be in edit mode.")
             return False
         return any(
-            eb.select_tail or eb.select_head  #
+            eb.select_tail or eb.select_head
             for eb in context.active_object.data.edit_bones
         )
 
@@ -125,7 +125,7 @@ class ARMATURE_OT_better_bone_duplicate(Macro):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context: Context) -> bool:
+    def poll(cls, context: Context):
         if context.mode != 'EDIT_ARMATURE':
             cls.poll_message_set("Active Armature must be in edit mode.")
             return False
@@ -133,6 +133,7 @@ class ARMATURE_OT_better_bone_duplicate(Macro):
 
 
 def bone_has_drivers(rig: Object, bone_name: str) -> bool:
+    """Return True if the rig or its data has any drivers referencing the given bone name."""
     for db in (rig, rig.data):
         if db.animation_data:
             for fc in db.animation_data.drivers:
@@ -146,6 +147,7 @@ def copy_drivers_of_bone(
     old_bone_name: str,
     new_bone_name: str,
 ) -> list[FCurve]:
+    """Copy all drivers referencing old_bone_name and remap them to new_bone_name."""
     datablocks = []
     if rig.animation_data:
         datablocks.append(rig)

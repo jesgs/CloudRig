@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.app.translations import pgettext_iface as iface_
-from bpy.types import Constraint, Menu, PoseBone, UILayout
+from bpy.types import Constraint, Context, Menu, PoseBone, UILayout
 
 from ..bs_utils.hotkeys import register_hotkey
 from ..generation import naming
@@ -9,54 +9,11 @@ from ..generation.cloudrig import active_rig
 from ..utils.rig import get_pbone_of_active
 
 
-def get_constraint_icon(constraint: Constraint) -> str:
-    icons = UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
-    return icons[UILayout.icon(constraint)]
-
-
-def get_constrained_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:
-    entries = []
-    rig = pose_bone.id_data
-    for pb in rig.pose.bones:
-        for con in pb.constraints:
-            if (
-                hasattr(con, 'target')
-                and hasattr(con, 'subtarget')
-                and con.target == rig
-                and con.subtarget
-                and con.subtarget == pose_bone.name
-            ):
-                entries.append((con, pb.name))
-                break
-
-            if con.type == 'ARMATURE':
-                for t in con.targets:
-                    if t.target == rig and t.subtarget == pose_bone.name:
-                        entries.append((con, pb.name))
-
-    return entries
-
-
-def get_target_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:
-    rig = pose_bone.id_data
-    entries = []
-    for con in pose_bone.constraints:
-        if con.type == 'ARMATURE':
-            for t in con.targets:
-                if t.target == rig and t.subtarget and t.subtarget in rig.data.bones:
-                    entries.append((con, t.subtarget))
-
-        if hasattr(con, 'subtarget') and con.target == rig and con.subtarget and con.subtarget in rig.data.bones:
-            entries.append((con, con.subtarget))
-
-    return entries
-
-
 class POSE_MT_pie_bone_constraint_targets(Menu):
     bl_label = "Constraint Targets"
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         return get_pbone_of_active(context)
 
     @staticmethod
@@ -69,7 +26,7 @@ class POSE_MT_pie_bone_constraint_targets(Menu):
         )
         op.bone_name = subtarget
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         active_pb = get_pbone_of_active(context)
 
@@ -83,7 +40,7 @@ class POSE_MT_pie_constrained_bones(Menu):
     bl_label = "Constrained Bones"
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         return get_pbone_of_active(context)
 
     @staticmethod
@@ -98,7 +55,7 @@ class POSE_MT_pie_constrained_bones(Menu):
         )
         op.bone_name = bone_name
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         active_pb = get_pbone_of_active(context)
 
@@ -112,10 +69,10 @@ class POSE_MT_pie_child_bones(Menu):
     bl_label = "Child Bones"
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         return get_pbone_of_active(context)
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         active_pb = get_pbone_of_active(context)
 
@@ -127,7 +84,7 @@ class POSE_MT_pie_child_bones(Menu):
 class CLOUDRIG_MT_pie_select_bone(Menu):
     bl_label = iface_("Select Bone")
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         rig = active_rig(context)
         active_pb = get_pbone_of_active(context)
@@ -145,7 +102,7 @@ class CLOUDRIG_MT_pie_select_bone(Menu):
         active_bone = active_pb.bone
 
         # 1) < Parent Bone.
-        if active_bone and active_bone.parent:
+        if active_bone.parent:
             op = pie.operator(
                 'pose.cloudrig_select_parent_bone',
                 text="Parent: " + active_bone.parent.name,
@@ -210,8 +167,8 @@ class CLOUDRIG_MT_pie_select_bone(Menu):
         start = active_bone.bbone_custom_handle_start
         end = active_bone.bbone_custom_handle_end
 
-        sliced = naming.slice_name(active_bone.name)
-        new_name = naming.make_name(["DEF"], sliced[1], sliced[2])
+        _prefixes, base, suffixes = naming.slice_name(active_bone.name)
+        new_name = naming.make_name(["DEF"], base, suffixes)
         def_bone = rig.pose.bones.get(new_name)
         if start or end:
             col = pie.column()
@@ -241,6 +198,51 @@ class CLOUDRIG_MT_pie_select_bone(Menu):
 
         # 8) v> Search bone.
         pie.operator('pose.select_by_name_search', icon='VIEWZOOM')
+
+
+def get_constraint_icon(constraint: Constraint) -> str:
+    """Return the icon string for a given constraint by looking up the UILayout icon enum."""
+    icons = UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items.keys()
+    return icons[UILayout.icon(constraint)]
+
+
+def get_constrained_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:
+    """Return all (constraint, bone_name) pairs where the constraint targets the given pose bone."""
+    entries = []
+    rig = pose_bone.id_data
+    for pb in rig.pose.bones:
+        for con in pb.constraints:
+            if (
+                hasattr(con, 'target')
+                and hasattr(con, 'subtarget')
+                and con.target == rig
+                and con.subtarget == pose_bone.name
+            ):
+                entries.append((con, pb.name))
+                break
+
+            if con.type == 'ARMATURE':
+                for target in con.targets:
+                    if target.target == rig and target.subtarget == pose_bone.name:
+                        entries.append((con, pb.name))
+
+    return entries
+
+
+def get_target_bones(pose_bone: PoseBone) -> list[tuple[Constraint, str]]:
+    """Return all (constraint, bone_name) pairs that this pose bone's constraints point to."""
+    rig = pose_bone.id_data
+    entries = []
+    for con in pose_bone.constraints:
+        if con.type == 'ARMATURE':
+            for target in con.targets:
+                if target.target == rig and target.subtarget and target.subtarget in rig.data.bones:
+                    entries.append((con, target.subtarget))
+
+        if hasattr(con, 'subtarget') and con.target == rig and con.subtarget and con.subtarget in rig.data.bones:
+            entries.append((con, con.subtarget))
+
+    return entries
 
 
 registry = [

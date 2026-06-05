@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.props import EnumProperty
-from bpy.types import Operator
+from bpy.types import Context, Event, Operator, UILayout
 
 from ..bs_utils.ui import label_split
 from ..rig_component_features.overlay_painter import force_full_update as update_overlay
@@ -317,6 +317,13 @@ PRESETS_LANARO = [
 ]
 
 
+PRESET_MAP = {
+    'LANARO': PRESETS_LANARO,
+    'CLOUDRIG': PRESETS_CLOUDRIG,
+    'BLENDER': PRESETS_BLENDER,
+}
+
+
 class CLOUDRIG_OT_set_bone_color_prefs(Operator):
     bl_idname = "preferences.set_bone_color_presets"
     bl_description = "Set Bone Color Presets"
@@ -345,17 +352,17 @@ class CLOUDRIG_OT_set_bone_color_prefs(Operator):
         ],
     )
 
-    def invoke(self, context, _event):
+    def invoke(self, context: Context, _event: Event):
         return context.window_manager.invoke_props_dialog(self)
 
-    def draw(self, context):
+    def draw(self, _context: Context):
         layout = self.layout
         layout.label(text="This will overwrite your bone color presets.")
         layout.label(text="This cannot be undone!", icon="ERROR")
 
-    def execute(self, context):
+    def execute(self, context: Context):
         color_sets = context.preferences.themes["Default"].bone_color_sets
-        chosen_preset = globals()["PRESETS_" + self.preset]
+        chosen_preset = PRESET_MAP[self.preset]
         for color_set, preset_colors in zip(color_sets, chosen_preset):
             color_set.normal = preset_colors["normal"]
             color_set.select = preset_colors["select"]
@@ -371,7 +378,8 @@ class CLOUDRIG_OT_set_bone_color_prefs(Operator):
         return {"FINISHED"}
 
 
-def draw_bone_color_presets(layout):
+def draw_bone_color_presets(layout: UILayout):
+    """Draw bone color preset buttons and a colour set swatch row."""
     header, panel = layout.panel("CloudRig Bone Colors")
     header.label(text="Bone Colors")
     if panel:
@@ -394,7 +402,7 @@ def draw_bone_color_presets(layout):
         ).preset = "LANARO"
         split = label_split(panel, text="")
         for i in range(20):
-            icon = f"COLORSET_{str(i + 1).zfill(2)}_VEC"
+            icon = f"COLORSET_{i + 1:02d}_VEC"
             split.label(text="", icon=icon)
 
 

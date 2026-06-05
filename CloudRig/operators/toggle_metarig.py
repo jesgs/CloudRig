@@ -4,7 +4,7 @@ import bpy
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty
-from bpy.types import Bone, EditBone, Object, Operator, PoseBone
+from bpy.types import Bone, Context, Object, Operator
 
 from ..bs_utils.hotkeys import register_hotkey
 from ..generation.cloudrig import find_cloudrig, find_metarig_of_rig
@@ -41,13 +41,13 @@ class CLOUDRIG_OT_toggle_metarig(Operator):
     )
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if not context.active_object:
             cls.poll_message_set("No active object.")
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         if context.active_object:
             ret = metarig_context_switch(context, self.match_collections, self.match_selection)
         else:
@@ -58,7 +58,7 @@ class CLOUDRIG_OT_toggle_metarig(Operator):
         return {'FINISHED'}
 
 
-def metarig_context_switch(context, match_collections=True, match_selection=True) -> str:
+def metarig_context_switch(context: Context, match_collections=True, match_selection=True) -> str:
     """Switches the context between the metarig and the generated rig.
     May return an error message in case of failure."""
     rig = find_cloudrig(context)
@@ -106,7 +106,8 @@ def metarig_context_switch(context, match_collections=True, match_selection=True
     return __switch_rig_focus(context, rig, metarig, match_collections, match_selection)
 
 
-def __focus_rig(context, rig, mode='POSE'):
+def __focus_rig(context: Context, rig: Object, mode='POSE'):
+    """Deselect everything, make rig visible and active, then enter the given mode."""
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
     rig.hide_set(False)
@@ -116,11 +117,9 @@ def __focus_rig(context, rig, mode='POSE'):
 
 
 def __switch_rig_focus(
-    context,
-    ###
+    context: Context,
     from_rig: Object,
     to_rig: Object,
-    ###
     match_collections=True,
     match_selection=True,
 ) -> str:
@@ -170,6 +169,7 @@ def __switch_rig_focus(
 
 
 def __match_bone_selection(from_rig: Object, to_rig: Object, selected_bone_names: list[str] = []):
+    """Select bones in to_rig that best correspond to the given bone names from from_rig."""
     __deselect_all_bones(to_rig)
     __match_active_bone(from_rig, to_rig)
 
@@ -196,6 +196,7 @@ def __match_bone_selection(from_rig: Object, to_rig: Object, selected_bone_names
 
 
 def __deselect_all_bones(rig: Object):
+    """Deselect all bones on the rig regardless of current mode."""
     if rig.mode == 'EDIT_ARMATURE':
         for eb in rig.data.edit_bones:
             eb.select = False
@@ -213,10 +214,11 @@ def __match_active_bone(from_rig: Object, to_rig: Object):
             to_rig.data.bones.active = to_active
 
 
-def __get_visible_bone_with_similar_name(rig: Object, bone_name: str) -> PoseBone | EditBone | Bone | None:
+def __get_visible_bone_with_similar_name(rig: Object, bone_name: str) -> Bone | None:
+    """Return the best visible bone in rig whose name matches or contains bone_name, using PREFIX_PRIORITY."""
     armature = rig.data
 
-    def names_match(a, b):
+    def names_match(a: str, b: str) -> bool:
         return (a in b) or (b in a)
 
     if bone_name in armature.bones and bone_is_visible(armature.bones[bone_name]):
@@ -228,12 +230,11 @@ def __get_visible_bone_with_similar_name(rig: Object, bone_name: str) -> PoseBon
     if len(matches) == 1:
         # If there is only one match and it's visible, return it.
         return armature.bones[matches[0]]
-    else:
-        for prefix in PREFIX_PRIORITY:
-            for match in matches:
-                prefixes = slice_name(match)[0]
-                if prefix in prefixes:
-                    return armature.bones[match]
+    for prefix in PREFIX_PRIORITY:
+        for match in matches:
+            prefixes = slice_name(match)[0]
+            if prefix in prefixes:
+                return armature.bones[match]
 
 
 registry = [CLOUDRIG_OT_toggle_metarig]

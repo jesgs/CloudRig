@@ -2,7 +2,8 @@
 
 from pathlib import Path
 
-from bpy.types import Operator
+from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.types import Context, Operator
 
 from ..generation.cloudrig import is_cloud_metarig
 from ..utils.misc import load_script
@@ -16,10 +17,10 @@ class WM_OT_cloudrig_template_script_create(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         return is_cloud_metarig(context.active_object)
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         filepath = Path(__file__).parent.as_posix()
         text = load_script(filepath, "post_gen_template.py", execute=False)
@@ -27,10 +28,10 @@ class WM_OT_cloudrig_template_script_create(Operator):
         metarig.cloudrig.generator.custom_script = text
 
         text_editor = next((a for a in context.screen.areas if a.type == 'TEXT_EDITOR'), None)
-        msg = f"Find \"{text.name}\" in Blender's Text Editor."
+        msg = rpt_("Find \"{text}\" in Blender's Text Editor.").format(text=text.name)
         if text_editor:
             text_editor.spaces.active.text = text
-            msg = f"See \"{text.name}\" in the Text Editor."
+            msg = rpt_("See \"{text}\" in the Text Editor.").format(text=text.name)
 
         self.report({'INFO'}, msg)
         return {'FINISHED'}

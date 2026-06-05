@@ -1,11 +1,8 @@
-# Operators to move some data from the generated rig back to the metarig.
-# This could be bones, constraints, drivers, custom properties,
-# but the UX for some of those is maybe not worth solving.
-# Bones and constraints would be great though.
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
 from bpy.props import EnumProperty
-from bpy.types import Context, Operator
+from bpy.types import Context, Event, Operator
 
 from ..bs_utils.properties import copy_property_group
 from ..generation.cloudrig import find_metarig_of_rig, is_active_cloudrig, object_mode
@@ -31,7 +28,7 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
     )
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig = is_active_cloudrig(context)
         if not rig:
             cls.poll_message_set("No active armature.")
@@ -47,7 +44,7 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
             return False
         return True
 
-    def invoke(self, context: Context, _event):
+    def invoke(self, context: Context, _event: Event):
         return context.window_manager.invoke_props_dialog(self, width=400)
 
     def draw(self, context: Context):
@@ -75,7 +72,7 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
         # Duplicate the selected bones (Without symmetry)
         # This removes their drivers, keeps their constraints,
         # and puts .00x at the end of their names.
-        bonenames = {}
+        bone_names = {}
         for bone in generated_rig.data.bones:
             bone.hide = False
         with (
@@ -93,9 +90,9 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
                 if ebone.select:
                     ebone['name'] = ebone.name
                     if ebone.parent:
-                        bonenames[ebone.name] = ebone.parent.name
+                        bone_names[ebone.name] = ebone.parent.name
                     else:
-                        bonenames[ebone.name] = ""
+                        bone_names[ebone.name] = ""
             bpy.ops.armature.duplicate()
             # Mangle the new bone names to be extra sure of avoiding conflicts when joining the two armatures.
             for ebone in generated_rig.data.edit_bones:
@@ -119,7 +116,7 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
         separated_arm_obj.select_set(True)
         # Store bone names...
         separated_bone_names = [pb.name for pb in separated_arm_obj.pose.bones]
-        assert not any((bone_name in metarig.pose.bones for bone_name in separated_bone_names))
+        assert not any(bone_name in metarig.pose.bones for bone_name in separated_bone_names)
         bpy.ops.object.join()
         separated_arm_obj = None
 
@@ -150,7 +147,7 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
         bpy.ops.object.mode_set(mode=org_mode)
 
         # Achieve parenting with an Armature constraint.
-        for bone_name, parent_name in bonenames.items():
+        for bone_name, parent_name in bone_names.items():
             if not parent_name:
                 continue
             pbone = metarig.pose.bones.get(bone_name)
@@ -167,7 +164,7 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
             if not src_id.animation_data:
                 continue
             for fcurve in src_id.animation_data.drivers:
-                if any((f'bones["{bone}"]' in fcurve.data_path for bone in bonenames)):
+                if any(f'bones["{bone}"]' in fcurve.data_path for bone in bone_names):
                     copy_driver(fcurve, tgt_id)
 
         return {'FINISHED'}

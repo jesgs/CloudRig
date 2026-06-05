@@ -3,7 +3,7 @@
 import bpy
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty
-from bpy.types import Action, ActionSlot, Constraint, Operator
+from bpy.types import Action, ActionSlot, Constraint, Context, Object, Operator
 
 
 class CLOUDRIG_OT_toggle_action_constraints(Operator):
@@ -17,24 +17,25 @@ class CLOUDRIG_OT_toggle_action_constraints(Operator):
 
     @staticmethod
     def get_first_referencing_constraint(
-        rig,
+        rig: Object,
         action: Action,
         action_slot: ActionSlot,
     ) -> Constraint | None:
+        """Return the first Action constraint on any bone that targets the given action and slot."""
         for pb in rig.pose.bones:
-            for c in pb.constraints:
-                if c.type == 'ACTION' and c.action == action and c.action_slot == action_slot:
-                    return c
+            for con in pb.constraints:
+                if con.type == 'ACTION' and con.action == action and con.action_slot == action_slot:
+                    return con
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig = context.active_object
         if not rig or rig.type != 'ARMATURE' or rig.mode not in ['POSE', 'OBJECT']:
             cls.poll_message_set("There must be an active armature in pose or object mode.")
-            return
+            return False
         if not (rig.animation_data and rig.animation_data.action):
             cls.poll_message_set("Armature must have an action assigned.")
-            return
+            return False
         action = rig.animation_data.action
         action_slot = rig.animation_data.action_slot
         con = cls.get_first_referencing_constraint(rig, action, action_slot)
@@ -43,16 +44,16 @@ class CLOUDRIG_OT_toggle_action_constraints(Operator):
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = context.active_object
         action = rig.animation_data.action
         action_slot = rig.animation_data.action_slot
 
         con_count = 0
         for pb in rig.pose.bones:
-            for c in pb.constraints:
-                if c.type == 'ACTION' and c.action == action and c.action_slot == action_slot:
-                    c.mute = not self.enable
+            for con in pb.constraints:
+                if con.type == 'ACTION' and con.action == action and con.action_slot == action_slot:
+                    con.mute = not self.enable
                     con_count += 1
 
         self.report({'INFO'}, rpt_('Affected constraints: {count}').format(count=con_count))
@@ -60,7 +61,7 @@ class CLOUDRIG_OT_toggle_action_constraints(Operator):
         return {'FINISHED'}
 
 
-def draw_toggle_but(self, context):
+def draw_toggle_but(self, context: Context):
     layout = self.layout
     st = context.space_data
     if st.mode != 'ACTION':

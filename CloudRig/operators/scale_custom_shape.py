@@ -1,6 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
-from bpy.types import Object, Operator, PoseBone
+from bpy.props import FloatProperty
+from bpy.types import Context, Event, Object, Operator, PoseBone
 from bpy.utils import flip_name
 from mathutils import Vector
 
@@ -15,14 +18,14 @@ class POSE_OT_scale_custom_shape(Operator):
     bl_description = "Scale custom shape of selected pose bones.\n\nShift: More precision\nAlt: Control Bendy Bone display size (only if that display type is already set)\nCtrl: Force Uniform Scale"
     bl_options = {'REGISTER', 'UNDO'}
 
-    sensitivity: bpy.props.FloatProperty(
+    sensitivity: FloatProperty(
         name="Sensitivity",
         default=0.01,
         min=0.0001,
     )
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         def poll_bone(pbone: PoseBone) -> bool:
             if pbone.id_data.mode == 'POSE' and pbone.custom_shape:
                 return True
@@ -39,10 +42,10 @@ class POSE_OT_scale_custom_shape(Operator):
         return True
 
     @staticmethod
-    def get_rig(context) -> Object:
+    def get_rig(context: Context) -> Object:
         return find_cloudrig(context) or context.pose_object or context.active_object
 
-    def invoke(self, context, event):
+    def invoke(self, context: Context, event: Event):
         self.rig = rig = self.get_rig(context)
         self.pbones = [
             pb for pb in get_pbones_of_selected(context, whole_ebone=True) if (pb.custom_shape or is_cloud_metarig(rig))
@@ -71,7 +74,7 @@ class POSE_OT_scale_custom_shape(Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
-    def modal(self, context, event):
+    def modal(self, _context: Context, event: Event):
         if event.type in {'ESC', 'RIGHTMOUSE'}:
             self._restore()
             return {'CANCELLED'}
@@ -118,7 +121,7 @@ class POSE_OT_scale_custom_shape(Operator):
                         avg = (pb.bone.bbone_x + pb.bone.bbone_z) / 2
                         pb.bone.bbone_x = pb.bone.bbone_z = avg
                     else:
-                        avg = sum((abs(s) for s in pb.custom_shape_scale_xyz)) / 3
+                        avg = sum(abs(s) for s in pb.custom_shape_scale_xyz) / 3
                         pb.custom_shape_scale_xyz = (avg, avg, avg)
 
                 if self.rig.data.use_mirror_x:
@@ -135,13 +138,14 @@ class POSE_OT_scale_custom_shape(Operator):
         return {'RUNNING_MODAL'}
 
     def _restore(self):
+        """Restore all pose bones to their cached initial shape scale and bbone dimensions."""
         for pb, (scale, bbone_x, bbone_z) in self.initial_states.items():
             pb.custom_shape_scale_xyz = scale
             pb.bone.bbone_x = bbone_x
             pb.bone.bbone_z = bbone_z
 
 
-def draw_scale_custom_shape_op(self, context):
+def draw_scale_custom_shape_op(self, _context: Context):
     self.layout.operator(POSE_OT_scale_custom_shape.bl_idname)
 
 

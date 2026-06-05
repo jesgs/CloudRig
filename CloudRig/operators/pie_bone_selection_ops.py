@@ -10,94 +10,6 @@ from ..generation.cloudrig import active_rig, reveal_bone
 from ..utils.rig import get_active_bone, get_selected_bone_tuples
 
 
-def deselect_all_bones(context):
-    if context.mode == 'EDIT_ARMATURE':
-        bones = context.selected_editable_bones
-    else:
-        bones = [pb for pb in context.selected_pose_bones]
-    for bone in bones:
-        bone.select = False
-        if context.mode == 'EDIT_ARMATURE':
-            bone.select_head = False
-            bone.select_tail = False
-
-
-def get_bone_by_name(rig, bone_name: str):
-    """Return PoseBone or EditBone with the given name, depending on context."""
-    if rig.mode == 'EDIT_ARMATURE':
-        return rig.data.edit_bones.get(bone_name)
-    else:
-        return rig.pose.bones.get(bone_name)
-
-
-def is_active_bone(context, bone: Bone | EditBone | PoseBone):
-    """Return whether the passed bone is the active one"""
-    if isinstance(bone, PoseBone):
-        armature = bone.id_data.data
-        bone = bone.bone
-    else:
-        armature = bone.id_data
-
-    if context.mode == 'EDIT_ARMATURE' and bone.name == armature.edit_bones.active.name:
-        return True
-    elif context.mode == 'POSE' and context.active_pose_bone.bone == bone:
-        return True
-    elif context.active_bone == bone:
-        return True
-    return False
-
-
-def set_active_bone(context, bone: Bone | EditBone | PoseBone):
-    """Set the active bone, regardless of if we're in edit mode or not.
-    Also account for active vertex group when in weight paint mode.
-    """
-
-    if not bone:
-        return
-    if isinstance(bone, PoseBone):
-        armature = bone.id_data.data
-        bone = bone.bone
-    else:
-        armature = bone.id_data
-
-    if context.mode == 'EDIT_ARMATURE':
-        edit_bone = armature.edit_bones.get(bone.name)
-        armature.edit_bones.active = edit_bone
-    else:
-        armature.bones.active = bone
-
-    if context.mode == 'PAINT_WEIGHT':
-        if bone.name in context.active_object.vertex_groups:
-            context.active_object.vertex_groups.active = context.active_object.vertex_groups[bone.name]
-
-
-def reveal_and_select_bone(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
-    rig = active_rig(context)
-
-    reveal_bone(bone)
-    if not extend_selection:
-        deselect_all_bones(context)
-
-    if context.mode == 'EDIT_ARMATURE':
-        if isinstance(bone, PoseBone):
-            ebone = bone.id_data.data.edit_bones[bone.name]
-        else:
-            ebone = bone.id_data.edit_bones[bone.name]
-        ebone.select = True
-        ebone.select_head = True
-        ebone.select_tail = True
-    else:
-        if isinstance(bone, PoseBone):
-            pbone = bone
-            bone = bone.bone
-        elif isinstance(bone, Bone):
-            pbone = rig.pose.bones.get(bone.name)
-        pbone.hide = False
-        pbone.select = True
-    if set_active:
-        set_active_bone(context, bone)
-
-
 class BoneSelectOperatorMixin:
     extend_selection: BoolProperty(
         name="Extend Selection",
@@ -316,6 +228,94 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         reveal_and_select_bone(context, bone, extend_selection=self.extend_selection)
 
         return {'FINISHED'}
+
+
+def deselect_all_bones(context):
+    if context.mode == 'EDIT_ARMATURE':
+        bones = context.selected_editable_bones
+    else:
+        bones = [pb for pb in context.selected_pose_bones]
+    for bone in bones:
+        bone.select = False
+        if context.mode == 'EDIT_ARMATURE':
+            bone.select_head = False
+            bone.select_tail = False
+
+
+def get_bone_by_name(rig, bone_name: str):
+    """Return PoseBone or EditBone with the given name, depending on context."""
+    if rig.mode == 'EDIT_ARMATURE':
+        return rig.data.edit_bones.get(bone_name)
+    else:
+        return rig.pose.bones.get(bone_name)
+
+
+def is_active_bone(context, bone: Bone | EditBone | PoseBone):
+    """Return whether the passed bone is the active one"""
+    if isinstance(bone, PoseBone):
+        armature = bone.id_data.data
+        bone = bone.bone
+    else:
+        armature = bone.id_data
+
+    if context.mode == 'EDIT_ARMATURE' and bone.name == armature.edit_bones.active.name:
+        return True
+    elif context.mode == 'POSE' and context.active_pose_bone.bone == bone:
+        return True
+    elif context.active_bone == bone:
+        return True
+    return False
+
+
+def set_active_bone(context, bone: Bone | EditBone | PoseBone):
+    """Set the active bone, regardless of if we're in edit mode or not.
+    Also account for active vertex group when in weight paint mode.
+    """
+
+    if not bone:
+        return
+    if isinstance(bone, PoseBone):
+        armature = bone.id_data.data
+        bone = bone.bone
+    else:
+        armature = bone.id_data
+
+    if context.mode == 'EDIT_ARMATURE':
+        edit_bone = armature.edit_bones.get(bone.name)
+        armature.edit_bones.active = edit_bone
+    else:
+        armature.bones.active = bone
+
+    if context.mode == 'PAINT_WEIGHT':
+        if bone.name in context.active_object.vertex_groups:
+            context.active_object.vertex_groups.active = context.active_object.vertex_groups[bone.name]
+
+
+def reveal_and_select_bone(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
+    rig = active_rig(context)
+
+    reveal_bone(bone)
+    if not extend_selection:
+        deselect_all_bones(context)
+
+    if context.mode == 'EDIT_ARMATURE':
+        if isinstance(bone, PoseBone):
+            ebone = bone.id_data.data.edit_bones[bone.name]
+        else:
+            ebone = bone.id_data.edit_bones[bone.name]
+        ebone.select = True
+        ebone.select_head = True
+        ebone.select_tail = True
+    else:
+        if isinstance(bone, PoseBone):
+            pbone = bone
+            bone = bone.bone
+        elif isinstance(bone, Bone):
+            pbone = rig.pose.bones.get(bone.name)
+        pbone.hide = False
+        pbone.select = True
+    if set_active:
+        set_active_bone(context, bone)
 
 
 registry = [

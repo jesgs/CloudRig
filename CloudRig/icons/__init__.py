@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-from collections import defaultdict
 from pathlib import Path
 
 import bpy
@@ -9,7 +8,7 @@ import bpy.utils.previews  # Do not remove. Seems necessary for some python vers
 from bpy.types import ImagePreview
 
 EXTENSIONS = ("png", "svg")
-ICON_STORAGE = defaultdict()
+ICON_STORAGE: dict = {}
 
 
 def get_cloudrig_icon_id(icon_name: str) -> int:
@@ -31,11 +30,11 @@ def get_widget_icon_id(wgt_name: str) -> int:
 def get_icons(icon_map_name="default") -> dict[str, ImagePreview]:
     icon_map = ICON_STORAGE.get(icon_map_name)
     if icon_map:
-        return icon_map.items()
+        return icon_map
     return {}
 
 
-def ensure_icon(icon_name: str, dir_path="", icon_map_name="default") -> ImagePreview:
+def ensure_icon(icon_name: str, dir_path: str | Path = "", icon_map_name="default") -> ImagePreview:
     if not dir_path:
         dir_path = os.path.dirname(__file__)
 
@@ -52,13 +51,14 @@ def ensure_icon(icon_name: str, dir_path="", icon_map_name="default") -> ImagePr
         if full_path.is_file():
             break
     else:
+        assert icon_name != "missing_icon", "Fallback icon missing."
         return ensure_icon("missing_icon", icon_map_name=icon_map_name)
 
     return icon_map.load(icon_name, full_path.as_posix(), 'IMAGE')
 
 
 def ensure_icons_from_dir(dir_path: str | Path, icon_map_name="default") -> list[ImagePreview]:
-    if type(dir_path) is str:
+    if isinstance(dir_path, str):
         dir_path = Path(dir_path)
     if not dir_path.exists():
         return []

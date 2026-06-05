@@ -6,7 +6,7 @@ import bpy
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import StringProperty
-from bpy.types import ID, Menu, Object, Operator
+from bpy.types import ID, Context, Menu, Object, Operator, OperatorProperties
 from bpy_extras.id_map_utils import get_all_referenced_ids, get_id_reference_map
 
 from ..generation.cloudrig import is_cloud_metarig
@@ -28,7 +28,7 @@ class CLOUDRIG_OT_metarig_add(Operator):
     metarig_name: StringProperty()
 
     @classmethod
-    def description(cls, context, props) -> str:
+    def description(cls, _context: Context, props: OperatorProperties) -> str:
         if props.metarig_name == 'META-Sintel':
             return tip_(
                 "Metarig showcasing advanced features:\n"
@@ -52,7 +52,7 @@ class CLOUDRIG_OT_metarig_add(Operator):
                 "- A squishy, cartoony spine rig"
             )
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = append_metarig(context, self.metarig_name)
         if not metarig:
             self.report({'ERROR'}, iface_("Failed to load metarig: ") + self.metarig_name)
@@ -70,7 +70,7 @@ class CLOUDRIG_OT_sample_add(Operator):
 
     sample_name: StringProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         if context.mode == 'EDIT_ARMATURE':
             sample_obj = add_sample_to_current_rig(context, self.sample_name)
             self.report({'INFO'}, iface_("Added component sample: ") + self.sample_name)
@@ -88,7 +88,7 @@ class CLOUDRIG_OT_sample_add(Operator):
 class CLOUDRIG_MT_metarigs(Menu):
     bl_label = iface_("CloudRig Metarigs")
 
-    def draw(self, context):
+    def draw(self, _context: Context):
         global METARIG_NAMES
         for ui_name, obj_name in METARIG_NAMES:
             self.layout.operator(
@@ -101,7 +101,7 @@ class CLOUDRIG_MT_metarigs(Menu):
 class CLOUDRIG_MT_rig_samples(Menu):
     bl_label = iface_("CloudRig Samples")
 
-    def draw(self, context):
+    def draw(self, _context: Context):
         global SAMPLE_NAMES
         for ui_name, obj_name in SAMPLE_NAMES:
             self.layout.operator(
@@ -128,7 +128,14 @@ def get_available_object_name(obj_name: str) -> str:
     return numbered_name
 
 
-def append_obj_from_file(context, blend_path, obj_name, link_to_scene=True, select=True, use_cursor=True) -> Object:
+def append_obj_from_file(
+    context: Context,
+    blend_path: str,
+    obj_name: Object,
+    link_to_scene=True,
+    select=True,
+    use_cursor=True,
+) -> Object:
     """Append an object from a .blend file and return it."""
     available_name = get_available_object_name(obj_name)
 
@@ -156,7 +163,7 @@ def append_obj_from_file(context, blend_path, obj_name, link_to_scene=True, sele
     return new_obj
 
 
-def append_metarig(context, metarig_name) -> Object | None:
+def append_metarig(context: Context, metarig_name: str) -> Object | None:
     """Append a full metarig preset."""
     bpy.ops.object.select_all(action='DESELECT')
     new_metarig = append_metarig_or_sample(context, metarig_name)
@@ -164,7 +171,7 @@ def append_metarig(context, metarig_name) -> Object | None:
     return new_metarig
 
 
-def append_sample(context, sample_name) -> Object | None:
+def append_sample(context: Context, sample_name: str) -> Object | None:
     """Append a rig sample."""
     bpy.ops.object.select_all(action='DESELECT')
     if "Sample_" not in sample_name:
@@ -172,7 +179,7 @@ def append_sample(context, sample_name) -> Object | None:
     return append_metarig_or_sample(context, sample_name)
 
 
-def append_metarig_or_sample(context, full_name: str) -> Object | None:
+def append_metarig_or_sample(context: Context, full_name: str) -> Object | None:
     obj = append_obj_from_file(context, get_metarig_blend_path(), full_name)
     if not obj:
         return
@@ -203,7 +210,7 @@ def append_metarig_or_sample(context, full_name: str) -> Object | None:
     return obj
 
 
-def add_sample_to_current_rig(context, sample_name: str) -> Object:
+def add_sample_to_current_rig(context: Context, sample_name: str) -> Object:
     """Append a rig sample from MetaRigs.blend, then join it into the currently active armature."""
 
     rig = context.active_object
@@ -267,12 +274,12 @@ def refresh_rig_sample_list():
     return SAMPLE_NAMES
 
 
-def draw_cloudrig_metarig_menu(self, context):
+def draw_cloudrig_metarig_menu(self, context: Context):
     self.layout.menu('CLOUDRIG_MT_metarigs', icon='OUTLINER_OB_ARMATURE')
     draw_cloudrig_samples_menu(self, context)
 
 
-def draw_cloudrig_samples_menu(self, context):
+def draw_cloudrig_samples_menu(self, context: Context):
     if context.mode == 'EDIT_ARMATURE' and not context.active_object.cloudrig.enabled:
         return
     self.layout.menu('CLOUDRIG_MT_rig_samples', icon='OUTLINER_OB_ARMATURE')

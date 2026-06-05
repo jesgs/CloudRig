@@ -3,7 +3,7 @@
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
-from bpy.types import Bone, EditBone, Menu, Object, Operator, PoseBone
+from bpy.types import Bone, Context, EditBone, Menu, Object, Operator, PoseBone
 from bpy.utils import flip_name
 
 from ..bs_utils.hotkeys import register_hotkey
@@ -12,8 +12,10 @@ from ..utils.rig import get_active_bone, get_current_rigs, get_selected_bone_tup
 
 
 class GenericBoneOperator:
+    """Base mixin for bone operators that work across Pose, Edit, and Weight Paint modes."""
+
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig = active_rig(context)
         if not (rig and rig.type == 'ARMATURE'):
             cls.poll_message_set("No active armature.")
@@ -23,7 +25,7 @@ class GenericBoneOperator:
             return False
         return True
 
-    def get_ebones_to_affect(self, context) -> list[tuple[Object, Bone | EditBone]]:
+    def get_ebones_to_affect(self, context: Context) -> list[tuple[Object, Bone | EditBone]]:
         if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
 
@@ -43,8 +45,8 @@ class GenericBoneOperator:
 
         return ebone_tuples
 
-    def affect_bones(self, context) -> set[str]:
-        """Returns list of bone names that were actually affected."""
+    def affect_bones(self, context: Context) -> set[str]:
+        """Returns set of bone names that were actually affected."""
         mode = context.active_object.mode
         active_obj = None
         if mode == 'WEIGHT_PAINT':
@@ -60,7 +62,7 @@ class GenericBoneOperator:
         bpy.ops.object.mode_set(mode=mode)
         return affected_bones_names
 
-    def affect_ebones(self, context, ebones) -> set[str]:
+    def affect_ebones(self, _context: Context, ebones: list[tuple[Object, EditBone]]) -> set[str]:
         affected_bones_names = set()
         for rig, ebone in list(ebones):
             bone_name = ebone.name
@@ -69,11 +71,11 @@ class GenericBoneOperator:
                 affected_bones_names.add(bone_name)
         return affected_bones_names
 
-    def affect_bone(self, rig: Object, eb: EditBone) -> bool:
+    def affect_bone(self, _rig: Object, _eb: EditBone) -> bool:
         """Return whether the bone was indeed affected."""
         raise NotImplementedError
 
-    def execute(self, context):
+    def execute(self, context: Context):
         self.affect_bones(context)
         return {'FINISHED'}
 
@@ -86,7 +88,7 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if not super().poll(context):
             return False
         for rig, bone in get_selected_bone_tuples(context):
@@ -96,13 +98,13 @@ class POSE_OT_disconnect_bones(GenericBoneOperator, Operator):
         cls.poll_message_set("None of the selected bones are connected.")
         return False
 
-    def affect_bone(self, rig: Object, eb: EditBone) -> bool:
+    def affect_bone(self, _rig: Object, eb: EditBone) -> bool:
         if eb.use_connect:
             eb.use_connect = False
             return True
         return False
 
-    def execute(self, context):
+    def execute(self, context: Context):
         affected = self.affect_bones(context)
         self.report({'INFO'}, rpt_("Disconnected {num_bones}.").format(num_bones=len(affected)))
         return {'FINISHED'}
@@ -116,7 +118,7 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if not super().poll(context):
             return False
         for rig, bone in get_selected_bone_tuples(context):
@@ -127,13 +129,13 @@ class POSE_OT_unparent_bones(GenericBoneOperator, Operator):
         cls.poll_message_set("None of the selected bones have a parent.")
         return False
 
-    def affect_bone(self, rig: Object, eb: EditBone) -> bool:
+    def affect_bone(self, _rig: Object, eb: EditBone) -> bool:
         if eb.parent:
             eb.parent = None
             return True
         return False
 
-    def execute(self, context):
+    def execute(self, context: Context):
         affected = self.affect_bones(context)
         self.report({'INFO'}, rpt_("Unparented {num_bones}.").format(num_bones=len(affected)))
         return {'FINISHED'}
@@ -147,13 +149,13 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if not super().poll(context):
             return False
         if context.mode not in ('POSE', 'PAINT_WEIGHT'):
             cls.poll_message_set("Must be in Pose mode")
             return False
-        if not len(get_selected_bone_tuples(context)) > 1:
+        if len(get_selected_bone_tuples(context)) <= 1:
             cls.poll_message_set("At least two bones must be selected.")
             return False
         if not get_active_bone(context):
@@ -161,12 +163,12 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
             return False
         return True
 
-    def get_ebones_to_affect(self, context) -> list[tuple[Object, Bone | EditBone]]:
+    def get_ebones_to_affect(self, context: Context) -> list[tuple[Object, Bone | EditBone]]:
         ebone_tuples = super().get_ebones_to_affect(context)
         ret = [tup for tup in ebone_tuples if tup[1].name == context.active_bone.name]
         return ret
 
-    def affect_bone(self, rig: Object, ebone: EditBone):
+    def affect_bone(self, rig: Object, ebone: EditBone) -> bool:
         ebone.parent = None
         pbone = rig.pose.bones[ebone.name]
 
@@ -190,7 +192,9 @@ class POSE_OT_parent_active_to_all_selected(GenericBoneOperator, Operator):
             ),
         )
 
-    def execute(self, context):
+        return True
+
+    def execute(self, context: Context):
         self.selected_bones = [(pb.id_data, pb) for pb in context.selected_pose_bones]
         self.affect_bones(context)
         return {'FINISHED'}
@@ -204,7 +208,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll_parenting(cls, context):
+    def poll_parenting(cls, context: Context) -> bool:
         if not super().poll(context):
             return False
         active_bone = get_active_bone(context)
@@ -217,13 +221,13 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         if len(bone_tuples_to_parent) < 1:
             cls.poll_message_set("At least two bones must be selected.")
             return False
-        if any((b.id_data != active_bone.id_data for rig, b in bone_tuples_to_parent)):
+        if any(bone.id_data != active_bone.id_data for _rig, bone in bone_tuples_to_parent):
             cls.poll_message_set("All selected bones must be from the same armature.")
             return False
         return True
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         poll_parenting = cls.poll_parenting(context)
         if not poll_parenting:
             return False
@@ -232,7 +236,7 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
         if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
-        if all((b.parent == active_bone for rig, b in bone_tuples_to_parent)):
+        if all(bone.parent == active_bone for _rig, bone in bone_tuples_to_parent):
             cls.poll_message_set("Selected bones are already parented to the active one.")
             return False
         return True
@@ -256,27 +260,26 @@ class POSE_OT_parent_selected_to_active(GenericBoneOperator, Operator):
             child_eb.use_connect = False
         child_eb.parent = parent_eb
 
-    def affect_ebones(self, context, ebones: list[EditBone]) -> set[str]:
+    def affect_ebones(self, context: Context, _ebones: list[tuple[Object, EditBone]]) -> set[str]:
         rig = active_rig(context)
         parent = get_active_bone(context)
         parent_name = parent.name
 
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
         self.parent_edit_bones(parent, bone_tuples_to_parent)
-        affected_bones_names = {t[1].name for t in bone_tuples_to_parent}
+        affected_bones_names = {eb.name for _, eb in bone_tuples_to_parent}
 
         flipped_bone_tuples_to_parent = []
         if rig.data.use_mirror_x:
             flipped_parent = rig.data.edit_bones.get(flip_name(parent.name))
             if flipped_parent:
-                flipped_bone_tuples_to_parent = []
                 for rig, eb in bone_tuples_to_parent:
                     flipped_eb = rig.data.edit_bones.get(flip_name(eb.name))
                     if not flipped_eb or flipped_eb == eb:
                         continue
                     flipped_bone_tuples_to_parent.append((rig, flipped_eb))
                 self.parent_edit_bones(flipped_parent, flipped_bone_tuples_to_parent)
-                affected_bones_names |= set([t[1].name for t in flipped_bone_tuples_to_parent])
+                affected_bones_names |= {eb.name for _, eb in flipped_bone_tuples_to_parent}
 
         plural = "s" if len(bone_tuples_to_parent) != 1 else ""
         message = f'Parented {len(bone_tuples_to_parent)} bone{plural} to "{parent_name}".'
@@ -297,7 +300,7 @@ class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         poll_parenting = cls.poll_parenting(context)
         if not poll_parenting:
             return False
@@ -306,12 +309,12 @@ class POSE_OT_parent_and_connect(POSE_OT_parent_selected_to_active):
         if isinstance(active_bone, PoseBone):
             active_bone = active_bone.bone
         bone_tuples_to_parent = get_selected_bone_tuples(context, exclude_active=True)
-        if all((b.parent == active_bone and b.use_connect for rig, b in bone_tuples_to_parent)):
+        if all(b.parent == active_bone and b.use_connect for rig, b in bone_tuples_to_parent):
             cls.poll_message_set("Selected bones are already parented and connected to the active one.")
             return False
         return True
 
-    def parent_edit_bone(self, parent_eb, child_eb):
+    def parent_edit_bone(self, parent_eb: EditBone, child_eb: EditBone):
         super().parent_edit_bone(parent_eb, child_eb)
         offset = parent_eb.tail - child_eb.head
         child_eb.tail += offset
@@ -327,16 +330,16 @@ class POSE_OT_parent_object_to_selected_bones(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
-        if not len(get_selected_bone_tuples(context)) > 0:
+    def poll(cls, context: Context):
+        if not get_selected_bone_tuples(context):
             cls.poll_message_set("At least one bone must be selected.")
             return False
-        if not len(context.selected_objects) > 1:
+        if len(context.selected_objects) <= 1:
             cls.poll_message_set("At least one object outside of the armature must be selected.")
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = active_rig(context)
         target_objs = [o for o in context.selected_objects if o.mode != 'POSE']
         if not target_objs:
@@ -345,10 +348,10 @@ class POSE_OT_parent_object_to_selected_bones(Operator):
         pbones = context.selected_pose_bones
         for obj in target_objs:
             arm_con = None
-            for c in obj.constraints:
-                if c.type == 'ARMATURE':
-                    c.targets.clear()
-                    arm_con = c
+            for con in obj.constraints:
+                if con.type == 'ARMATURE':
+                    con.targets.clear()
+                    arm_con = con
                     break
             if not arm_con:
                 arm_con = obj.constraints.new(type='ARMATURE')
@@ -377,7 +380,7 @@ class POSE_OT_separate_selected_bones(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if len(list(get_current_rigs(context))) != 1:
             cls.poll_message_set("Only one selected armature is supported.")
             return False
@@ -386,7 +389,7 @@ class POSE_OT_separate_selected_bones(Operator):
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         bone_tuples = get_selected_bone_tuples(context)
         if context.mode != 'EDIT_ARMATURE':
             bpy.ops.object.mode_set(mode='EDIT')
@@ -414,7 +417,7 @@ class POSE_OT_separate_selected_bones(Operator):
 class CLOUDRIG_MT_pie_bone_parenting(Menu):
     bl_label = iface_("Bone Parenting")
 
-    def draw(self, context):
+    def draw(self, _context: Context):
         layout = self.layout
         pie = layout.menu_pie()
 

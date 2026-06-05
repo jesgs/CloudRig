@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from bpy.app.translations import pgettext_rpt as rpt_
-from bpy.types import Operator
+from bpy.types import Context, Operator
 from bpy.utils import flip_name
 
 from ..bs_utils.properties import copy_property_group
@@ -15,7 +15,7 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         obj = context.active_object
         if not obj or obj.type != 'ARMATURE' or obj.mode != 'POSE':
             cls.poll_message_set("Active armature must be in pose mode.")
@@ -31,7 +31,7 @@ class POSE_OT_cloudrig_symmetrize_components(Operator):
         cls.poll_message_set("No selected bones have a CloudRig Component assigned. Nothing to symmetrize.")
         return False
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = context.active_object
 
         num_mirrored = 0
@@ -75,7 +75,7 @@ class POSE_OT_cloudrig_copy_component(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         obj = context.active_object
         if not obj or obj.type != 'ARMATURE' or obj.mode != 'POSE':
             cls.poll_message_set("Active armature must be in pose mode.")
@@ -97,7 +97,7 @@ class POSE_OT_cloudrig_copy_component(Operator):
 
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         from_bone = context.active_pose_bone
 
         num_copied = 0
@@ -117,7 +117,7 @@ class POSE_OT_cloudrig_copy_component(Operator):
         return {'FINISHED'}
 
 
-def draw_copy_mirror_ops(self, context):
+def draw_copy_mirror_ops(self, context: Context):
     layout = self.layout
     if context.mode == 'POSE':
         layout.separator()

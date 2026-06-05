@@ -3,7 +3,7 @@
 import bpy
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
-from bpy.types import Operator
+from bpy.types import Context, Operator
 
 from ..utils.rig import ik_chain_flatten_single_iter, is_ideal_ik_chain
 
@@ -40,14 +40,14 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
     )
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig = context.active_object
         if not rig or rig.type != 'ARMATURE' or rig.mode != 'POSE':
             cls.poll_message_set("Active armature must be in pose mode.")
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = context.active_object
         start_pb = context.active_pose_bone
         if self.start_bone:
@@ -56,7 +56,6 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
             self.report({'ERROR'}, rpt_("Bone not found: {bone}").format(bone=self.start_bone))
             return {'CANCELLED'}
 
-        # Enter edit mode
         org_mode = rig.mode
         comp = start_pb.cloudrig_component.inherited_component
         pb_chain = comp.component_pbone_chain
@@ -69,19 +68,19 @@ class CLOUDRIG_OT_flatten_ik_chain(Operator):
         if comp.component_type == 'Chain: Leg':
             # Drop the toe.
             eb_chain = eb_chain[:-1]
-        did_anything = False
-        counter = 0
+
+        iterations = 0
         max_iter = 100
-        while not (is_ideal_ik_chain(eb_chain) or counter > max_iter):
-            did_anything = ik_chain_flatten_single_iter(eb_chain, axis=self.pole_axis)
-            counter += 1
+        while not is_ideal_ik_chain(eb_chain) and iterations < max_iter:
+            ik_chain_flatten_single_iter(eb_chain, axis=self.pole_axis)
+            iterations += 1
 
         bpy.ops.object.mode_set(mode=org_mode)
 
         if self.remove_active_log:
             rig.cloudrig.generator.remove_active_log()
 
-        if did_anything or counter > 1:
+        if iterations > 0:
             self.report({'INFO'}, "Bone chain now perfect for IK.")
         else:
             self.report({'INFO'}, "Bone chain was already perfect for IK.")

@@ -2,7 +2,7 @@
 
 import bpy
 from bpy.app.translations import pgettext_rpt as rpt_
-from bpy.types import Constraint, Object, Operator, PoseBone
+from bpy.types import Constraint, Context, Object, Operator, PoseBone
 from bpy.utils import flip_name
 from rna_prop_ui import rna_idprop_value_item_type
 
@@ -24,7 +24,7 @@ class POSE_OT_symmetrize_rigging(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig = active_rig(context)
         if not rig:
             cls.poll_message_set("No active armature.")
@@ -42,7 +42,7 @@ class POSE_OT_symmetrize_rigging(Operator):
         cls.poll_message_set("No selected flippable bones.")
         return False
 
-    def get_symmetrize_bone_mapping(self, context) -> dict[PoseBone, PoseBone] | set:
+    def get_symmetrize_bone_mapping(self, context: Context) -> dict[PoseBone, PoseBone] | set[str]:
         bone_map = {}
         rig = active_rig(context)
         selected_pose_bones = context.selected_pose_bones[:]
@@ -72,7 +72,7 @@ class POSE_OT_symmetrize_rigging(Operator):
 
         return bone_map
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = active_rig(context)
 
         with object_mode(rig, mode='POSE'):
@@ -149,10 +149,8 @@ class POSE_OT_symmetrize_rigging(Operator):
         return {"FINISHED"}
 
 
-def remove_constraint_with_drivers(
-    pbone: PoseBone,
-    con: Constraint,
-):
+def remove_constraint_with_drivers(pbone: PoseBone, con: Constraint):
+    """Remove a constraint and any drivers that target it."""
     armature = pbone.id_data
     if not con:
         return
@@ -220,8 +218,8 @@ def symmetrize_drivers(
     armature: Object,
     src_bone: PoseBone,
     dst_bone: PoseBone,
-    src_constraint: Constraint = None,
-    dst_constraint: Constraint = None,
+    src_constraint: Constraint | None = None,
+    dst_constraint: Constraint | None = None,
 ):
     """Mirrors all drivers from one bone to another.
     If src_constraint is specified, dst_constraint also must be, and then copy and mirror
@@ -334,7 +332,7 @@ def symmetrize_drivers(
                 # If one of the driving values is something that needs to be inverted, invert only that value in the expression.
                 if (dst_var.type == 'TRANSFORM' and dst_tgt.transform_type in {'ROT_Y', 'ROT_Z', 'LOC_X'}) or (
                     dst_var.type == 'SINGLE_PROP'
-                    and any((dst_tgt.data_path.endswith(thing) for thing in invert_values))
+                    and any(dst_tgt.data_path.endswith(thing) for thing in invert_values)
                 ):
                     expression = expression.replace(dst_var.name, f"-({dst_var.name})")
 
@@ -345,7 +343,7 @@ def symmetrize_drivers(
             if is_array and new_fc.array_index > -1:
                 data_path_with_index += f"[{new_fc.array_index}]"
 
-            if any((data_path_with_index.endswith(key) for key in invert_values)):
+            if any(data_path_with_index.endswith(key) for key in invert_values):
                 expression = f"-({expression})"
 
             if new_fc.data_path.endswith('pole_angle'):
@@ -360,7 +358,7 @@ def symmetrize_drivers(
         new_fc.driver.expression = expression
 
 
-def get_driver_mirror_logic(src_constraint):
+def get_driver_mirror_logic(src_constraint: Constraint | None) -> tuple[list[str], dict[str, str]]:
     transforms_to_invert = ['location[0]', 'rotation_euler[1]', 'rotation_euler[2]']
     invert_values = {
         'LIMIT_LOCATION': ['min_x', 'max_x'],
@@ -451,7 +449,7 @@ def get_driver_mirror_logic(src_constraint):
     return transforms_to_invert, swap_map
 
 
-def draw_menu_entry(self, context):
+def draw_menu_entry(self, _context: Context):
     self.layout.separator()
     self.layout.operator(POSE_OT_symmetrize_rigging.bl_idname, icon='MOD_MIRROR')
 
