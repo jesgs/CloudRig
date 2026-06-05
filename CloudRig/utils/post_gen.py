@@ -307,4 +307,8 @@ def update_widget_properties(rig: Object, bone_name: str, **kwargs):
         if prop_name == "custom_shape_scale_xyz" and isinstance(value, (int, float)):
             value = (value, value, value)
 
+        # Allow string for transform
+        if prop_name == "custom_shape_transform" and isinstance(value, str):
+            value = rig.pose.bones.get(value)
+
         setattr(bone, prop_name, value)
