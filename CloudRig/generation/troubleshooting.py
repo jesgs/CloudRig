@@ -678,6 +678,9 @@ class CloudLogManager:
     def report_sus_constraints(self, rig_obj):
         def check_issues(con: Constraint) -> str:
             """Workaround various cases where the native con.is_valid returns an incorrect value..."""
+            if con.type == 'ACTION':
+                # Too hard to check.
+                return ""
             if hasattr(con, 'target') and not con.target:
                 return n_("Target object not provided.")
             if hasattr(con, 'subtarget'):
