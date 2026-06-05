@@ -157,10 +157,9 @@ class Component_Limb_BipedLeg(Component_Limb):
         return ui_data
 
     @no_overlay
-    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, _default=0.0):
+    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr):
         """Let leg IK poles follow the IK master by default."""
-        # TODO: Expose this default value as a param, then  make this a soft default.
-        super().ik_chain__make_pole_follow_switch(ik_pole, ik_mstr, default=1.0)
+        super().ik_chain__make_pole_follow_switch(ik_pole, ik_mstr)
 
     @no_overlay
     def ik_chain__world_align_fk(self):
@@ -484,6 +483,7 @@ class Component_Limb_BipedLeg(Component_Limb):
     @classmethod
     def set_param_defaults(cls, component):
         component.params.ik_chain.shape_ik_master.shape_name = 'Foot'
+        component.params.ik_chain.default_ik_pole_follow = 1.0
 
     @classmethod
     def draw_control_params(cls, layout, context, component):

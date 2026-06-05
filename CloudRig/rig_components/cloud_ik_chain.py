@@ -542,7 +542,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             )
 
     @no_overlay
-    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, default=0.0):
+    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr):
         pole_parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
         pole_parent_helper.custom_shape = None
 
@@ -564,7 +564,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             row_name=self.base_name,
             slider_name=self.base_name_ui,
             custom_prop_settings={
-                "default": default,
+                "default": self.params.ik_chain.default_ik_pole_follow,
                 "description": tip_('Make "{ik_pole}" follow "{ik_mstr}"').format(
                     ik_pole=ik_pole.name, ik_mstr=ik_mstr.name
                 ),
@@ -648,6 +648,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         layout.separator()
         cls.draw_prop(context, layout, component.params.ik_chain, 'default_fkik', slider=True)
         cls.draw_prop(context, layout, component.params.ik_chain, 'default_stretch', slider=True)
+        if component.params.ik_chain.pole_parent_switch == 'FOLLOW':
+            cls.draw_prop(context, layout, component.params.ik_chain, 'default_ik_pole_follow', slider=True)
 
 
 class Params(PropertyGroup):
@@ -699,6 +701,12 @@ class Params(PropertyGroup):
     )
     default_stretch: FloatProperty(
         name="Default IK Stretch",
+        min=0,
+        max=1,
+        default=0,
+    )
+    default_ik_pole_follow: FloatProperty(
+        name="Default IK Pole Follow",
         min=0,
         max=1,
         default=0,

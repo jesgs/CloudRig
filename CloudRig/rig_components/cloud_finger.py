@@ -82,7 +82,7 @@ class Component_Finger(Component_Chain_IKFK):
             self.pole_ctrl.parent = org_chain[-2]
 
     @no_overlay
-    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr, _default=0.0):
+    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr):
         """It's not currently necessary to override this function,
         but just to be safe.
         """
