@@ -21,6 +21,7 @@ import webbrowser
 import addon_utils
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import (
     BoolProperty,
@@ -29,7 +30,7 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
-from bpy.types import DriverTarget, Object, Operator, PropertyGroup, UIList
+from bpy.types import Constraint, DriverTarget, Object, Operator, PropertyGroup, UIList
 from mathutils import Color, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -675,18 +676,40 @@ class CloudLogManager:
                     )
 
     def report_sus_constraints(self, rig_obj):
+        def check_issues(con: Constraint) -> str:
+            """Workaround various cases where the native con.is_valid returns an incorrect value..."""
+            if hasattr(con, 'target') and not con.target:
+                return n_("Target object not provided.")
+            if hasattr(con, 'subtarget'):
+                if not con.subtarget:
+                    return n_("Subtarget not provided.")
+                if con.target.type == 'ARMATURE' and con.subtarget not in con.target.pose.bones:
+                    return n_("Target bone not found in target armature.")
+                elif (
+                    hasattr(con.target, 'vertex_groups')
+                    and con.target.vertex_groups
+                    and con.subtarget not in con.target.vertex_groups
+                ):
+                    return n_("Vertex group not found in target object.")
+            elif con.type == 'ARMATURE':
+                for tar in con.targets:
+                    if not (tar.target and tar.subtarget and tar.subtarget in tar.target.pose.bones):
+                        return n_("Missing Target.")
+                return ""
+
+            return ""
+
         for pb in rig_obj.pose.bones:
             arm_con = None
             for con in pb.constraints:
-                if not con.is_valid:
+                err_msg = check_issues(con)
+                if err_msg:
                     self.log(
                         rpt_("Invalid Constraint"),
                         note=con.name,
                         trouble_bone=pb.name,
                         icon='CONSTRAINT_BONE',
-                        description=rpt_(
-                            'Constraint is invalid. This is usually because its target bone does not exist.'
-                        ),
+                        description=rpt_('Constraint is invalid.\n{message}').format(message=err_msg),
                     )
                 if con.type == 'ARMATURE':
                     if not arm_con:
