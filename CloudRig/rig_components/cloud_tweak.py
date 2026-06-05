@@ -42,15 +42,15 @@ class Component_TweakBone(Component_Base):
             )
 
         bone_info_tuple = [(key, value) for key, value in bone_infos.items()][0]
-        self.original_name, self_bone = bone_info_tuple
-        self_bone.name += "_Tweak"
+        self.original_name, self.org_bone = bone_info_tuple
+        self.org_bone.name += "_Tweak"
         return bone_infos
 
     def create_component_interactions(self, context):
         meta_pbone = self.metarig_base_pbone
         org_boneinfo = self.bones_org[0]
         self.bone_to_tweak = bone_to_tweak = self.generator.find_bone_info(self.original_name)
-
+        self.org_bone.disown(self.bone_to_tweak)
         if not self.bone_to_tweak:
             self.add_log(
                 rpt_("No bone to tweak"),
