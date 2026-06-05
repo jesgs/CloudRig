@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 import bpy
-from bpy.types import Bone, EditBone, Object, PoseBone
+from bpy.types import Bone, EditBone, Object, PoseBone, bpy_prop_collection
 from bpy.utils import flip_name as bpy_flip_name
 
 SEPARATORS = " ._-"
@@ -33,21 +33,14 @@ def flip_name(thing: Any) -> str:
     return bpy_flip_name(get_name(thing))
 
 
-def get_side_lists(with_separators=False) -> tuple[list[str], list[str], list[str]]:
-    left = [
-        "left",
-        "Left",
-        "LEFT",
-        "l",
-        "L",
-    ]
-    right_placehold = ["*rgt*", "*Rgt*", "*RGT*", "*r*", "*R*"]
+def get_side_lists(with_separators=False) -> tuple[list[str], list[str]]:
+    left = ["left", "Left", "LEFT", "l", "L"]
     right = ["right", "Right", "RIGHT", "r", "R"]
 
     # If the name is longer than 2 characters, only swap side identifiers if they
     # are next to a separator.
     if with_separators:
-        for list_to_modify in [left, right_placehold, right]:
+        for list_to_modify in [left, right]:
             list_copy = list_to_modify[:]
             for side in list_copy:
                 if len(side) < 4:
@@ -56,7 +49,7 @@ def get_side_lists(with_separators=False) -> tuple[list[str], list[str], list[st
                     list_to_modify.append(side + sep)
                     list_to_modify.append(sep + side)
 
-    return left, right_placehold, right
+    return left, right
 
 
 def side_is_left(thing: Any) -> bool | None:
@@ -67,21 +60,21 @@ def side_is_left(thing: Any) -> bool | None:
     if flipped_name == name:
         return None  # Return None to indicate neither side.
 
-    stripped_name, number_suffix = strip_trailing_numbers(name)
+    stripped_name, _number_suffix = strip_trailing_numbers(name)
 
-    def check_start_side(side_list, name):
+    def check_start_side(side_list: list[str], name: str) -> bool:
         for side in side_list:
             if name.startswith(side):
                 return True
         return False
 
-    def check_end_side(side_list, name):
+    def check_end_side(side_list: list[str], name: str) -> bool:
         for side in side_list:
             if name.endswith(side):
                 return True
         return False
 
-    left, right_placehold, right = get_side_lists(with_separators=True)
+    left, right = get_side_lists(with_separators=True)
 
     is_left_prefix = check_start_side(left, stripped_name)
     is_left_suffix = check_end_side(left, stripped_name)
@@ -282,8 +275,8 @@ def add_prefix(thing: Any, new_prefix: str) -> str:
 #################################
 
 
-def uniqify(thing: Any, collprop: list = None, strip_first=True, id=None) -> str:
-    if not collprop:
+def uniqify(thing: Any, collprop: bpy_prop_collection | None = None, strip_first=True, datablock: Any = None) -> str:
+    if collprop is None:
         if isinstance(thing, PoseBone):
             collprop = thing.id_data.pose.bones
         elif isinstance(thing, Bone):
@@ -298,7 +291,7 @@ def uniqify(thing: Any, collprop: list = None, strip_first=True, id=None) -> str
     if strip_first:
         name = strip_blender_zeroes(name)
     while name in collprop:
-        if collprop.get(name) == id:
+        if collprop.get(name) == datablock:
             return name
         name = increment_name(name)
     return name
@@ -339,18 +332,18 @@ def combine_names(things: list[Any]) -> str:
     slices = [slice_name(n) for n in names]
 
     prefixes = []
-    for slice in slices:
-        for prefix in slice[0]:
+    for name_slice in slices:
+        for prefix in name_slice[0]:
             if prefix not in prefixes:
                 prefixes.append(prefix)
 
     suffixes = []
-    for slice in slices:
-        for suffix in slice[2]:
+    for name_slice in slices:
+        for suffix in name_slice[2]:
             if suffix not in suffixes:
                 suffixes.append(suffix)
 
-    bases = list(set([s[1] for s in slices]))
+    bases = list(set([name_slice[1] for name_slice in slices]))
 
     # If matching pairs of side suffixes are in the suffix list, remove both.
     # For example, if L and R are both present, remove them.
@@ -362,7 +355,7 @@ def combine_names(things: list[Any]) -> str:
 
     ### Combine bases
     # Sort by length and pick the first one.
-    shortest_base = sorted(bases, key=lambda b: len(b))[0]
+    shortest_base = sorted(bases, key=lambda base: len(base))[0]
 
     base_start = ""
     # Don't repeat matching characters, eg. "Lip_Top1" and "Lip_Bot1" should combine into "Lip_Top1+Bot1" instead of "Lip_Top1+Lip_Bot1"
@@ -410,7 +403,7 @@ def make_name(prefixes: list[str] = [], base="", suffixes: list[str] = []) -> st
     return name
 
 
-def slice_name(thing: Any):
+def slice_name(thing: Any) -> tuple[list[str], str, list[str]]:
     """Break up a name into its prefix, base, suffix components."""
     name = get_name(thing)
     prefixes = name.split(PREFIX_SEPARATOR)[:-1]

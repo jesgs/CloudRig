@@ -30,7 +30,7 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
-from bpy.types import Constraint, DriverTarget, Object, Operator, PropertyGroup, UIList
+from bpy.types import Constraint, Context, DriverTarget, Event, ID, Object, Operator, PropertyGroup, UILayout, UIList
 from mathutils import Color, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -58,9 +58,7 @@ Common to all types:
     - Since these are fatal errors, any other rig errors are removed from the Generation Log.
     - All errors are caught and handled in generate_rig().
     - All errors should give the user useful information on how to proceed.
-"""
 
-"""
 TODO: Symmetry warnings:
     - Symmetrical action setup's transform curves are actually asymmetrical
     - Symmetrically named rig owners have asymetrical children in the chain
@@ -103,7 +101,7 @@ class LoggerMixin:
             op_text=op_text,
         )
 
-    def raise_generation_error(self, description, **kwargs):
+    def raise_generation_error(self, description: str, **kwargs):
         """For raising non-bug errors that should be fixable by the user."""
         kwargs['base_bone_name'] = self.base_bone_name
         self.generator.raise_generation_error(description=description, **kwargs)
@@ -126,7 +124,7 @@ def cloudrig_last_modified() -> str:
     return time.strftime('%Y-%m-%d %H:%M', time.gmtime(max_mtime))
 
 
-def url_prefill_from_cloudrig(stack_trace=""):
+def url_prefill_from_cloudrig(stack_trace="") -> str:
     op_sys = "%s %d Bits\n" % (
         platform.platform(),
         struct.calcsize("P") * 8,
@@ -220,7 +218,7 @@ def get_pretty_stack() -> str:
     return ret
 
 
-def get_datablock_type_icon(datablock):
+def get_datablock_type_icon(datablock: ID) -> str:
     """Return the icon string representing a datablock type"""
     # It's beautiful.
     # There's no proper way to get the icon of a datablock, so we use the
@@ -393,7 +391,7 @@ class CloudLogManager:
     # Functions for finding various issues at the end of rig generation.
     # For these, self.rig is expected to be set.
 
-    def report_sus_bone_collections(self, metarig, target_rig):
+    def report_sus_bone_collections(self, metarig: Object, target_rig: Object):
         for coll in metarig.data.collections_all:
             target_coll = target_rig.data.collections_all.get(coll.name)
             if not target_coll or len(target_coll.bones_recursive) == 0:
@@ -418,7 +416,7 @@ class CloudLogManager:
                     op_kwargs={'old_name': coll.name, 'new_name': naming.strip_blender_zeroes(coll)},
                 )
 
-    def report_invalid_drivers_on_datablock(self, datablock, owner_datablock=None):
+    def report_invalid_drivers_on_datablock(self, datablock: ID | None, owner_datablock: ID | None = None):
         if not datablock:
             return
         if not hasattr(datablock, "animation_data"):
@@ -458,10 +456,10 @@ class CloudLogManager:
                 operator='screen.drivers_editor_show',
             )
 
-    def report_invalid_drivers_on_object_hierarchy(self, object: Object):
-        """Create log entries for invalid drivers of the object or any of its children"""
+    def report_invalid_drivers_on_object_hierarchy(self, root_obj: Object):
+        """Create log entries for invalid drivers of the object or any of its children."""
 
-        for obj in [object] + list(object.children_recursive):
+        for obj in [root_obj] + list(root_obj.children_recursive):
             self.report_invalid_drivers_on_datablock(obj)
             if hasattr(obj, "data") and obj.data:
                 self.report_invalid_drivers_on_datablock(obj.data, owner_datablock=obj)
@@ -493,7 +491,9 @@ class CloudLogManager:
                     rpt_("Unused Custom Shape"),
                     note=widget.name,
                     icon='X',
-                    description=rpt_('Custom Shape "{widget.name}" is not used by any bones.'),
+                    description=rpt_('Custom Shape "{widget_name}" is not used by any bones.').format(
+                        widget_name=widget.name
+                    ),
                     operator=CLOUDRIG_OT_unlink_widget.bl_idname,
                     op_kwargs={'ob_name': widget.name},
                 )
@@ -635,47 +635,7 @@ class CloudLogManager:
                     op_kwargs={'setup_id': action_setup.unique_id},
                 )
 
-    def report_drivers_targetting_armature_constraint(self, rig_obj):
-        """Warn if drivers are trying to read Local Transforms of a bone that has an Armature constraint,
-        since in this case it will actually read local space + parenting-induced transformations."""
-        # NOTE: There is now a legitimate case where this could be intended,
-        # (bendy bone scale properties), so don't warn about it for now.
-        return
-        if not rig_obj or not rig_obj.animation_data:
-            return
-        for fc in rig_obj.animation_data.drivers:
-            drv = fc.driver
-            for var in drv.variables:
-                if 'PROP' in var.type:
-                    continue
-                for target in var.targets:
-                    if not target.id or not (
-                        target.id.id_type == 'OBJECT' and target.id.type == 'ARMATURE' and target.bone_target
-                    ):
-                        continue
-                    if target.transform_space != 'LOCAL_SPACE':
-                        continue
-
-                    target_bone = target.id.pose.bones.get(target.bone_target)
-                    if not target_bone:
-                        continue
-                    if not any((con.type == 'ARMATURE' for con in target_bone.constraints)):
-                        continue
-
-                    self.log(
-                        rpt_("Misleading Local Transforms"),
-                        note=target_bone.name,
-                        trouble_bone=target_bone.name,
-                        icon='DRIVER_TRANSFORM',
-                        description=rpt_(
-                            'Driver `{data_path}` is trying to read local transforms from bone '
-                            '"{bone}", but this bone has an Armature constraint, which '
-                            'moves its parenting matrix into its local matrix, making it unviable '
-                            'as a driver target. Move the Armature constraint to a parent, or remove the driver.'
-                        ).format(data_path=fc.data_path, bone=target_bone.name),
-                    )
-
-    def report_sus_constraints(self, rig_obj):
+    def report_sus_constraints(self, rig_obj: Object):
         def check_issues(con: Constraint) -> str:
             """Workaround various cases where the native con.is_valid returns an incorrect value..."""
             if con.type == 'ACTION':
@@ -728,7 +688,7 @@ class CloudLogManager:
                             ),
                         )
 
-    def report_metarig_children(self, metarig):
+    def report_metarig_children(self, metarig: Object):
         count = 0
         for dependent in bpy.data.user_map()[metarig]:
             if not isinstance(dependent, Object):
@@ -749,8 +709,8 @@ class CloudLogManager:
                 operator='object.cloudrig_reparent_metarig_children',
             )
 
-    def report_bad_bone_colors(self, context):
-        def user_has_bad_colors(context) -> bool:
+    def report_bad_bone_colors(self, context: Context):
+        def user_has_bad_colors(context: Context) -> bool:
             return any(
                 (
                     colorset.normal == Color((0.0, 0.0, 0.0))
@@ -766,7 +726,7 @@ class CloudLogManager:
                 op_kwargs={'preset': 'LANARO'},
             )
 
-    def report_old_cloudrig_props(self, metarig):
+    def report_old_cloudrig_props(self, metarig: Object):
         leftover_props = find_leftover_properties(metarig)
         if leftover_props:
             self.log(
@@ -782,7 +742,7 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
     when the active object is a CloudRig Metarig.
     """
 
-    def draw_item(self, _context, layout, _data, item, icon_value, _active_data, _active_propname):
+    def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
         log = item
         row = layout.row()
         text = rpt_(log.description_short)
@@ -795,7 +755,7 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
             row.prop(log, 'base_bone_name', text="", emboss=False, icon='BONE_DATA')
 
 
-def draw_log_panel(context, layout):
+def draw_log_panel(context: Context, layout: UILayout):
     metarig = context.object
     if not is_cloud_metarig(metarig) and metarig.mode in ('POSE', 'OBJECT'):
         return
@@ -903,7 +863,7 @@ class CLOUDRIG_OT_jump_to_bone(Operator):
         description="Bone to jump to",
     )
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = context.object
 
         if self.use_target_rig and rig.cloudrig.generator.target_rig:
@@ -937,17 +897,17 @@ class CLOUDRIG_OT_change_rotation_mode(Operator):
 
     bone_name: StringProperty()
 
-    def invoke(self, context, event):
+    def invoke(self, context: Context, _event: Event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         metarig = context.object
         pbone = metarig.pose.bones.get(self.bone_name)
         layout.prop(pbone, 'rotation_mode')
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         pbone = metarig.pose.bones.get(self.bone_name)
         if not pbone or pbone.rotation_mode == 'QUATERNION':
@@ -964,7 +924,7 @@ class CLOUDRIG_OT_report_bug(Operator):
     bl_label = "Report Bug"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         active_obj = context.object
         pretty_stack = ""
         if active_obj and hasattr(active_obj, 'cloudrig'):
@@ -984,22 +944,22 @@ class RenameThingOp:
     new_name: StringProperty(name="Name")  # Exposed to user
     bl_property = "new_name"
 
-    def get_container(self, context):
+    def get_container(self, _context: Context):
         raise NotImplementedError
 
-    def get_thing(self, context):
+    def get_thing(self, context: Context):
         return self.get_container(context).get(self.old_name)
 
-    def set_name(self, thing, name):
+    def set_name(self, thing: Any, name: str):
         thing.name = name
 
-    def invoke(self, context, event):
+    def invoke(self, context: Context, _event: Event):
         wm = context.window_manager
         if self.new_name == '':
             self.new_name = self.old_name
         return wm.invoke_props_dialog(self)
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         if self.new_name in self.get_container(context):
             layout.prop(self, 'new_name', icon='ERROR')
@@ -1010,7 +970,7 @@ class RenameThingOp:
             layout.prop(self, 'new_name')
             layout.label(text="Name available!")
 
-    def execute(self, context):
+    def execute(self, context: Context):
         if self.new_name == '':
             self.report({'ERROR'}, "Name must be specified!")
             return {'CANCELLED'}
@@ -1042,7 +1002,7 @@ class CLOUDRIG_OT_rename_bone(RenameThingOp, Operator):
     bl_label = "Rename Bone"
     bl_property = "new_name"
 
-    def get_container(self, context):
+    def get_container(self, context: Context):
         return context.object.data.bones
 
 
@@ -1053,10 +1013,10 @@ class CLOUDRIG_OT_rename_object(RenameThingOp, Operator):
     bl_label = "Rename Object"
     bl_property = "new_name"
 
-    def get_container(self, context):
+    def get_container(self, _context: Context):
         return bpy.data.objects
 
-    def get_thing(self, context):
+    def get_thing(self, context: Context):
         return self.get_container(context).get((self.old_name, None))
 
 
@@ -1067,10 +1027,10 @@ class CLOUDRIG_OT_rename_bone_collection(RenameThingOp, Operator):
     bl_label = "Rename Bone Collection"
     bl_property = "new_name"
 
-    def get_container(self, context):
+    def get_container(self, context: Context):
         return context.object.data.collections_all
 
-    def set_name(self, thing, name):
+    def set_name(self, thing: Any, name: str):
         thing.cloudrig_info.name = name
         super().set_name(thing, name)
 
@@ -1086,12 +1046,12 @@ class CLOUDRIG_OT_swap_bone_shape(Operator):
     old_name: StringProperty()
     new_name: StringProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         old_obj = bpy.data.objects.get((self.old_name, None))
         new_obj = bpy.data.objects.get((self.new_name, None))
 
-        if not old_obj and new_obj:
+        if not old_obj or not new_obj:
             self.report(
                 {'ERROR'},
                 rpt_('One of "{old}" or "{new}" were not found.').format(old=self.old_name, new=self.new_name),
@@ -1134,7 +1094,7 @@ class CLOUDRIG_OT_delete_object(Operator):
     # Should be provided by the UI.
     ob_name: StringProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         ob = bpy.data.objects.get((self.ob_name, None))
 
@@ -1163,7 +1123,7 @@ class CLOUDRIG_OT_unlink_widget(Operator):
     # Should be provided by the UI.
     ob_name: StringProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         widget_collection = metarig.cloudrig.generator.widget_collection
 
@@ -1198,7 +1158,7 @@ class CLOUDRIG_OT_clear_pointer(Operator):
     bone_name: StringProperty()
     param_name: StringProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         pbone = metarig.pose.bones.get(self.bone_name)
         param_split = self.param_name.split(".")
@@ -1224,7 +1184,7 @@ class CLOUDRIG_OT_clear_single_keyframes(Operator):
     # Should be provided by the UI.
     action_setup_idx: IntProperty(name="Action Setup Index")
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         action_setups = metarig.cloudrig.generator.action_setups
         action_setup = action_setups[self.action_setup_idx]
@@ -1250,11 +1210,11 @@ class CLOUDRIG_OT_edit_action_setup(Operator):
     # Should be provided by the UI.
     action_setup_idx: IntProperty(name="Action Setup Index")
 
-    def invoke(self, context, event):
+    def invoke(self, context: Context, _event: Event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
 
-    def draw(self, context):
+    def draw(self, context: Context):
         metarig = context.object
         rig = metarig.cloudrig.generator.target_rig
 
@@ -1265,7 +1225,7 @@ class CLOUDRIG_OT_edit_action_setup(Operator):
         layout.use_property_decorate = False
         action_setup.draw_ui(layout, rig.data)
 
-    def execute(self, context):
+    def execute(self, _context: Context):
         return {'FINISHED'}
 
 
@@ -1279,7 +1239,7 @@ class CLOUDRIG_OT_delete_bone_collection(Operator):
     # Should be provided by the UI.
     coll_name: StringProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         if self.coll_name in metarig.data.collections_all:
             coll = metarig.data.collections_all.get(self.coll_name)
@@ -1310,7 +1270,7 @@ class CLOUDRIG_OT_edit_bone_transform(Operator):
     )
     offset: FloatVectorProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         org_mode = context.active_object.mode
         bpy.ops.object.mode_set(mode='EDIT')
         metarig = context.active_object
@@ -1345,7 +1305,7 @@ class CLOUDRIG_OT_link_obj_to_scene(Operator):
 
     ob_name: StringProperty()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         obj = bpy.data.objects.get(self.ob_name)
         if not obj:
             self.report({'ERROR'}, rpt_("Couldn't find {object}.").format(object=self.ob_name))
@@ -1365,7 +1325,7 @@ class CLOUDRIG_OT_dismiss_version_warning(Operator):
     bl_label = "Dismiss"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         current = get_addon_prefs(context).cloud_metarig_version
         generator = context.object.cloudrig.generator
         context.object.cloudrig.metarig_version = current
@@ -1382,7 +1342,7 @@ class CLOUDRIG_OT_reparent_metarig_children(Operator):
     bl_label = "Re-Parent All Children"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         target_rig = metarig.cloudrig.generator.target_rig
         if not target_rig:
@@ -1420,7 +1380,7 @@ class OBJECT_OT_property_unset(Operator):
         default="",
     )
 
-    def execute(self, context):
+    def execute(self, context: Context):
         obj = context.object
         rna_path, prop_name = self.rna_path.rsplit(".", 1)
         prop_owner = obj.path_resolve(rna_path)
@@ -1438,7 +1398,7 @@ class CLOUDRIG_OT_remove_old_properties(Operator):
     bl_label = "Remove Old Properties"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         metarig = context.object
         counter = 0
         for rna_path, prop_name in find_leftover_properties(metarig):
@@ -1455,7 +1415,7 @@ class CLOUDRIG_OT_remove_old_properties(Operator):
         return {'FINISHED'}
 
 
-def find_leftover_properties(metarig) -> list[tuple[str, str]]:
+def find_leftover_properties(metarig: Object) -> list[tuple[str, str]]:
     leftover_props = []
 
     def report_recursive_sus_props(rna_path: str, prop_owner):

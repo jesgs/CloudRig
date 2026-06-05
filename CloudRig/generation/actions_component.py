@@ -8,8 +8,10 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Iterator
+
 from bpy.app.translations import pgettext_rpt as rpt_
-from bpy.types import Action, Mesh, Object
+from bpy.types import Action, Mesh, Object, ShapeKey
 from bpy.utils import flip_name as mirror_name
 
 from ..rig_component_features.properties_ui import make_property
@@ -23,6 +25,9 @@ from ..utils.mechanism import (
 from ..utils.naming import Side, change_name_side, get_name_side
 from .troubleshooting import LoggerMixin
 
+if TYPE_CHECKING:
+    from .cloud_generator import CloudRig_Generator
+
 
 class ActionConstraintSide(LoggerMixin):
     """An action constraint layer instance, applying an action to a symmetry side."""
@@ -31,7 +36,7 @@ class ActionConstraintSide(LoggerMixin):
     action_setup: ActionConstraintSetup
     side: Side
 
-    def __init__(self, owner, action_setup, side):
+    def __init__(self, owner: ActionConstraintComponent, action_setup: ActionConstraintSetup, side: Side):
         self.owner = owner
         self.action_setup = action_setup
         self.side = side
@@ -48,8 +53,13 @@ class ActionConstraintSide(LoggerMixin):
                     ),
                 )
                 return
-            trigger_a = self.owner.action_setup_side_map[action_setup.trigger_a]
-            trigger_b = self.owner.action_setup_side_map[action_setup.trigger_b]
+            trigger_a = self.owner.action_setup_side_map.get(action_setup.trigger_a)
+            trigger_b = self.owner.action_setup_side_map.get(action_setup.trigger_b)
+
+            if trigger_a is None or trigger_b is None:
+                raise RuntimeError(
+                    f'Action Setup "{action_setup.name}" references a trigger that failed to initialize. This is a bug.'
+                )
 
             self.trigger_a = trigger_a.get(side) or trigger_a.get(Side.MIDDLE)
             self.trigger_b = trigger_b.get(side) or trigger_b.get(Side.MIDDLE)
@@ -64,18 +74,18 @@ class ActionConstraintSide(LoggerMixin):
         self.owner.layers.append(self)
 
     @property
-    def use_property(self):
+    def use_property(self) -> bool:
         return self.action_setup.is_corrective or self.used_as_trigger
 
     @property
-    def control_name(self):
+    def control_name(self) -> str:
         if self.side != Side.MIDDLE:
             return change_name_side(self.action_setup.subtarget, self.side)
         else:
             return self.action_setup.subtarget
 
     @property
-    def name(self):
+    def name(self) -> str:
         name = self.action_setup.name
 
         if self.side == Side.LEFT:
@@ -149,7 +159,7 @@ class ActionConstraintSide(LoggerMixin):
 
         self.rig_child_shape_keys()
 
-    def rig_bone(self, bone_name):
+    def rig_bone(self, bone_name: str):
         if bone_name not in self.generator.target_rig.pose.bones:
             self.generator.logger.log(
                 rpt_("Action constraint failed"),
@@ -187,7 +197,7 @@ class ActionConstraintSide(LoggerMixin):
 
         self.rig_output_driver(con, 'eval_time')
 
-    def rig_output_driver(self, owner, prop_name):
+    def rig_output_driver(self, owner: Any, prop_name: str):
         if self.use_property:
             make_driver(
                 owner,
@@ -202,13 +212,13 @@ class ActionConstraintSide(LoggerMixin):
         else:
             self.rig_input_driver(owner, prop_name)
 
-    def rig_input_driver(self, owner, prop_name):
+    def rig_input_driver(self, owner: Any, prop_name: str):
         if self.action_setup.is_corrective:
             self.rig_corrective_driver(owner, prop_name)
         else:
             self.rig_factor_driver(owner, prop_name)
 
-    def rig_corrective_driver(self, owner, prop_name):
+    def rig_corrective_driver(self, owner: Any, prop_name: str):
         make_driver(
             owner,
             prop_name,
@@ -225,7 +235,7 @@ class ActionConstraintSide(LoggerMixin):
             },
         )
 
-    def rig_factor_driver(self, owner, prop_name):
+    def rig_factor_driver(self, owner: Any, prop_name: str):
         channel = self.action_setup.transform_channel.replace("LOCATION", "LOC").replace("ROTATION", "ROT")
 
         make_driver(
@@ -252,7 +262,7 @@ class ActionConstraintSide(LoggerMixin):
                     if key_block.name in (self.name, self.name.rsplit(ACTION_NAME_SEPARATOR + " ")[-1]):
                         self.rig_shape_key(key_block)
 
-    def rig_shape_key(self, key_block):
+    def rig_shape_key(self, key_block: ShapeKey):
         self.rig_output_driver(key_block, 'value')
 
 
@@ -267,7 +277,7 @@ class ActionConstraintComponent(LoggerMixin):
     action_map: dict[ActionConstraintSetup, dict[Side, ActionConstraintSide]]
     child_meshes: list[Object]
 
-    def __init__(self, generator):
+    def __init__(self, generator: CloudRig_Generator):
         self.action_setups = generator.params.action_setups
         self.layers = []
         self.generator = generator
@@ -292,7 +302,7 @@ class ActionConstraintComponent(LoggerMixin):
 
         self.child_meshes = self.get_child_meshes()
 
-    def get_child_meshes(self):
+    def get_child_meshes(self) -> list[Object]:
         if self.layers and self.generator.params.target_rig:
             return [child for child in self.generator.params.target_rig.children_recursive if child.type == 'MESH']
         return []
@@ -312,17 +322,16 @@ class ActionConstraintComponent(LoggerMixin):
                     action_order(action_setup.trigger_a) + 0.5 if action_setup.trigger_a else 0,
                     action_order(action_setup.trigger_b) + 0.5 if action_setup.trigger_b else 0,
                 )
-            else:
-                return action_order(action_setup)
+            return action_order(action_setup)
 
         return sorted(action_setups, key=action_setup_order)
 
-    def get_setups_by_action(self, action: Action) -> list[ActionConstraintSetup]:
+    def get_setups_by_action(self, action: Action) -> Iterator[ActionConstraintSetup]:
         for action_setup in self.action_setups:
             if action_setup.action == action:
                 yield action_setup
 
-    def instantiate_action_setup_sides(self, action_setup: ActionConstraintSetup):
+    def instantiate_action_setup_sides(self, action_setup: ActionConstraintSetup) -> dict[Side, ActionConstraintSide] | None:
         if action_setup.is_corrective:
             if not action_setup.trigger_a or not action_setup.trigger_b:
                 self.add_log(

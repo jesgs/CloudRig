@@ -147,7 +147,11 @@ def get_future_names(self, context) -> dict[Any, tuple[str, str, str]]:
     rename_dict = {}
     item = get_active_item(context)
     collprop = get_collprop(item)
-    rename_dict[item] = ('name_display', self.new_name, uniqify(self.new_name, collprop, id=item, strip_first=False))
+    rename_dict[item] = (
+        'name_display',
+        self.new_name,
+        uniqify(self.new_name, collprop, datablock=item, strip_first=False),
+    )
 
     if not self.use_symmetry:
         return rename_dict
@@ -157,7 +161,7 @@ def get_future_names(self, context) -> dict[Any, tuple[str, str, str]]:
         rename_dict[opposite_item] = (
             'name_display_flipped',
             flip_name(self.new_name),
-            uniqify(flip_name(self.new_name), collprop, id=opposite_item, strip_first=False),
+            uniqify(flip_name(self.new_name), collprop, datablock=opposite_item, strip_first=False),
         )
 
     return rename_dict

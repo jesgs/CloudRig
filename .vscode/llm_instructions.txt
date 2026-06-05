@@ -9,12 +9,18 @@ Instructions for formatting and in general:
 - Avoid inserting comments that tell linters to ignore errors. Instead, notify the user about the linter's complaints, so user can decide what to do.
 - Add missing docstrings to functions, unless you find them not needed.
 - Do NOT remove existing docstrings or comments, even if you don't find them useful.
+- Keep strings translatable:
+    - Point out strings that look like they should be surrounded by a translation function, but aren't.
+    - Point out f-strings or such that would not play well with gettext.
+    - Keep in mind that strings passed to Blender native functions directly, do not need to be surrounded by a translation function.
 - Keep code human readable:
     - Avoid single-letter variable names except maybe `for i in range()`
     - Make function names descriptive and accurate
     - Avoid long functions, split them up to smaller functions instead.
     - Inner functions are acceptable.
+    - Fix typos in comments and small-scope variable names. In top-level names, fixing a typo may cause breakage at callsites, so just notify user instead.
 - Code order should be high level code at the top (menus, then operators), helper functions underneath, and registration at the bottom.
+    - If you find code that does not adhere to this, do not fix it yourself, because it makes the diff hard to review. However, do notify the user about it.
 - Seek out opportunities for re-using code.
 - When modifying a file, make sure it has a license header at the top, and that the end year is the current year.
 - If you feel that a file or code block is in need of significant refactor (eg. splitting up into multiple files, moving some code to another file, etc), notify the user and make a proposal.

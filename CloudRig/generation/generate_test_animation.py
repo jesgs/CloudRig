@@ -40,7 +40,7 @@ class TestAnimationGeneratorMixin:
 
         components_anim_order = []
 
-        def add_component_hierarchy_to_animation_order(component):
+        def add_component_hierarchy_to_animation_order(component: Component_Base):
             if hasattr(type(component), 'has_test_animation') and type(component).has_test_animation:
                 components_anim_order.append(component)
             for child_comp in component.child_components:
@@ -52,14 +52,14 @@ class TestAnimationGeneratorMixin:
         start_frame = 1
         for component in components_anim_order:
             symm_component = self.get_symmetry_rig_component(component)
-            symm_new_start_frame = 1
             new_start_frame = component.fk_chain__add_test_animation(action, slot, start_frame)
-            if symm_component:
-                symm_new_start_frame = symm_component.fk_chain__add_test_animation(
+            if symm_component and symm_component in components_anim_order:
+                symm_start_frame = symm_component.fk_chain__add_test_animation(
                     action, slot, start_frame, flip_xyz=[False, True, True]
                 )
                 components_anim_order.remove(symm_component)
-            start_frame = max(new_start_frame, symm_new_start_frame)
+                new_start_frame = max(new_start_frame, symm_start_frame)
+            start_frame = new_start_frame
 
     def get_symmetry_rig_component(self, component: Component_Base) -> Component_Base | None:
         """Find another component in the generator with the opposite name as the one provided."""
@@ -73,6 +73,7 @@ class TestAnimationGeneratorMixin:
 
 
 def ensure_test_action(metarig: Object, target_rig: Object) -> tuple[Action, ActionSlot]:
+    """Ensure the test action and its slot exist, then wipe all existing FCurves from it."""
     # Ensure test action exists
     test_action = metarig.cloudrig.generator.test_action
     slot_name = "Test Action"

@@ -6,6 +6,7 @@ import traceback
 from collections import OrderedDict
 from datetime import datetime
 from time import time
+from types import ModuleType
 from typing import TYPE_CHECKING, Iterator
 
 if TYPE_CHECKING:
@@ -26,6 +27,7 @@ from bpy.props import (
 from bpy.types import (
     Action,
     Collection,
+    Context,
     EditBone,
     Object,
     Operator,
@@ -43,6 +45,7 @@ from ..bs_utils.properties import (
 )
 from ..rig_component_features.bone_gizmos import auto_initialize_gizmos
 from ..rig_component_features.bone_info import BoneInfo
+from ..rig_component_features.bone_set import BoneSet
 from ..rig_component_features.mechanism import relink_real_driver
 from ..rig_component_features.object import EnsureVisible
 from ..rig_component_features.overlay_painter import no_overlay
@@ -51,6 +54,7 @@ from ..rig_component_features.widgets.widgets import (
     get_custom_shape_rig_data,
     set_pbone_custom_shape_data,
 )
+from ..rig_components.cloud_base import Component_Base
 from ..ui.actions_ui import ActionConstraintSetup
 from ..utils.collections import assign_to_collection, ensure_collection
 from ..utils.mechanism import refresh_all_drivers
@@ -80,7 +84,7 @@ class GeneratorProperties(PropertyGroup):
 
     target_rig: PointerProperty(
         name="Target Rig",
-        description="Rig to re-genreate based on this metarig when the Generate button is used",
+        description="Rig to re-generate based on this metarig when the Generate button is used",
         type=Object,
     )
     custom_script: PointerProperty(
@@ -96,7 +100,7 @@ class GeneratorProperties(PropertyGroup):
     test_action: PointerProperty(
         name="Test Action",
         type=Action,
-        description="Action which will be generated with the keyframes neccessary to test the rig's deformations",
+        description="Action which will be generated with the keyframes necessary to test the rig's deformations",
     )
     ensure_root: StringProperty(
         name="Root Bone",
@@ -152,7 +156,7 @@ class GeneratorProperties(PropertyGroup):
         default=True,
     )
 
-    def mark_all_dirty(self, context):
+    def mark_all_dirty(self, _context: Context):
         for pb in self.id_data.pose.bones:
             if pb.cloudrig_component.component_class:
                 pb.cloudrig_component.overlay_is_dirty = True
@@ -194,12 +198,12 @@ class GeneratorProperties(PropertyGroup):
 class CloudGeneratorError(Exception):
     """Exception raised for errors."""
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         super().__init__(message)
         self.message = message
         self.traceback = traceback.format_exc()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self.message)
 
 
@@ -209,7 +213,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
     It instantiates the rig components and calls their rig generation functions.
     """
 
-    def __init__(self, context, metarig, painter=None):
+    def __init__(self, context: Context, metarig: Object, painter=None):
         self.metarig = metarig
         self.target_rig = None
         self.params = metarig.cloudrig.generator
@@ -250,7 +254,8 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             errmsg = base_bone_name + ": " + rpt_(errmsg)
         raise CloudGeneratorError(message=errmsg)
 
-    def find_bone_info(self, name):
+    def find_bone_info(self, name: str) -> BoneInfo | None:
+        """Find a BoneInfo by name across all component bone sets."""
         for bone_set in self.bone_sets:
             if len(bone_set) == 0:
                 continue
@@ -258,7 +263,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             if exists:
                 return exists
 
-    def ensure_widget(self, context, widget_name: str, overwrite=False):
+    def ensure_widget(self, context: Context, widget_name: str, overwrite=False):
         self.ensure_widget_collection(context)
         try:
             wgt = ensure_widget(
@@ -277,35 +282,40 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         return wgt
 
     @property
-    def all_components(self):
-        for bone_name, component in self.component_map.items():
+    def all_components(self) -> Iterator[Component_Base]:
+        """Yield all rig component instances."""
+        for component in self.component_map.values():
             yield component
 
     @property
-    def bone_sets(self):
+    def bone_sets(self) -> Iterator[BoneSet]:
+        """Yield all bone sets across all rig components."""
         for rig_component in self.component_map.values():
             for bone_set in rig_component.bone_sets.values():
                 yield bone_set
 
     @property
     def bone_infos(self) -> Iterator[BoneInfo]:
+        """Yield all BoneInfo instances across all bone sets."""
         for bone_set in self.bone_sets:
             for bone_info in bone_set:
                 yield bone_info
 
     @property
-    def root_bone_info(self):
+    def root_bone_info(self) -> BoneInfo | None:
+        """Return the BoneInfo for the root bone, or None if it doesn't exist."""
         return self.find_bone_info(self.params.ensure_root)
 
     @property
-    def root_components(self):
-        for bone_name, component in self.component_map.items():
+    def root_components(self) -> Iterator[Component_Base]:
+        """Yield all rig components that have no parent component."""
+        for component in self.component_map.values():
             if not component.parent_component:
                 yield component
 
     ### Main generation function.
-    def generate(self, context):
-        """This is called by the Generate CloudRig opreator."""
+    def generate(self, context: Context):
+        """This is called by the Generate CloudRig operator."""
         bpy.ops.object.mode_set(mode='OBJECT')
 
         metarig = self.metarig
@@ -439,7 +449,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             )
         ]
 
-    def generate_abstraction_layer(self, context, *, comp_pbone_subset: list[PoseBone] = []):
+    def generate_abstraction_layer(self, context: Context, *, comp_pbone_subset: list[PoseBone] = []):
         """Generate the virtual bones by instantiating the rig components of passed Pose Bones,
         and calling their create_bone_infos() function.
         Note: This function can be called from pretty much any context!!
@@ -468,7 +478,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                     )
 
     ### Early generation steps.
-    def ensure_widget_collection(self, context) -> Collection:
+    def ensure_widget_collection(self, context: Context) -> Collection:
         """Create the collection where bone shapes will be linked to."""
         if not self.params.widget_collection:
             wgts_group_name = self.target_rig.name.replace("NEW-RIG-", "") + "-custom_shapes"
@@ -510,7 +520,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
         return comp_map
 
-    def ensure_root_bone_component(self, context, metarig, root_name='root'):
+    def ensure_root_bone_component(self, context: Context, metarig: Object, root_name='root'):
         # Note: The root bone MAY have a parent! It doesn't have to be the true root.
         # It is merely the bone to which:
         # - Orphan bones are automatically parented.
@@ -534,7 +544,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         return pose_bone
 
     ### Main generation steps.
-    def components_load_bone_infos(self, component_map: dict[str, "Component_Base"], metarig):
+    def components_load_bone_infos(self, component_map: dict[str, Component_Base], metarig: Object):
         """Let all rig components populate their initial BoneInfo instances."""
 
         bone_infos = {}
@@ -554,13 +564,13 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                     # a sub-set of the whole armature.
                     bone_info.parent = None
 
-    def components_create_bone_infos(self, context):
+    def components_create_bone_infos(self, context: Context):
         """Create BoneInfos that will get turned into real bones later."""
 
         for component in self.all_components:
             component.create_bone_infos(context)
 
-    def components_create_interactions(self, context):
+    def components_create_interactions(self, context: Context):
         """Once all rig components have created their BoneInfos, we can safely
         create relationships between components, since all bones exist.
         Having this be a separate step is really important for a lenient and flexible
@@ -615,6 +625,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             bones_created.append(bone_info.name)
 
     def parent_orphan_bone_infos_to_root(self):
+        """Parent any bone infos with no parent (orphans) to the root bone info."""
         for bone_info in self.bone_infos:
             if bone_info == self.root_bone_info or self.root_bone_info in bone_info.children_recursive:
                 continue
@@ -633,7 +644,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             bone_info.write_edit_data(self, edit_bone)
 
     @no_overlay
-    def components_create_helper_objs(self, context):
+    def components_create_helper_objs(self, context: Context):
         """Called in Object mode once bones have been created and placed."""
         for component in self.all_components:
             component.create_helper_objects(context)
@@ -645,7 +656,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 if ebone:
                     self.target_rig.data.edit_bones.remove(ebone)
 
-    def components_write_pbone_data(self, context, target_rig):
+    def components_write_pbone_data(self, context: Context, target_rig: Object):
         for bone_info in self.bone_infos:
             if not bone_info.preserve:
                 continue
@@ -679,7 +690,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
             bone_info.write_pose_data(context, self.metarig, pose_bone)
 
     ### Final generation steps.
-    def execute_custom_script(self, context, old_rig: Object | None, new_rig: Object):
+    def execute_custom_script(self, context: Context, old_rig: Object | None, new_rig: Object):
         """Execute a text datablock to be executed after rig generation."""
         # This is a bit hacky, but we need the rig name to be the "original" so that
         # post-gen script authors can get a reference to the rig easily.
@@ -714,7 +725,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
                 # In case user didn't go back to Object mode...
                 bpy.ops.object.mode_set(mode='OBJECT')
 
-    def replace_old_with_new_rig(self, context, old_rig, new_rig, preserve_custom_props=True):
+    def replace_old_with_new_rig(self, context: Context, old_rig: Object, new_rig: Object, preserve_custom_props=True):
         """Preserve useful user-inputted information from the previous rig,
         then delete it and remap users to the new rig.
         """
@@ -812,7 +823,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         new_rig.name = old_name
         new_rig.data.name = old_data_name
 
-    def restore_rig_states(self, context):
+    def restore_rig_states(self, context: Context):
         """Restore transforms after generation has either failed or succeeded."""
         self.metarig.data.pose_position = self.metarig_pose_bkp
         if self.target_rig:
@@ -825,13 +836,12 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
         refresh_constraints(self.target_rig)
         context.view_layer.update()
 
-    def log_minor_issues(self, context):
+    def log_minor_issues(self, context: Context):
         if self.params.widget_collection:
             self.logger.report_widgets(self.params.widget_collection)
         self.logger.report_sus_bone_collections(self.metarig, self.target_rig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.metarig)
         self.logger.report_invalid_drivers_on_object_hierarchy(self.target_rig)
-        self.logger.report_drivers_targetting_armature_constraint(self.target_rig)
         self.logger.report_sus_constraints(self.target_rig)
         self.logger.report_actions()
         self.logger.report_metarig_children(self.metarig)
@@ -840,6 +850,7 @@ class CloudRig_Generator(TestAnimationGeneratorMixin):
 
 
 def parent_orphans(rig: Object, root_name: str):
+    """Parent all top-level bones (which are not ancestors of the root) to the root bone."""
     root_pb = rig.pose.bones.get(root_name)
 
     def is_orphan(bone):
@@ -853,7 +864,7 @@ def parent_orphans(rig: Object, root_name: str):
             return False
         return True
 
-    orphan_bones = [b for b in rig.data.bones if is_orphan(b)]
+    orphan_bones = [bone for bone in rig.data.bones if is_orphan(bone)]
     if not orphan_bones:
         return
 
@@ -865,7 +876,7 @@ def parent_orphans(rig: Object, root_name: str):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-def ensure_cloudrig_ui(rig):
+def ensure_cloudrig_ui(rig: Object):
     """Load and execute cloudrig.py rig UI script."""
     if 'cloudrig_ui' in rig.data:
         # If the rig UI script is linked, it's been preserved in
@@ -877,7 +888,7 @@ def ensure_cloudrig_ui(rig):
     )
 
 
-def ensure_ebone(rig_ob, bone_name: str) -> EditBone:
+def ensure_ebone(rig_ob: Object, bone_name: str) -> EditBone:
     """Adds a new bone to the active Armature object.
     Must be in edit mode.
     Returns the resulting Edit Bone.
@@ -890,7 +901,7 @@ def ensure_ebone(rig_ob, bone_name: str) -> EditBone:
     return edit_bone
 
 
-def create_target_rig_obj(context, metarig) -> Object:
+def create_target_rig_obj(context: Context, metarig: Object) -> Object:
     """Create a new empty Armature object that will get populated throughout
     the generation process.
     We start with a duplicate of the Metarig object, but a blank Armature datablock.
@@ -956,6 +967,7 @@ def create_target_rig_obj(context, metarig) -> Object:
 
 
 def copy_bone_collections(src_rig: Object, tgt_rig: Object):
+    """Copy bone collections and their visibility states from src_rig to tgt_rig."""
     for src_coll in src_rig.data.collections_all:
         tgt_coll = tgt_rig.data.collections_all.get(src_coll.name)
         if not tgt_coll:
@@ -977,7 +989,7 @@ def copy_bone_collections(src_rig: Object, tgt_rig: Object):
             tgt_coll.parent = parent
 
 
-def map_pbones_to_drivers(armature_ob) -> dict[str, tuple[str, int]]:
+def map_pbones_to_drivers(armature_ob: Object) -> dict[str, list[tuple[str, int]]]:
     """Create a dictionary matching bone names to full data paths of drivers
     that belong to those bones. This is to speed up loading drivers into BoneInfos."""
     driver_map = {}
@@ -995,18 +1007,20 @@ def map_pbones_to_drivers(armature_ob) -> dict[str, tuple[str, int]]:
 
 
 def refresh_constraints(rig: Object):
+    """Force-reassign all bone constraint targets to trigger dependency graph updates."""
     if not rig:
         return
     for pb in rig.pose.bones:
-        for c in pb.constraints:
-            if hasattr(c, 'target'):
-                c.target = c.target
-            if c.type == 'ARMATURE':
-                for t in c.targets:
-                    t.target = t.target
+        for con in pb.constraints:
+            if hasattr(con, 'target'):
+                con.target = con.target
+            if con.type == 'ARMATURE':
+                for target in con.targets:
+                    target.target = target.target
 
 
-def focus_select_obj(context, obj):
+def focus_select_obj(context: Context, obj: Object | None):
+    """Deselect all objects and make obj the sole selection and active object."""
     if not obj:
         return
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -1033,7 +1047,7 @@ class CLOUDRIG_OT_generate(Operator):
     )
 
     @staticmethod
-    def get_metarig_to_generate(context) -> Object | None:
+    def get_metarig_to_generate(context: Context) -> Object | None:
         """Finds the metarig the user wants to generate.
         If there are more than one metarigs in the scene, use the active one,
         or the one referencing the active one.
@@ -1063,12 +1077,12 @@ class CLOUDRIG_OT_generate(Operator):
             return False
         return True
 
-    def draw(self, context):
+    def draw(self, _context: Context):
         # XXX: Re-doing the generation process crashes Blender,
         # so, just don't draw the operator properties, and therefore don't support re-do for now.
         return
 
-    def execute(self, context):
+    def execute(self, context: Context):
         start_time = time()
         metarig = self.get_metarig_to_generate(context)
         prev_generated_rig = metarig.cloudrig.generator.target_rig
@@ -1105,7 +1119,7 @@ class CLOUDRIG_OT_generate(Operator):
             else:
                 pbones = prev_generated_rig.pose.bones
                 state_selection = {pbone.name: (pbone.select, pbone.select, pbone.select) for pbone in pbones}
-                state_hide = {ebone.name: ebone.hide for ebone in pbones}
+                state_hide = {pbone.name: pbone.hide for pbone in pbones}
 
             state_collections = {coll.name: coll.is_visible for coll in prev_generated_rig.data.collections_all}
         else:
@@ -1169,7 +1183,7 @@ class CLOUDRIG_OT_generate(Operator):
 
         return {'FINISHED'}
 
-    def generate_rig(self, context, metarig: Object) -> Object | None:
+    def generate_rig(self, context: Context, metarig: Object) -> Object | None:
         """Generates a rig from a metarig.
 
         Encountering a rig generation error will not halt the execution of the operator.
@@ -1248,7 +1262,7 @@ class CLOUDRIG_OT_generate(Operator):
 
         return generator_properties.target_rig
 
-    def focus_generated_rig(self, context, metarig: Object, mode='OBJECT'):
+    def focus_generated_rig(self, context: Context, metarig: Object, mode='OBJECT'):
         """Focus the Target Rig for convenient generation and re-generation workflow:
         - Hide the metarig.
         - Reveal the Target Rig and set it as selected and active.
@@ -1321,7 +1335,8 @@ class CLOUDRIG_OT_generate(Operator):
             coll.is_visible = is_visible
 
 
-def get_exception_module(exc: Exception):
+def get_exception_module(exc: Exception) -> ModuleType | None:
+    """Return the module in which the exception was raised, or None if it cannot be determined."""
     tb = exc.__traceback__
     while tb.tb_next:
         tb = tb.tb_next
