@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import json
 from collections import OrderedDict
 
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
-from bpy.types import UILayout
+from bpy.types import Context, UILayout
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..bs_utils.ui import label_split
@@ -16,6 +18,8 @@ from .properties_ui import add_property_to_ui
 
 
 class CloudUIMixin:
+    """Mixin providing UI drawing utilities and rig property helpers for rig components."""
+
     forced_params = dict()
 
     @no_overlay
@@ -38,6 +42,7 @@ class CloudUIMixin:
         ###
         context_bones: list[str | BoneInfo] = [],
     ) -> OrderedDict:
+        """Ensure a custom property exists on prop_bone and register it in the rig UI."""
         ensure_custom_property(prop_bone, prop_id, **custom_prop_settings)
 
         op_kwargs.update({'prop_bone': prop_bone.name, 'prop_id': prop_id})
@@ -67,22 +72,28 @@ class CloudUIMixin:
         )
 
     @staticmethod
-    def draw_control_label(layout, text=""):
+    def draw_control_label(layout: UILayout, text=""):
+        """Draw a section label with a trailing colon in the given layout."""
         label_split(layout, text=text + ":")
 
     @staticmethod
-    def is_advanced_mode(context):
+    def is_advanced_mode(context: Context) -> bool:
+        """Return whether advanced mode is enabled for the active CloudRig."""
         return is_advanced_mode(context)
 
     @classmethod
-    def is_forced_param(cls, prop_name):
+    def is_forced_param(cls, prop_name: str) -> bool:
+        """Return True if the given parameter is overridden by forced_params."""
         for forced_param_name, value in cls.forced_params.items():
             if forced_param_name.endswith(prop_name):
                 return True
         return False
 
     @classmethod
-    def draw_prop(cls, context, layout, prop_owner, prop_name, enabled=True, **kwargs) -> UILayout | None:
+    def draw_prop(
+        cls, _context: Context, layout: UILayout, prop_owner, prop_name: str, enabled=True, **kwargs
+    ) -> UILayout | None:
+        """Draw a property row, skipping it silently if it is forced (overridden)."""
         is_forced = cls.is_forced_param(prop_name)
         if is_forced:  # and not cls.is_advanced_mode(context):
             return
@@ -96,15 +107,16 @@ class CloudUIMixin:
     @classmethod
     def draw_prop_search(
         cls,
-        context,
-        layout,
+        context: Context,
+        layout: UILayout,
         prop_owner,
-        prop_name,
+        prop_name: str,
         collection,
-        coll_prop_name,
+        coll_prop_name: str,
         alert=False,
         **kwargs,
     ):
+        """Draw a property search row, skipping or disabling it if the parameter is forced."""
         is_forced = cls.is_forced_param(prop_name)
         if is_forced and not cls.is_advanced_mode(context):
             return
@@ -117,7 +129,8 @@ class CloudUIMixin:
         return row
 
     @classmethod
-    def draw_prop_custom_shape(cls, context, layout, prop_owner, prop_name):
+    def draw_prop_custom_shape(cls, context: Context, layout: UILayout, prop_owner, prop_name: str):
+        """Draw the custom shape selector widget for a given property."""
         prefs = get_addon_prefs(context)
         pgroup = getattr(prop_owner, prop_name)
         row = layout.row(align=True)
@@ -139,13 +152,14 @@ class CloudUIMixin:
         row.prop(pgroup, 'use_pointer', text="", toggle=True, icon='OBJECT_DATA')
 
 
-def is_advanced_mode(context):
+def is_advanced_mode(context: Context) -> bool:
+    """Return True if advanced mode is enabled for the active metarig."""
     if not is_cloud_metarig(context.object):
         return False
     return get_addon_prefs(context).advanced_mode
 
 
-def draw_label_with_linebreak(context, layout, text, alert=False, align_split=False):
+def draw_label_with_linebreak(context: Context, layout: UILayout, text: str, alert=False, align_split=False):
     """Attempt to simulate a proper textbox by only displaying as many
     characters in a single label as fits in the UI.
     This only works well on specific UI zoom levels.
@@ -180,14 +194,18 @@ def draw_label_with_linebreak(context, layout, text, alert=False, align_split=Fa
     return col
 
 
-def draw_prop(layout, prop_owner, prop_name, enabled=True, **kwargs):
+def draw_prop(layout: UILayout, prop_owner, prop_name: str, enabled=True, **kwargs) -> UILayout:
+    """Draw a property in a row and return that row."""
     row = layout.row(align=True)
     row.prop(prop_owner, prop_name, **kwargs)
     row.enabled = enabled
     return row
 
 
-def draw_prop_search(layout, prop_owner, prop_name, collection, coll_prop_name, alert, **kwargs):
+def draw_prop_search(
+    layout: UILayout, prop_owner, prop_name: str, collection, coll_prop_name: str, alert: bool, **kwargs
+) -> UILayout:
+    """Draw a property search widget in a row and return that row."""
     row = layout.row()
     row.alert = alert
     if alert:

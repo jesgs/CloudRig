@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
@@ -10,7 +12,7 @@ from bpy.app.translations import pgettext_tip as tip_
 # TODO: Creating a helper bone to hold the Armature constraint should also be
 # optional when using parent switching, not just for bendy bone parenting.
 from bpy.props import BoolProperty, CollectionProperty, IntProperty, StringProperty
-from bpy.types import PropertyGroup, UIList
+from bpy.types import Context, PropertyGroup, UILayout, UIList
 
 from ..utils.rig import get_pbone_of_active
 from .bone_info import BoneInfo, ConstraintInfo
@@ -19,7 +21,7 @@ from .params_ui_utils import draw_label_with_linebreak
 
 
 class CLOUDRIG_UL_parent_slots(UIList):
-    def draw_item(self, context, layout, _data, item, icon_value, _active_data, _active_propname):
+    def draw_item(self, _context: Context, layout: UILayout, _data, item, icon_value, _active_data, _active_propname):
         metarig = item.id_data
         rig = metarig.cloudrig.generator.target_rig
         parent_slot = item
@@ -53,7 +55,8 @@ class ParentSlot(PropertyGroup):
     name: StringProperty(name="Name", description="Name to display in the UI for this parent option")
     bone: StringProperty(name="Bone", description="Bone that will be used as the parent")
 
-    def set_is_default(self, value):
+    def set_is_default(self, value: bool):
+        """Ensure only one parent slot is marked as default at a time."""
         active_pb = get_pbone_of_active(bpy.context)
         component = active_pb.cloudrig_component.inherited_component
 
@@ -68,6 +71,7 @@ class ParentSlot(PropertyGroup):
                 ps['is_default'] = True
 
     def get_is_default(self) -> bool:
+        """Return whether this slot is marked as the default parent."""
         if 'is_default' in self:
             return self['is_default']
         return False
@@ -84,7 +88,8 @@ class ParentSlot(PropertyGroup):
     )
 
 
-def draw_parent_switch_list(layout, context, text=""):
+def draw_parent_switch_list(layout: UILayout, context: Context, text=""):
+    """Draw a UIList of parent switch slots with column headers above."""
     draw_label_with_linebreak(context, layout, text, align_split=True)
 
     layout.separator()
@@ -117,13 +122,14 @@ def draw_parent_switch_list(layout, context, text=""):
 
 
 class CloudParentingMixin:
+    """Class that provides parent switching parameters to Component_Base."""
+
     parent_switch_behaviour = n_("The active parent will own the component's root bone.")
     parent_switch_overwrites_root_parent = True
 
-    """Class that provides parent switching parameters to Component_Base."""
-
     @property
-    def parent_ui_names(self):
+    def parent_ui_names(self) -> list[str]:
+        """Return the UI display names of the configured parent slots."""
         if not hasattr(self, '_parent_ui_names'):
             self._parent_ui_names, self._parent_bone_names = self.sanitize_parent_list(
                 self.params.parenting.parent_slots
@@ -132,7 +138,8 @@ class CloudParentingMixin:
         return self._parent_ui_names
 
     @property
-    def parent_bone_names(self):
+    def parent_bone_names(self) -> list[str]:
+        """Return the bone names of the configured parent slots."""
         if not hasattr(self, '_parent_bone_names'):
             self._parent_ui_names, self._parent_bone_names = self.sanitize_parent_list(
                 self.params.parenting.parent_slots
@@ -144,8 +151,8 @@ class CloudParentingMixin:
     def base__apply_parent_switching(
         self,
         *,
-        child_bone=None,
-        prop_bone=None,
+        child_bone: BoneInfo | None = None,
+        prop_bone: BoneInfo | None = None,
         prop_name="",
         panel_name=n_("Space Switch"),
         label_name="",
@@ -213,6 +220,7 @@ class CloudParentingMixin:
         preserve_volume=False,
         name="",
     ) -> ConstraintInfo:
+        """Add an Armature constraint to bone driven by a single integer property."""
         targets = [{"subtarget": bone} for bone in target_bones]
 
         con_name = name or "Armature"
@@ -269,7 +277,6 @@ class CloudParentingMixin:
                     ).format(bone=ps.bone),
                 )
                 return [], []
-                continue
             parent_ui_names.append(ps.name or ps.bone)
             parent_bone_names.append(ps.bone)
 
@@ -284,7 +291,8 @@ class CloudParentingMixin:
 
         return parent_ui_names, parent_bone_names
 
-    def get_default_parent_index(self, parent_bone_names: list[str]) -> int:
+    def get_default_parent_index(self, parent_bone_names: list[str]) -> int | None:
+        """Return the index of the default parent slot within parent_bone_names, or None if not found."""
         parent_slots = self.params.parenting.parent_slots
         for ps in parent_slots:
             if ps.is_default:
@@ -297,7 +305,8 @@ class CloudParentingMixin:
             if bone_name == parent_bone:
                 return i
 
-    def base__apply_custom_root_parent(self, component_root: BoneInfo = None, parent_name=""):
+    def base__apply_custom_root_parent(self, component_root: BoneInfo | None = None, parent_name=""):
+        """Parent this component's root bone to an explicitly chosen bone in the target rig."""
         if parent_name == "":
             parent_name = self.params.parenting.root_parent
         if parent_name == "":
@@ -358,7 +367,8 @@ class CloudParentingMixin:
         )
 
     @classmethod
-    def draw_parent_param(cls, layout, context, rig, params):
+    def draw_parent_param(cls, layout: UILayout, context: Context, rig, params):
+        """Draw the root parent bone selection UI."""
         if not rig:
             cls.draw_prop(context, layout, params.parenting, "root_parent")
             return
@@ -390,7 +400,8 @@ class CloudParentingMixin:
                 row.label(text="", icon="BONE_DATA")
 
     @classmethod
-    def draw_parenting_params(cls, layout, context, component):
+    def draw_parenting_params(cls, layout: UILayout, context: Context, component):
+        """Draw the full parenting parameter panel for a rig component."""
         params = component.params
         metarig = component.id_data
         rig = metarig.cloudrig.generator.target_rig

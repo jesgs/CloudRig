@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from math import radians as rad
 
 from bpy.types import Action, ActionSlot, FCurve
@@ -14,6 +16,7 @@ class CloudAnimationMixin:
     def test_action_create_fcurves(
         self, action: Action, slot: ActionSlot, bones: list[BoneInfo], data_path: str
     ) -> dict[str, list[FCurve]]:
+        """Create FCurves on the given action slot for each bone, and return a mapping of bone name to curves."""
         curve_map = {}
 
         channelbag = anim_utils.action_get_channelbag_for_slot(action, slot)
@@ -33,14 +36,14 @@ class CloudAnimationMixin:
         curve_map: dict[str, list[FCurve]],
         start_frame=1,
         frame_step=15,
-        values=[0, 90, 0],
-        flip_xyz=[False, False, False],
+        values=(0.0, 90.0, 0.0),
+        flip_xyz=(False, False, False),
         is_rotation=True,
-        axes=[0, 1, 2],
+        axes=(0, 1, 2),
     ) -> int:
+        """Insert keyframes on the given curves and return the last frame used."""
         frame = start_frame
-        for bone_name in curve_map.keys():
-            curves = curve_map[bone_name]
+        for _bone_name, curves in curve_map.items():
             for axis_index in axes:
                 curve = curves[axis_index]
                 curve.color_mode = 'AUTO_RGB'
@@ -62,20 +65,21 @@ class CloudAnimationMixin:
         return frame
 
     def disable_property_until_frame(self, action: Action, slot: ActionSlot, last_frame: int, prop_id: str):
+        """Animate the given property to be 0 until last_frame, then switch to 1."""
         prop_bone = self.properties_bone
 
         channelbag = anim_utils.action_get_channelbag_for_slot(action, slot)
         assert channelbag, "Could not find Channelbag while creating Test Animation."
 
         data_path = f'pose.bones["{prop_bone.name}"]["{prop_id}"]'
-        # Create FCurve for IK/FK toggle
-        fc = channelbag.fcurves.find(data_path, index=-1)
-        if not fc:
-            fc = channelbag.fcurves.new(data_path, index=-1, group_name=prop_bone.name)
+        # Find or create an FCurve for the property.
+        fcurve = channelbag.fcurves.find(data_path, index=-1)
+        if not fcurve:
+            fcurve = channelbag.fcurves.new(data_path, index=-1, group_name=prop_bone.name)
 
         # Add keyframes
-        fc.keyframe_points.add(2)
-        fc.keyframe_points[0].co = (0, 0)
-        fc.keyframe_points[1].co = (last_frame, 1)
-        fc.keyframe_points[0].interpolation = 'CONSTANT'
-        fc.keyframe_points[1].interpolation = 'CONSTANT'
+        fcurve.keyframe_points.add(2)
+        fcurve.keyframe_points[0].co = (0, 0)
+        fcurve.keyframe_points[1].co = (last_frame, 1)
+        fcurve.keyframe_points[0].interpolation = 'CONSTANT'
+        fcurve.keyframe_points[1].interpolation = 'CONSTANT'

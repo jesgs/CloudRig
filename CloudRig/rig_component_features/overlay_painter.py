@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from __future__ import annotations
 
 import functools
@@ -7,12 +9,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from gpu import GPUBatch
 
+    from ..prefs import CloudRigPreferences
     from ..properties import RigComponent
+    from ..rig_components.cloud_base import Component_Base
 
 import bpy
 import gpu
 from bpy.props import FloatProperty, StringProperty
-from bpy.types import BoneCollection, EditBone, Object, PoseBone
+from bpy.types import BoneCollection, Context, EditBone, Object, PoseBone
 from gpu_extras.batch import batch_for_shader
 from mathutils import Color, Euler, Matrix, Vector
 
@@ -60,19 +64,21 @@ BONEINFO_GEOS: dict[str, Geo] = {}
 
 
 def force_full_update():
+    """Clear the batch cache so the next frame fully re-generates all overlays."""
     global BATCH_CACHE
     BATCH_CACHE = {}
 
 
 class OverlayPainter:
     def __init__(self):
-        # This matrix must be applied on all drawn 3D shapes, so the caller doesn't have to worry about that.
-        # Eg., if your overlays are attached to an object, simply pass the object's world matrix to painter.space,
-        # and you don't have to worry about accounting for object transforms anymore.
+        """Set up the world-space matrix used for overlay drawing.
+        Callers set painter.space to their object's matrix_world to avoid
+        manually accounting for object transforms in every draw call.
+        """
         self.space = Matrix.Identity((4))
 
     @staticmethod
-    def theme_bone_color(context, theme_color: str | int, color_type='normal') -> Color:
+    def theme_bone_color(context: Context, theme_color: str | int, color_type='normal') -> Color:
         theme = context.preferences.themes["Default"]
         color_sets = theme.bone_color_sets
         if type(theme_color) is str:
@@ -101,7 +107,8 @@ class OverlayPainter:
 
         return color
 
-    def object_wireframe_3d(self, context, obj: Object, transform: Matrix) -> list[Vector] | None:
+    def object_wireframe_3d(self, context: Context, obj: Object, transform: Matrix) -> list[Vector] | None:
+        """Return a flat vertex list for drawing the wireframe edges of obj, or None if not drawable."""
         if not obj:
             return
         try:
@@ -137,6 +144,7 @@ class OverlayPainter:
         return self.lines_3d(edge_lines, dash_length=dash_length)
 
     def lines_3d(self, lines: list[tuple[Vector, Vector]], dash_length=0.1) -> list[Vector] | None:
+        """Convert a list of line segments into a flat vertex list suitable for LINES drawing."""
         if not lines:
             return
 
@@ -196,7 +204,8 @@ class OverlayPainter:
         # Return every 2nd dash, as the others represent the gaps.
         return dashes[::2]
 
-    def bone_info_to_geo(self, context, metarig, bone_info) -> Geo | None:
+    def bone_info_to_geo(self, context: Context, metarig: Object, bone_info: BoneInfo) -> Geo | None:
+        """Convert a BoneInfo's custom shape into a Geo, using a per-bone hash to skip unchanged bones."""
         prefs = get_addon_prefs(context)
         self.space = metarig.matrix_world.copy()
         bi_hash = hash_boneinfo(prefs, metarig, bone_info)
@@ -248,6 +257,7 @@ class Geo:
 
 
 def draw_rig_preview():
+    """Draw handler that runs every frame to render the rig overlay preview."""
     start = time()
     context = bpy.context
     if not overlay_poll(context):
@@ -259,7 +269,7 @@ def draw_rig_preview():
     animdata = metarig.animation_data
     metarig_is_animated = animdata and (animdata.action or animdata.drivers)
     is_animating = context.screen.is_animation_playing and metarig_is_animated
-    selection = set([pb.name for pb in get_pbones_of_selected(context, whole_ebone=False)])
+    selection = {pb.name for pb in get_pbones_of_selected(context, whole_ebone=False)}
     selection_changed = SELECTION_CACHE != selection
     if selection_changed:
         BATCH_CACHE = {}
@@ -351,7 +361,7 @@ def draw_rig_preview():
     view_3d.shading.cloudrig_eval_time = time() - start
 
 
-def overlay_poll(context) -> bool:
+def overlay_poll(context: Context) -> bool:
     """General rig preview overlay drawing poll function. If this returns False,
     we shouldn't be drawing or generating ANY rig preview.
     """
@@ -369,7 +379,7 @@ def overlay_poll(context) -> bool:
     return True
 
 
-def is_modal_navi_running(context) -> bool:
+def is_modal_navi_running(context: Context) -> bool:
     """Returns whether the viewport navigation operator is running.
     Used for disabling UI drawing for performance optimization."""
     for m in context.window.modal_operators:
@@ -378,8 +388,8 @@ def is_modal_navi_running(context) -> bool:
     return False
 
 
-def get_components_to_draw(context) -> set[RigComponent]:
-    """Whether rig preview should be drawn for a given component."""
+def get_components_to_draw(context: Context) -> set[RigComponent]:
+    """Return the set of rig components that should have an overlay drawn this frame."""
     prefs = get_addon_prefs(context)
     metarig = context.active_object  # (We don't care about WP mode, so this is fine!)
 
@@ -426,7 +436,8 @@ def get_components_to_draw(context) -> set[RigComponent]:
     return final_components
 
 
-def generated_comp_to_geos(generated_component, context, painter: OverlayPainter) -> dict[str, Geo]:
+def generated_comp_to_geos(generated_component: Component_Base, context: Context, painter: OverlayPainter) -> dict[str, Geo]:
+    """Convert all drawable BoneInfos of a generated component into Geo objects."""
     geos = {}
 
     def should_collection_draw(collection: BoneCollection) -> bool:
@@ -456,7 +467,8 @@ def generated_comp_to_geos(generated_component, context, painter: OverlayPainter
     return geos
 
 
-def components_to_batches(component_geos) -> dict[str, dict[float, GPUBatch]]:
+def components_to_batches(component_geos: dict[str, dict[str, Geo]]) -> dict[str, dict[float, GPUBatch]]:
+    """Convert per-component Geo dicts into GPUBatch dicts, grouped by line width."""
     shader = get_shader()
     batch_cache = {}
     for comp_name, geos in component_geos.items():
@@ -483,6 +495,7 @@ def components_to_batches(component_geos) -> dict[str, dict[float, GPUBatch]]:
 
 
 def draw_batch_cache():
+    """Draw the current BATCH_CACHE to the viewport using the overlay shader."""
     global BATCH_CACHE
 
     gpu.state.blend_set('ALPHA')
@@ -501,6 +514,7 @@ def draw_batch_cache():
 
 
 def get_shader():
+    """Bind and return the POLYLINE_FLAT_COLOR shader with the current viewport size set."""
     shader = gpu.shader.from_builtin('POLYLINE_FLAT_COLOR')
     shader.bind()
     shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
@@ -533,7 +547,8 @@ def no_overlay(_func=None, *, return_value=None):
 
 
 ### Hashing functions.
-def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> list[str]:
+def hash_boneinfo(prefs: CloudRigPreferences, metarig: Object, boneinfo: BoneInfo) -> list[str]:
+    """Return a list of strings representing the current state of a BoneInfo, for cache invalidation."""
     return [
         str(thing)
         for thing in [
@@ -557,7 +572,8 @@ def hash_boneinfo(prefs, metarig: Object, boneinfo: BoneInfo) -> list[str]:
     ]
 
 
-def hash_component(prefs, component) -> list[str]:
+def hash_component(prefs: CloudRigPreferences, component: RigComponent) -> list[str]:
+    """Return a list of strings representing the current state of a rig component, for cache invalidation."""
     rig = component.id_data
     pbone_chain = component.component_pbone_chain
     return [
@@ -576,7 +592,8 @@ def hash_component(prefs, component) -> list[str]:
     ]
 
 
-def hash_bone(prefs, rig: Object, bone: PoseBone | EditBone) -> list[str]:
+def hash_bone(prefs: CloudRigPreferences, rig: Object, bone: PoseBone | EditBone) -> list[str]:
+    """Return a list of strings representing the current state of a bone, for cache invalidation."""
     pbone = rig.pose.bones.get(bone.name)
     if not pbone:
         return ""
@@ -642,7 +659,8 @@ def get_bone_display_matrix(bone: BoneInfo | PoseBone) -> Matrix:
 ### Menu buttons in the Overlays pop-over.
 
 
-def draw_overlay_toggle(self, context):
+def draw_overlay_toggle(self, context: Context):
+    """Draw the CloudRig overlay controls inside the Overlays pop-over."""
     if context.mode not in ('POSE', 'EDIT_ARMATURE'):
         return
     rig = is_active_cloud_metarig(context)
@@ -659,7 +677,6 @@ def draw_overlay_toggle(self, context):
             label_split(layout, text="Dashed").prop(prefs, 'overlay_use_dashed', text="")
             if prefs.overlay_use_dashed:
                 label_split(layout, text="Dash Length").prop(prefs, 'overlay_dash_length', text="")
-
 
 
 ### Registration.

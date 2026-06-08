@@ -20,7 +20,9 @@ from bpy.types import (
     ID,
     Bone,
     BoneCollection,
+    Context,
     Modifier,
+    Object,
     Operator,
     PoseBone,
     PropertyGroup,
@@ -41,7 +43,8 @@ from ..generation.cloudrig import (
 )
 
 
-def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
+def get_data_paths(self, obj: Object) -> tuple[ID, str, str, str, Any]:
+    """Resolve data paths for operator self against obj, returning owner, full_path, data_path, prop_name, prop_value."""
     data_path = self.owner_path
     prop_name = self.prop_name
 
@@ -93,7 +96,8 @@ def get_data_paths(self, obj) -> tuple[ID, str, str, str, Any]:
     return prop_owner, full_path, data_path, prop_name, prop_value
 
 
-def update_property_selector(self, context):
+def update_property_selector(self, context: Context):
+    """Repopulate cloudrig_property_name_selector with available property names for the current owner."""
     rig = find_cloudrig(context)
 
     context.scene.cloudrig_property_name_selector.clear()
@@ -371,6 +375,7 @@ class CloudRigUIEditOpMixin:
         # self.draw_debug_box(layout, context)
 
     def draw_error_msg(self):
+        """Draw self.err_msg as an alert label below the main dialog layout."""
         if not self.err_msg:
             return
         row = self.layout.row()
@@ -514,7 +519,8 @@ class CloudRigUIEditOpMixin:
 
         return False
 
-    def draw_placement_box(self, layout, context):
+    def draw_placement_box(self, layout: UILayout, context: Context):
+        """Draw the panel/label/row/slider placement options."""
         rig = find_cloudrig(context)
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
 
@@ -553,7 +559,8 @@ class CloudRigUIEditOpMixin:
         if type(prop_value) is str and is_enum:
             panel_box.prop(self, 'use_expand_enum')
 
-    def draw_op_box(self, layout, context):
+    def draw_op_box(self, layout: UILayout, context: Context):
+        """Draw the operator selection and configuration section."""
         if self.use_batch_add:
             return
         op_box = layout.box().column()
@@ -572,7 +579,8 @@ class CloudRigUIEditOpMixin:
             icons = UILayout.bl_rna.functions["prop"].parameters["icon"]
             op_box.prop_search(self, 'op_icon', icons, 'enum_items', icon=self.op_icon or 'BLANK1')
 
-    def draw_debug_box(self, layout, context):
+    def draw_debug_box(self, layout: UILayout, context: Context):
+        """Draw the internal/debug section showing raw UI path data."""
         int_box = layout.box().column()
         split = int_box.row().split(factor=0.15, align=True)
         icon = 'TRIA_DOWN' if self.show_internals else 'TRIA_RIGHT'
@@ -585,7 +593,8 @@ class CloudRigUIEditOpMixin:
                 row.enabled = False
                 row.prop(self, 'ui_path')
 
-    def update_property_parent_selector(self, context):
+    def update_property_parent_selector(self, context: Context):
+        """Repopulate cloudrig_property_parent_selector with all existing slider UI paths."""
         rig, ui_data = get_rig_and_ui(context)
         if not rig or not ui_data:
             return
@@ -652,7 +661,8 @@ class CloudRigUIEditOpMixin:
         redraw_viewport()
         return {'FINISHED'}
 
-    def execute_add_property(self, context):
+    def execute_add_property(self, context: Context):
+        """Resolve paths, create the custom property if needed, and write it into the rig UI data."""
         if not self.prop_name:
             self.report({'ERROR'}, "You didn't specify a property.")
             return {'CANCELLED'}
@@ -915,14 +925,16 @@ class CLOUDRIG_OT_reorder_rows(Operator):
             return {'CANCELLED'}
 
 
-def path_resolve_safe(owner, data_path):
+def path_resolve_safe(owner, data_path: str):
+    """Call owner.path_resolve(data_path), returning None instead of raising ValueError."""
     try:
         return owner.path_resolve(data_path)
     except ValueError:
         return
 
 
-def ensure_custom_property(prop_bone, prop_id, default=0.0, overwrite=False, **kwargs):
+def ensure_custom_property(prop_bone, prop_id: str, default=0.0, overwrite=False, **kwargs):
+    """Create prop_id on prop_bone if it doesn't exist, or update it if overwrite is True."""
     if 'BoneInfo' in str(type(prop_bone)):
         kwargs['default'] = default
         # Let this function work for BoneInfo objects during the generation process.
@@ -947,8 +959,8 @@ def make_property(
     description: str | None = None,
     overridable=True,
     ###
-    min: float = 0,
-    max: float = 1,
+    min: float = 0.0,
+    max: float = 1.0,
     soft_min=None,
     soft_max=None,
     ###
@@ -1127,7 +1139,7 @@ def reorder_ui_row(*, obj, ui_path: list[str], index_offset=1, panels=None) -> t
     by the provided index_offset.
 
     If the index gets clamped and therefore we don't need to perform any re-ordering, we don't.
-    Return the row_data of the row that was targetted, and a bool of it was actually moved.
+    Return the row_data of the row that was targeted, and a bool of it was actually moved.
     """
 
     if panels is None:
@@ -1198,11 +1210,13 @@ def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
     od.update(reordered_dict)
 
 
-def supports_custom_props(prop_owner):
+def supports_custom_props(prop_owner) -> bool:
+    """Return True if prop_owner can hold custom properties."""
     return isinstance(prop_owner, ID) or type(prop_owner) in {PoseBone, BoneCollection}
 
 
 def get_drawable_custom_properties(prop_owner):
+    """Yield the names of custom properties on prop_owner that can be drawn in the rig UI."""
     if not supports_custom_props(prop_owner):
         return []
     for prop_name in prop_owner.keys():
@@ -1215,6 +1229,7 @@ def get_drawable_custom_properties(prop_owner):
 
 
 def get_drawable_builtin_properties(prop_owner):
+    """Yield the names of built-in RNA properties on prop_owner that can be drawn in the rig UI."""
     if not hasattr(prop_owner, 'bl_rna'):
         return
     for prop_name, prop_data in prop_owner.bl_rna.properties.items():
@@ -1227,7 +1242,9 @@ def get_drawable_builtin_properties(prop_owner):
 
 
 class HiddenPrints:
-    def write(*args):
+    """Context manager that suppresses stdout during its block."""
+
+    def write(*args):  # intentionally no self — used as sys.stdout replacement
         # This is a workaround to /issues/83 based on
         # https://stackoverflow.com/questions/6735917/redirecting-stdout-to-nothing-in-python
         pass
@@ -1246,6 +1263,7 @@ class HiddenPrints:
 
 
 def redraw_viewport():
+    """Force a viewport redraw. Suppresses the noisy output bpy.ops emits."""
     with HiddenPrints():
         bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 

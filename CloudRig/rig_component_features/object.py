@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import bpy
 from bpy.app.translations import pgettext_rpt as rpt_
-from bpy.types import ID, Collection, LayerCollection, Object, PropertyGroup
+from bpy.types import ID, Collection, Context, LayerCollection, Object, PoseBone, PropertyGroup
 
 
 class EnsureVisible:
     """Ensure an object is visible, then later reset it to how it was before."""
 
-    def __init__(self, context, obj, do_collection=True):
+    def __init__(self, context: Context, obj: Object, do_collection=True):
         """Ensure an object is visible, and create this small object to manage that object's visibility-ensured-ness."""
         self.obj_name = obj.name
         self.obj_hide = obj.hide_get()
@@ -31,7 +33,7 @@ class EnsureVisible:
             context.scene.collection.objects.link(obj)
             self.moved_to_root_coll = True
 
-    def restore(self, context):
+    def restore(self, context: Context):
         """Restore visibility settings to their original state."""
         obj = bpy.data.objects.get((self.obj_name, None))
         if not obj:
@@ -46,15 +48,19 @@ class EnsureVisible:
 
 
 class CloudObjectUtilitiesMixin:
+    """Mixin providing object visibility and transform-locking utilities."""
+
     @staticmethod
-    def lock_transforms(obj, loc=True, rot=True, scale=True):
+    def lock_transforms(obj: Object | PoseBone, loc=True, rot=True, scale=True):
         return lock_transforms(obj, loc, rot, scale)
 
     @staticmethod
-    def ensure_visible(context, obj) -> EnsureVisible:
+    def ensure_visible(context: Context, obj: Object) -> EnsureVisible:
+        """Temporarily ensure an object is visible; returns a handle to restore it."""
         return EnsureVisible(context, obj)
 
-    def add_to_widget_collection(self, context, widget_ob):
+    def add_to_widget_collection(self, context: Context, widget_ob: Object):
+        """Link a widget object into the configured widget collection and remove it from the scene root."""
         generator = self.generator
         if not generator.params.widget_collection:
             return
@@ -64,7 +70,7 @@ class CloudObjectUtilitiesMixin:
             # Nobody should store widget objects at the scene root.
             context.scene.collection.objects.unlink(widget_ob)
 
-    def check_object_in_scene(self, context, object: Object | None, create_log=True) -> bool:
+    def check_object_in_scene(self, context: Context, object: Object | None, create_log=True) -> bool:
         """Check if an object is in the current Scene.
         If not, raise a warning with a Quick Fix operator.
         """
@@ -126,7 +132,7 @@ def set_enum_property_by_integer(owner: ID, key: str, value: str) -> str | bool:
 
 
 def recursive_search_layer_collection(coll_name: str, layer_coll: LayerCollection) -> LayerCollection | None:
-    # Recursivly transverse layer_collection for a particular name
+    # Recursively traverse layer_collection for a particular name.
     # This is the only way to set active collection as of 14-04-2020.
     found = None
     if layer_coll.name == coll_name:
@@ -137,7 +143,8 @@ def recursive_search_layer_collection(coll_name: str, layer_coll: LayerCollectio
             return found
 
 
-def set_active_collection(context, collection: Collection):
+def set_active_collection(context: Context, collection: Collection):
+    """Set the given collection as the active collection in the outliner."""
     layer_coll = context.view_layer.layer_collection
 
     layer_collection = recursive_search_layer_collection(collection.name, layer_coll)

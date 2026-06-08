@@ -23,10 +23,12 @@ class CloudMechanismMixin:
     # this component, (and loaded into self.bones_org), or simply ALL children.
     only_connected_children = True
 
-    def find_bone_info(self, name):
+    def find_bone_info(self, name: str) -> BoneInfo | None:
+        """Find and return a BoneInfo by name, or None if not found."""
         return self.generator.find_bone_info(name)
 
     def get_component_pbone_chain(self) -> list[PoseBone]:
+        """Return the chain of pose bones assigned to this component."""
         pose_bone = self.metarig.pose.bones.get(self.base_bone_name)
         return pose_bone.cloudrig_component.component_pbone_chain
 
@@ -36,8 +38,9 @@ class CloudMechanismMixin:
     def create_parent_constraint_holder(self, child: BoneInfo, bone_set: BoneSet | None = None) -> BoneInfo:
         return create_parent_constraint_holder(child, bone_set)
 
-    def ensure_free_transforms(self, child: BoneInfo, bone_set=None) -> BoneInfo:
+    def ensure_free_transforms(self, child: BoneInfo, bone_set: BoneSet | None = None) -> BoneInfo | None:
         def get_transform_drivers(bone: BoneInfo) -> list[tuple[str, int]]:
+            """Return all driver refs on this bone that affect transforms."""
             drivers = []
             for driver_ref in bone.drivers_to_copy:
                 data_path, array_index = driver_ref
@@ -68,12 +71,14 @@ class CloudMechanismMixin:
             child.drivers_to_copy.remove(driver_ref)
         return helper
 
-    def create_dsp_bone(self, parent, **kwargs):
+    def create_dsp_bone(self, parent: BoneInfo, **kwargs) -> BoneInfo:
+        """Create a display helper bone for the given parent bone."""
         return create_dsp_bone(parent, self.bones_mch, **kwargs)
 
     def constrain_between_bones(
         self, child: BoneInfo, start: BoneInfo, end: BoneInfo, influence=0.5
     ) -> tuple[ConstraintInfo, ConstraintInfo, ConstraintInfo]:
+        """Constrain child to lie between start and end via Copy Transforms + Damped Track."""
         copy_first = child.add_constraint(
             'COPY_TRANSFORMS',
             name="Copy Transforms (First)",
@@ -91,7 +96,7 @@ class CloudMechanismMixin:
 
         return copy_first, copy_last, dt_con
 
-    def make_def_bone(self, parent_bone: BoneInfo, bone_name: str, bone_set):
+    def make_def_bone(self, parent_bone: BoneInfo, bone_name: str, bone_set) -> BoneInfo:
         """Make a DEF- bone parented to bone."""
         def_bone = bone_set.new(
             name=bone_name,
@@ -106,11 +111,12 @@ class CloudMechanismMixin:
         return self.generator.metarig.pose.bones.get(bone_name)
 
     @property
-    def metarig_base_pbone(self):
+    def metarig_base_pbone(self) -> PoseBone | None:
         """Return pose bone in the metarig that has this component assigned."""
         return self.get_metarig_pbone(self.base_bone_name)
 
-    def vector_along_bone_chain(self, chain, length=0, index=-1):
+    def vector_along_bone_chain(self, chain, length=0, index=-1) -> tuple[Vector, Vector]:
+        """Delegate to the module-level vector_along_bone_chain."""
         return vector_along_bone_chain(chain, length, index)
 
     def create_ik_pole_control(
@@ -199,7 +205,13 @@ class CloudMechanismMixin:
         return pole_ctrl
 
 
-def copy_relink_real_driver(src_id: ID, tgt_id: ID, fcurve: FCurve, data_path: str = None, index: int = None) -> FCurve:
+def copy_relink_real_driver(
+    src_id: ID,
+    tgt_id: ID,
+    fcurve: FCurve,
+    data_path: str | None = None,
+    index: int | None = None,
+) -> FCurve:
     """Copy a real driver to the Target Rig.
     Replace references to the Metarig with the Target Rig.
     May copy to a different data path than the source.
@@ -210,7 +222,7 @@ def copy_relink_real_driver(src_id: ID, tgt_id: ID, fcurve: FCurve, data_path: s
 
 
 def relink_real_driver(src_id: ID, tgt_id: ID, new_fcurve: FCurve):
-    """Anything that was targetting src_id or None should now target tgt_id.
+    """Anything that was targeting src_id or None should now target tgt_id.
     Any variable names which had an @ character in the name, should target a bone
     in tgt_id, whose name is provided after the @.
     """
@@ -225,7 +237,12 @@ def relink_real_driver(src_id: ID, tgt_id: ID, new_fcurve: FCurve):
                 var.targets[i].bone_target = name
 
 
-def copy_driver(from_fcurve: FCurve, target: ID, data_path: str = None, index: int = None) -> FCurve:
+def copy_driver(
+    from_fcurve: FCurve,
+    target: ID,
+    data_path: str | None = None,
+    index: int | None = None,
+) -> FCurve:
     """Copy an existing FCurve containing a driver to a new ID, by creating a copy
     of the existing driver on the target ID.
 
@@ -263,7 +280,7 @@ def copy_driver(from_fcurve: FCurve, target: ID, data_path: str = None, index: i
     return new_fcurve
 
 
-def create_parent_bone(child: BoneInfo, bone_set: BoneSet = None) -> BoneInfo:
+def create_parent_bone(child: BoneInfo, bone_set: BoneSet | None = None) -> BoneInfo:
     """Copy a bone, prefix it with "P", make the bone shape a bit bigger and
     parent the bone to this copy."""
     if bone_set is None:
@@ -284,7 +301,8 @@ def create_parent_bone(child: BoneInfo, bone_set: BoneSet = None) -> BoneInfo:
     return parent_bone
 
 
-def create_parent_constraint_holder(child: BoneInfo, bone_set: BoneSet = None) -> BoneInfo:
+def create_parent_constraint_holder(child: BoneInfo, bone_set: BoneSet | None = None) -> BoneInfo:
+    """Create a parent bone that takes over child's constraints, leaving child transform-free."""
     constrained_parent = create_parent_bone(
         child,
         bone_set=bone_set,
@@ -354,17 +372,17 @@ def vector_along_bone_chain(chain: list[BoneInfo], length=0, index=-1) -> tuple[
             direction = (b.vector + prev_bone.vector).normalized()
         return (b.head.copy(), direction)
 
-    length_cumultative = 0
+    length_cumulative = 0
     for b in chain:
-        if length_cumultative + b.length > length:
-            length_remaining = length - length_cumultative
+        if length_cumulative + b.length > length:
+            length_remaining = length - length_cumulative
             direction = b.vector.normalized()
             loc = b.head + direction * length_remaining
             return (loc, direction)
         else:
-            length_cumultative += b.length
+            length_cumulative += b.length
 
-    length_remaining = length - length_cumultative
+    length_remaining = length - length_cumulative
     direction = chain[-1].vector.normalized()
     loc = chain[-1].tail + direction * length_remaining
     return (loc, direction)

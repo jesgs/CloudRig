@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import EnumProperty, StringProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from .bone_info import BoneInfo
@@ -64,8 +66,9 @@ class CloudCustomPropertiesMixin:
             # Create a bone at the base of the rig with a cogwheel shape.
             return self.base__create_properties_bone()
 
-    def base__create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
-        if not source:
+    def base__create_properties_bone(self, source: BoneInfo | None = None) -> BoneInfo:
+        """Create and return a dedicated Properties bone for this rig component."""
+        if source is None:
             source = self.bones_org[0]
         prop_bone_name = self.naming.add_prefix(source, "PRP")
         prop_bone = self.generator.find_bone_info(prop_bone_name)
@@ -85,7 +88,7 @@ class CloudCustomPropertiesMixin:
         return prop_bone
 
     @classmethod
-    def poll_draw_custom_prop_params(cls, context, component):
+    def poll_draw_custom_prop_params(cls, _context: Context, component) -> bool:
         """Determine whether the custom property storage UI should be drawn or not."""
         params = component.params
         if cls.always_use_custom_props:
@@ -95,7 +98,8 @@ class CloudCustomPropertiesMixin:
         return False
 
     @classmethod
-    def draw_custom_prop_params(cls, layout, context, component):
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component) -> UILayout:
+        """Draw the custom property storage UI."""
         metarig = component.id_data
         rig = metarig.cloudrig.generator.target_rig
         params = component.params
