@@ -35,8 +35,6 @@ class Component_CopyBone(Component_Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.params.custom_props.props_storage_bone = self.base_bone_name
-
     def base__apply_custom_root_parent(self, component_root: BoneInfo = None, parent_name=""):
         super().base__apply_custom_root_parent(self.root_bone, parent_name)
 

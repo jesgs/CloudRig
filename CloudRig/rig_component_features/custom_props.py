@@ -10,7 +10,7 @@ from .bone_info import BoneInfo
 
 
 class CloudCustomPropertiesMixin:
-    """Mix-in class for managing custom properties used by rig settings."""
+    """Mix-in class for managing custom properties used by component features."""
 
     always_use_custom_props = False
 
@@ -25,6 +25,9 @@ class CloudCustomPropertiesMixin:
         if storage == 'CUSTOM':
             prop_bone_name = self.params.custom_props.props_storage_bone
             properties_bone = self.generator.find_bone_info(prop_bone_name)
+            if not properties_bone:
+                self.params.custom_props.props_storage_bone = self.base_bone_name
+                properties_bone = self.generator.find_bone_info(prop_bone_name)
             if properties_bone:
                 return properties_bone
 
@@ -33,7 +36,7 @@ class CloudCustomPropertiesMixin:
                 trouble_bone=prop_bone_name,
                 description=rpt_(
                     'Custom Property bone named "{bone}" not found, falling back to '
-                    'default Properties bone. If it exists, make sure it generates before this rig.'
+                    'default Properties bone. If it exists, make sure it generates before this component.'
                 ).format(bone=prop_bone_name),
             )
             storage = 'DEFAULT'
