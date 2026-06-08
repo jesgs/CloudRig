@@ -300,6 +300,13 @@ def version_cloud_metarig(metarig: Object):
             if comp.component_type == 'Chain: Finger':
                 preserve_old_default(pbone, "ik_chain.default_fkik", 0.0)
 
+    if metarig_version < 18:
+        # https://projects.blender.org/Mets/CloudRig/issues/355
+        for pbone in metarig.pose.bones:
+            comp = pbone.cloudrig_component
+            if comp.get('component_type') == 'Bone Copy':
+                comp.component_type = 'Single Control'
+
 
 def update_generated_rig_ui_scripts():
     """Replace local cloudrig.py UI scripts that don't match the current add-on version."""
