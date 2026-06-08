@@ -699,7 +699,7 @@ def draw_action_setup_ui(layout: UILayout, action_setup: ActionConstraintSetup, 
 
         row = layout.row()
         row.use_property_split = True
-        row.prop(action_setup, 'symmetrical', text="Symmetrical ({bone})".format(bone=flipped_subtarget))
+        row.prop(action_setup, 'symmetrical', text=iface_("Symmetrical ({bone})").format(bone=flipped_subtarget))
 
         if action_setup.symmetrical and not flipped_subtarget_exists:
             row.alert = True
@@ -731,7 +731,7 @@ def draw_status(layout: UILayout, action_setup: ActionConstraintSetup):
         col = split.column(align=True)
         col.alert = True
         col.label(text="Min and max value are the same!")
-        col.label(text="Will be stuck reading frame {frame}!".format(frame=action_setup.frame_start))
+        col.label(text=iface_("Will be stuck reading frame {frame}!").format(frame=action_setup.frame_start))
         return
 
     if action_setup.frame_start == action_setup.frame_end:

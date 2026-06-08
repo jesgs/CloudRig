@@ -29,6 +29,7 @@ CLOUDRIG_FORBIDDEN_PATTERNS: dict[str, str] = {
     "`define_bone_set()` 1st arg must be wrapped in `iface_()`":        r'''define_bone_set\(([\n\s]*)["|'](.*?)["|']''',
     "`label_name` or `panel_name` must be wrapped in `n_()`":           r'''(label_name|panel_name)\s*=\s*"(.+)"''',
     "`aligned_label(text=` kwarg must be wrapped by `iface_()`":        r'''aligned_label.*text=f?"''',
+    "`text=` string must be wrapped by `iface_()` before `.format()`":  r'''text\s*=\s*f?["'].*["']\.format\(''',
 }
 
 

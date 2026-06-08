@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import bpy
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.props import EnumProperty
 from bpy.types import Context, Event, Operator
 
@@ -49,7 +50,7 @@ class OBJECT_OT_cloudrig_push_to_metarig(Operator):
 
     def draw(self, context: Context):
         sel_bones = get_selected_bone_tuples(context)
-        self.layout.label(text="Push {num_bones} bones to metarig as:".format(num_bones=len(sel_bones)))
+        self.layout.label(text=iface_("Push {num_bones} bones to metarig as:").format(num_bones=len(sel_bones)))
         self.layout.prop(self, 'push_component_type', expand=True)
 
     def execute(self, context: Context):

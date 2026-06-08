@@ -660,8 +660,6 @@ def draw_overlay_toggle(self, context):
             if prefs.overlay_use_dashed:
                 label_split(layout, text="Dash Length").prop(prefs, 'overlay_dash_length', text="")
 
-            # view3d = context.area.spaces.active
-            # label_split(layout, text="Time:").label(text="{eval_time}ms".format(eval_time=view3d.shading.cloudrig_eval_time * 1000:.2f))
 
 
 ### Registration.

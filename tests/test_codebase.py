@@ -403,13 +403,22 @@ def parse_files(files: list[Path]) -> tuple[ParsedFiles, list[Path]]:
     return parsed, syntax_errors
 
 
+def _file_link(path: Path, line_no: int, display: str) -> str:
+    uri = f"vscode://file{path}:{line_no}:1"
+    return f"\033]8;;{uri}\033\\{display}\033]8;;\033\\"
+
+
 def check_forbidden_patterns(patterns: dict[str, str], files: list[Path]) -> list[str]:
     """Return formatted failure strings for any pattern that matches in the given files."""
     failures: list[str] = []
+    repo_root = CODEBASE_ROOT.resolve().parent
     for description, pattern in patterns.items():
         matches = find_matches(pattern, files)
         if matches:
-            lines = [f"    {path}:{line_no}  →  {text}" for path, line_no, text in matches]
+            lines = []
+            for path, line_no, text in matches:
+                rel = f"./{path.relative_to(repo_root)}:{line_no}"
+                lines.append(f"    {_file_link(path, line_no, rel)}  →  {text}")
             failures.append(f"  {description}:\n" + "\n".join(lines))
     return failures
 
@@ -426,5 +435,5 @@ def find_matches(pattern: str, files: list[Path]) -> list[tuple[Path, int, str]]
         for match in compiled.finditer(source):
             line_no = source[: match.start()].count("\n") + 1
             line_text = source.splitlines()[line_no - 1].strip()
-            hits.append((path.relative_to(CODEBASE_ROOT.resolve().parent), line_no, line_text))
+            hits.append((path, line_no, line_text))
     return hits

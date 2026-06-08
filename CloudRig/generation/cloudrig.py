@@ -1357,7 +1357,7 @@ def draw_slider(
     if not owner:
         sub_row.alert = True
         sub_row.label(
-            text="Missing property owner: '{owner_path}' for property '{prop_name}'.".format(
+            text=iface_("Missing property owner: '{owner_path}' for property '{prop_name}'.").format(
                 owner_path=owner_path, prop_name=prop_name
             ),
             icon='ERROR',
@@ -1370,7 +1370,7 @@ def draw_slider(
         except ValueError:
             sub_row.alert = True
             sub_row.label(
-                text="Missing property '{prop_name}' of owner '{owner_path}'.".format(
+                text=iface_("Missing property '{prop_name}' of owner '{owner_path}'.").format(
                     owner_path=owner_path, prop_name=prop_name
                 ),
                 icon='ERROR',
@@ -2047,7 +2047,9 @@ class CLOUDRIG_UL_collections(UIList):
 
             if prefs.show_bone_count:
                 main_row.label(
-                    text="{selected}/{total}".format(selected=len(indirect_selected_bones), total=len(indirect_bones)),
+                    text=iface_("{selected}/{total}").format(
+                        selected=len(indirect_selected_bones), total=len(indirect_bones)
+                    ),
                     icon='BONE_DATA',
                 )
 

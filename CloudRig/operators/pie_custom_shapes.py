@@ -574,7 +574,7 @@ class POSE_OT_edit_bone_display_props(Operator, BONE_PT_display):
             layout.prop(
                 pbone,
                 "use_custom_shape_bone_size",
-                text="Scale to Bone Length (x{multiplier})".format(multiplier=f"{length:.2f}"),
+                text=iface_("Scale to Bone Length (x{multiplier})").format(multiplier=f"{length:.2f}"),
             )
 
         layout.separator()

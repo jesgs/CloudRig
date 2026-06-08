@@ -443,7 +443,7 @@ class CloudRigUIEditOpMixin:
         prop_row = prop_box.row(align=True)
 
         if self.use_batch_add:
-            prop_row.label(text="Add all {num_props} custom properties to the UI".format(num_props=len(drawable_props)))
+            prop_row.label(text=iface_("Add all {num_props} custom properties to the UI").format(num_props=len(drawable_props)))
             prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
             return True
 
