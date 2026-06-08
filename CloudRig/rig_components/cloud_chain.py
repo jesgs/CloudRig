@@ -39,6 +39,10 @@ class Component_ToonChain(Component_Base):
         super().create_bone_infos(context)
 
         self.is_cyclic = self.toon__is_cyclic()
+        if self.is_cyclic:
+            # Make the LinkedList behaviour of the Original Bones BoneSet act like a loop.
+            self.bones_org[0].prev = self.bones_org[-1]
+            self.bones_org[-1].next = self.bones_org[0]
 
         # Calculate total bone length
         self.chain_length = sum([bone.length for bone in self.bones_org])
@@ -129,10 +133,6 @@ class Component_ToonChain(Component_Base):
         THRESHOLD = 0.001
         distance = self.bones_org[-1].tail - self.bones_org[0].head
         is_cyclic = distance.length < THRESHOLD
-        if is_cyclic:
-            # Make the LinkedList behaviour of the Original Bones BoneSet act like a loop.
-            self.bones_org[0].prev = self.bones_org[-1]
-            self.bones_org[-1].next = self.bones_org[0]
         return is_cyclic
 
     def __sort_str_sections(
@@ -176,11 +176,11 @@ class Component_ToonChain(Component_Base):
         """Create and return a main STR control."""
         segments = self.params.chain.segments
         direction = org_bone.vector
-        if org_bone.prev:
-            # Make bone parallel to line from previous bone's head to current bone's tail.
-            direction = (org_bone.tail - org_bone.prev.head).normalized()
 
         str_name = self.naming.add_prefix(org_bone, 'STR')
+        if org_bone.prev and not at_tip:
+            # Make bone parallel to line from previous bone's head to current bone's tail.
+            direction = (org_bone.tail - org_bone.prev.head).normalized()
 
         # Add a 1 at the end unless there's only 1 segment.
         num_segments = self.toon__get_num_segments_of_section(org_bone)
