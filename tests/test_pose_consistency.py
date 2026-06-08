@@ -142,10 +142,18 @@ def pose_to_dict(
     for later comparison.
     NOTE: We use list of list instead of list of tuples because tuples auto-convert
     to lists anyways when storing in a custom property."""
+    pbones = rig.pose.bones
+
     if visible_only:
         pbones = [pb for pb in rig.pose.bones if is_pbone_visible(pb)]
-    else:
-        pbones = rig.pose.bones
+        # ALSO INCLUDE BBONE HANDLES!!
+        for pb in pbones:
+            if pb.bbone_custom_handle_start:
+                if pb.bbone_custom_handle_start not in pbones:
+                    pbones.append(pb.bbone_custom_handle_start)
+            if pb.bbone_custom_handle_end:
+                if pb.bbone_custom_handle_end not in pbones:
+                    pbones.append(pb.bbone_custom_handle_end)
     if selectable_only:
         pbones = [pb for pb in pbones if not pb.bone.hide_select]
 

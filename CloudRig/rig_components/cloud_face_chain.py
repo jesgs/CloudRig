@@ -186,10 +186,6 @@ class Component_FaceChain(Component_ToonChain):
         cls.draw_prop_custom_shape(context, layout, params.face_chain, 'shape_intersection')
 
 
-def has_tangent_helpers(component) -> bool:
-    return component.params.chain.smooth_spline and component.params.chain.bbone_density > 0
-
-
 def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneInfo):
     for str_bone in cluster:
         component = str_bone.owner_component
@@ -299,21 +295,15 @@ def do_centered_cluster(cluster: list[BoneInfo], intersection: BoneInfo, is_anch
         x_axis = 'X' if str_bone.tail.x > 0 else '-X'
         str_bone.flatten(axis=x_axis)
         str_bone.roll_align_vector(str_bone.head + z_axis_sum)
-        if has_tangent_helpers(str_bone.owner_component):
+        if str_bone.owner_component.needs_tangent_helpers:
             str_bone.tangent_helper.flatten(axis=x_axis)
             str_bone.tangent_helper.roll_align_vector(str_bone.head + z_axis_sum)
-        if str_bone.owner_component.params.chain.smooth_spline and has_tangent_helpers(opposite_bone.owner_component):
-            # Add the missing "Damped Track Next" constraint that was skipped because
-            # its target wouldn't have existed during generation,
-            # since it belongs to another component.
-            str_bone.tangent_helper.add_constraint(
-                'DAMPED_TRACK',
-                name="Damped Track Next (Smooth Intersection)",
-                index=2,
-                subtarget=opposite_bone.tangent_helper.constraint_infos[1].subtarget,
-                track_axis='TRACK_Y',
-                influence=0.5,
-            )
+        if str_bone.owner_component.needs_tangent_helpers and opposite_bone.owner_component.needs_tangent_helpers:
+            if not str_bone.next:
+                str_bone.next = opposite_bone.prev
+            if not str_bone.prev:
+                str_bone.prev = opposite_bone.next
+            str_bone.owner_component.chain__set_next_prev(str_bone)
 
 
 class Params(PropertyGroup):

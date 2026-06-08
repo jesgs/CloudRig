@@ -43,6 +43,13 @@ class Component_ToonChain(Component_Base):
         # Calculate total bone length
         self.chain_length = sum([bone.length for bone in self.bones_org])
 
+        # Prepare connecting to parent component.
+        first_org = self.bones_org[0]
+        self.do_connect = self.__can_connect()
+        if self.do_connect:
+            first_org.prev = self.parent_component.bones_org[-1]
+            self.parent_component.bones_org[-1].next = first_org.prev
+
         # Create Main STR controls
         self.main_str_bones = self.__make_main_str_bones(self.bones_org)
 
@@ -59,7 +66,7 @@ class Component_ToonChain(Component_Base):
         #     str_bone.add_constraint('LIMIT_SCALE', use_max_xyz=False, use_min_xyz=True)
 
         self.tangent_helpers = []
-        if self.params.chain.bbone_density > 0 and self.params.chain.smooth_spline and len(self.str_chain) > 1:
+        if self.needs_tangent_helpers:
             # Create tangent helpers that will control bendy bone curvature
             self.tangent_helpers = self.__make_tangent_helpers(self.str_chain)
 
@@ -340,26 +347,54 @@ class Component_ToonChain(Component_Base):
         tangent_helpers = []
 
         for i, str_bone in enumerate(str_chain):
-            str_bone.tangent_helper = self.__make_tangent_helper(  # TODO: remove satanic reference if at all possible (probably won't be possible in cloud_face_chain though)
-                str_bone=str_bone,
-                prev_str=str_bone.prev,
-                next_str=str_bone.next,
-            )
+            str_bone.tangent_helper = self.__make_tangent_helper(str_bone=str_bone)
             tangent_helpers.append(str_bone.tangent_helper)
 
         return tangent_helpers
 
-    def __make_tangent_helper(
-        self,
-        str_bone: BoneInfo,
-        prev_str: BoneInfo = None,
-        next_str: BoneInfo = None,
-    ) -> BoneInfo:
+    def chain__set_next_prev(self, str_bone: BoneInfo):
+        if not self.needs_tangent_helpers:
+            return
+        nxt = str_bone.next
+        prev = str_bone.prev
+        if not prev and self.do_connect:
+            prev = self.parent_component.main_str_bones[-1]
+
+        prev_con = next(
+            (con for con in str_bone.tangent_helper.constraint_infos if con.name.startswith("Damped Track Prev")), None
+        )
+        if not prev_con and prev:
+            prev_con = str_bone.tangent_helper.add_constraint(
+                'DAMPED_TRACK',
+                name="Damped Track Prev (Smooth Spline)",
+                index=1,
+                subtarget=prev.name,
+                track_axis='TRACK_NEGATIVE_Y',
+                influence=1.0,
+            )
+        if prev:
+            prev_con.subtarget = prev.name
+
+        next_con = next(
+            (con for con in str_bone.tangent_helper.constraint_infos if con.name.startswith("Damped Track Next")), None
+        )
+        if not next_con and nxt:
+            next_con = str_bone.tangent_helper.add_constraint(
+                'DAMPED_TRACK',
+                name="Damped Track Next (Smooth Spline)",
+                index=2,
+                subtarget=nxt.name,
+                track_axis='TRACK_Y',
+                influence=0.5 if prev_con else 1.0,
+            )
+        if nxt:
+            next_con.subtarget = nxt.name
+            next_con.influence = 0.5 if prev_con else 1.0
+
+    def __make_tangent_helper(self, str_bone: BoneInfo) -> BoneInfo:
         """Create a child bone for an STR bone with Damped Track constraints
         to aim at the previous and next STR bones if Smooth Curve is enabled."""
-        handle_bone = self.bone_sets[
-            'Stretch Helpers'
-        ].new(
+        str_bone.tangent_helper = tangent_helper = self.bone_sets['Stretch Helpers'].new(
             name=str_bone.name.replace("STR-", "STR-TAN-"),
             source=str_bone,
             parent=str_bone.parent,  # For main STR bones the parent is the ORG bone. For sub STR bones it's the STR-H bone.
@@ -367,47 +402,30 @@ class Component_ToonChain(Component_Base):
             bbone_width=str_bone.bbone_width * 1.5,
         )
 
-        assert prev_str or next_str, "Previous or next STR are required."
-
-        handle_bone.add_constraint(
+        tangent_helper.add_constraint(
             'COPY_LOCATION',
             name="Copy Location (Smooth Spline)",
             subtarget=str_bone.name,
             space='WORLD',
         )
-        if prev_str:
-            handle_bone.add_constraint(
-                'DAMPED_TRACK',
-                name="Damped Track Prev (Smooth Spline)",
-                subtarget=prev_str.name,
-                track_axis='TRACK_NEGATIVE_Y',
-                influence=1.0,
-            )
-        if next_str:
-            handle_bone.add_constraint(
-                'DAMPED_TRACK',
-                name="Damped Track Next (Smooth Spline)",
-                subtarget=next_str.name,
-                track_axis='TRACK_Y',
-                influence=0.5 if prev_str else 1.0,
-            )
+        self.chain__set_next_prev(str_bone)
 
-        handle_bone.add_constraint(
+        tangent_helper.add_constraint(
             'COPY_TRANSFORMS',
             name="Copy STR Transforms (Smooth Spline)",
             subtarget=str_bone.name,
             target_space='LOCAL_OWNER_ORIENT',
             mix_mode='AFTER',
         )
-        handle_bone.add_constraint(
+        tangent_helper.add_constraint(
             'COPY_LOCATION',
             name="Copy Location For Display (Smooth Spline)",
             subtarget=str_bone.name,
             space='WORLD',
         )
-        str_bone.custom_shape_transform = handle_bone
+        str_bone.custom_shape_transform = tangent_helper
 
-        handle_bone.add_constraint(
+        tangent_helper.add_constraint(
             'COPY_SCALE',
             name="Copy Scale (Smooth Spline)",
             subtarget=str_bone.name,
@@ -415,7 +433,7 @@ class Component_ToonChain(Component_Base):
             use_offset=False,
         )
 
-        return handle_bone
+        return tangent_helper
 
     @no_overlay
     def toon__make_def_chain(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
@@ -716,25 +734,31 @@ class Component_ToonChain(Component_Base):
         )
         return skh_bone
 
-    def __connect_parent_component(self):
-        """Connect two separate but connected cloud_chain components.
-
-        If the parent component is a connected chain component with tip_control=False,
-        make the last DEF bone of that component stretch to this component's first STR.
-        """
+    def __can_connect(self) -> bool:
         parent_component = self.parent_component
-        meta_org_bone = self.get_metarig_pbone(self.bones_org[0].name)
         if not parent_component:
-            return
-
-        can_connect = (
+            return False
+        meta_org_bone = self.get_metarig_pbone(self.bones_org[0].name)
+        return (
             isinstance(parent_component, Component_ToonChain)
             and not parent_component.params.chain.tip_control
             and meta_org_bone.bone.use_connect
         )
-        if not can_connect:
+
+    @property
+    def needs_tangent_helpers(self) -> bool:
+        return self.params.chain.bbone_density > 0 and self.params.chain.smooth_spline and len(self.str_chain) > 1
+
+    def __connect_parent_component(self):
+        """If the parent component can be connected, connect it:
+        - Make its last DEF bone stretch to this component's first STR.
+        - Set-up its last STR bone again, after setting this component's first STR as its `next`.
+        - Tweak STR bone shapes to not use start/end shape.
+        """
+        if not self.do_connect:
             return
 
+        parent_component = self.parent_component
         last_str = parent_component.str_chain[-1]
         last_str.next = self.str_chain[0]
         last_str.custom_shape_name = self.str_chain[0].custom_shape_name = self.params.chain.shape_stretch.shape_name
@@ -761,10 +785,8 @@ class Component_ToonChain(Component_Base):
 
         if self.params.chain.shape_key_helpers or parent_component.params.chain.shape_key_helpers:
             self.__make_shape_key_helper(last_def, self.bones_def[0])
-        if self.params.chain.smooth_spline:
-            self.tangent_helpers[0].constraint_infos[1].subtarget = parent_component.str_chain[-1]
-        if parent_component.params.chain.smooth_spline and parent_component.tangent_helpers:
-            parent_component.tangent_helpers[-1].constraint_infos[2].subtarget = self.str_chain[0]
+        if parent_component.params.chain.smooth_spline:
+            parent_component.chain__set_next_prev(parent_component.main_str_bones[-1])
         if parent_component.params.chain.unlock_deform:
             parent_component.__make_def_control(last_str, last_def)
 
