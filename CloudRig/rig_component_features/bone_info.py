@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 
 if TYPE_CHECKING:
+    from ..generation.cloud_generator import CloudRig_Generator
     from ..rig_components.cloud_base import Component_Base
     from .bone_set import BoneSet
 
@@ -15,6 +16,7 @@ from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import (
     Bone,
     Constraint,
+    Context,
     EditBone,
     Object,
     PoseBone,
@@ -135,7 +137,7 @@ class BoneInfo:
         self,
         bone_set: BoneSet,
         name: str,
-        source: (PoseBone | BoneInfo | None),
+        source: PoseBone | BoneInfo | None,
         allow_pose_transforms=False,
         owner_component: Component_Base = None,
         keep_collections=False,
@@ -293,8 +295,9 @@ class BoneInfo:
 
         # Load color palettes (only presets are supported, no custom colors)
         # TODO: If one day Blender's color presets are fixed, drop support for custom colors.
+        BLENDER_HAS_GOOD_PRESETS = False
         if keep_colors:
-            if data_bone.color.palette == 'CUSTOM' and False:
+            if data_bone.color.palette == 'CUSTOM' and BLENDER_HAS_GOOD_PRESETS:
                 self.owner_component.add_log(rpt_("Custom Colors must not be used."))
             else:
                 self.color_palette_base = data_bone.color.palette
@@ -311,7 +314,7 @@ class BoneInfo:
             self.add_constraint_from_real(constr)
 
         # Load Drivers to be copied later.
-        if rig_ob.animation_data and not self.owner_component.painter:
+        if rig_ob.animation_data:
             driver_map = self.owner_component.generator.driver_map
             if self.name in driver_map:
                 for data_path, array_index in driver_map[self.name]:
@@ -350,7 +353,7 @@ class BoneInfo:
                     value = value.to_dict()
                     prop_data['default'] = value
                 elif 'id_type' in prop_data:
-                    # Setting the default to None for Datablock pointer props is necesasry for
+                    # Setting the default to None for Datablock pointer props is necessary for
                     # rna_idprop_ui_create() to interpret this data as a Datablock property.
                     prop_data['default'] = None
 
@@ -361,7 +364,8 @@ class BoneInfo:
                     prop_data['description'] = ""
                 self.custom_props[prop_name] = prop_data
 
-    def init_variables(self, var_dict):
+    def init_variables(self, var_dict: dict):
+        """Initialize instance attributes from a property dictionary, skipping read-only computed properties and copying mutable values."""
         for key, value in var_dict.items():
             # Make Vectors/Matrices/Dicts/Lists unique copies.
             # Otherwise copied bones would share values.
@@ -390,7 +394,7 @@ class BoneInfo:
         return sum((abs(s) for s in self.custom_shape_scale_xyz)) / 3
 
     @custom_shape_scale.setter
-    def custom_shape_scale(self, value):
+    def custom_shape_scale(self, value: float):
         self.custom_shape_scale_xyz *= value
 
     @property
@@ -398,7 +402,7 @@ class BoneInfo:
         return self._parent
 
     @parent.setter
-    def parent(self, value):
+    def parent(self, value: BoneInfo | str | None):
         if self.parent == value:
             return
         ancestor = value
@@ -442,7 +446,7 @@ class BoneInfo:
         return True
 
     @property
-    def children_recursive(self):
+    def children_recursive(self) -> Iterator[BoneInfo]:
         for child in self.children:
             yield child
             yield from child.children_recursive
@@ -468,7 +472,7 @@ class BoneInfo:
         return (self.bbone_x + self.bbone_z) / 2
 
     @bbone_width.setter
-    def bbone_width(self, value):
+    def bbone_width(self, value: float):
         """Set all bone size related values at once."""
         self.bbone_x = value
         self.bbone_z = value
@@ -477,7 +481,7 @@ class BoneInfo:
         if hasattr(self, 'use_deform') and not self.use_deform:
             self.envelope_distance = 0
 
-    def scale_width(self, value: int):
+    def scale_width(self, value: float):
         """Set b-bone width relative to current."""
         self.bbone_width *= value
 
@@ -492,7 +496,7 @@ class BoneInfo:
             self.display_type = 'BBONE'
 
     @property
-    def vector(self):
+    def vector(self) -> Vector:
         """Vector pointing from head to tail."""
         return self.tail - self.head
 
@@ -500,7 +504,7 @@ class BoneInfo:
     def vector(self, value: Vector):
         self.tail = self.head + value
 
-    def scale_length(self, value: int):
+    def scale_length(self, value: float):
         """Set bone length relative to its current length."""
         self.tail = self.head + self.vector * value
 
@@ -530,13 +534,21 @@ class BoneInfo:
         self.head, self.tail = self.tail, self.head
         self.roll_align_vector(self.head + old_z_axis)
 
-    def put(self, loc=None, length=None, width=None, scale_length=None, scale_width=None):
-        if not loc:
+    def put(
+        self,
+        loc: Vector = None,
+        length: float = None,
+        width: float = None,
+        scale_length: float = None,
+        scale_width: float = None,
+    ):
+        """Move this bone's head to loc, preserving the tail offset. Optionally set or scale length and width."""
+        if loc is None:
             loc = self.head
 
-        offset = loc - self.head
+        vector = self.vector
         self.head = loc
-        self.tail = loc + offset
+        self.tail = loc + vector
 
         if length:
             self.length = length
@@ -548,6 +560,7 @@ class BoneInfo:
             self.scale_width(scale_width)
 
     def flatten(self, axis=""):
+        """Align bone direction to a global axis, or project it onto the XZ plane if no axis is given. Rounds roll to nearest 90 degrees."""
         if axis:
             if axis == 'X':
                 self.vector = Vector((self.length, 0, 0))
@@ -596,6 +609,7 @@ class BoneInfo:
         self.roll_align_vector(self.head + other.z_axis, axis=axis)
 
     def roll_flip(self):
+        """Rotate roll by 180 degrees."""
         self.roll = wrap_angle_pi(self.roll + pi)
 
     @property
@@ -617,20 +631,20 @@ class BoneInfo:
         return self.matrix.to_3x3().col[2].normalized()
 
     @property
-    def custom_shape_along_length(self):
+    def custom_shape_along_length(self) -> float:
         """Get custom widget display position as a factor along the bone's length."""
         if self.custom_shape_translation.y < 0.00001:
             return 0
         return self.custom_shape_translation.y / self.length
 
     @custom_shape_along_length.setter
-    def custom_shape_along_length(self, value):
+    def custom_shape_along_length(self, value: float):
         """Set custom widget display position as a factor along the bone's length."""
         reference = self.custom_shape_transform or self
         self.custom_shape_translation.y = reference.length * value
 
     @property
-    def custom_shape_name(self):
+    def custom_shape_name(self) -> str:
         return self._custom_shape_name
 
     @custom_shape_name.setter
@@ -639,6 +653,7 @@ class BoneInfo:
         self._custom_shape_name = value
 
     def copy_custom_shape(self, other: BoneInfo | PoseBone):
+        """Copy all custom shape display properties from another bone."""
         if type(other) is PoseBone and not other.custom_shape:
             return
         if hasattr(other, 'custom_shape_name'):
@@ -702,9 +717,10 @@ class BoneInfo:
         return new_con
 
     def clear_constraints(self):
+        """Remove all constraints from this bone."""
         self.constraint_infos = []
 
-    def write_edit_data(self, generator, edit_bone: EditBone):
+    def write_edit_data(self, generator: CloudRig_Generator, edit_bone: EditBone):
         """Write relevant data of this BoneInfo into an EditBone."""
         if not self.preserve:
             return
@@ -730,7 +746,7 @@ class BoneInfo:
         for key in edit_bone_properties:
             value = getattr(self, key)
             if value == getattr(edit_bone, key):
-                # For performance, don't write idenetical values.
+                # For performance, don't write identical values.
                 continue
             setattr(edit_bone, key, value)
 
@@ -753,7 +769,7 @@ class BoneInfo:
         for prop_name, prop in self.custom_props_edit.items():
             make_property(edit_bone, prop_name, **prop)
 
-    def write_pose_data(self, context, metarig, pose_bone: PoseBone):
+    def write_pose_data(self, context: Context, metarig: Object, pose_bone: PoseBone):
         """Write relevant data of this BoneInfo into a PoseBone."""
         if not self.preserve:
             return
@@ -846,7 +862,7 @@ class BoneInfo:
 
         pose_bone.hide = False
 
-        def fixed_path(data_path):
+        def fixed_path(data_path: str) -> str:
             if not data_path.startswith("[") and not data_path.startswith("."):
                 return "." + data_path
             return data_path
@@ -921,7 +937,6 @@ class BoneInfo:
         for key, value in self.__dict__.items():
             if key == 'name' or key.startswith("_"):
                 continue
-            value = getattr(self, key)
             if type(value) in [Vector, Matrix, dict]:
                 setattr(new_bone, key, value.copy())
             elif type(value) in [list]:
@@ -931,7 +946,7 @@ class BoneInfo:
 
         return new_bone
 
-    def disown(self, new_parent):
+    def disown(self, new_parent: BoneInfo | str | None):
         """Parent all children of this bone to a new parent."""
         for b in self.children:
             b.parent = new_parent
@@ -958,8 +973,8 @@ class ConstraintInfo(dict):
 
     def __init__(
         self,
-        bone_info,
-        con_type,
+        bone_info: BoneInfo,
+        con_type: str,
         use_preferred_defaults=True,
         **kwargs,
     ):
@@ -1057,14 +1072,12 @@ class ConstraintInfo(dict):
         return split_name[1]
 
     @subtarget.setter
-    def subtarget(self, value):
+    def subtarget(self, value: str | BoneInfo | None):
         if value is None:
             value = ""
-        elif type(value) is str:
-            value = value
         elif hasattr(value, 'name'):
             value = value.name
-        else:
+        elif type(value) is not str:
             raise ValueError(f"Invalid value for 'subtarget': {value} of type {type(value)}")
 
         if self.type == 'ARMATURE':
@@ -1078,7 +1091,7 @@ class ConstraintInfo(dict):
         return self.get('space_subtarget', '')
 
     @space_subtarget.setter
-    def space_subtarget(self, value):
+    def space_subtarget(self, value: str | BoneInfo):
         if hasattr(value, 'name'):
             self['space_subtarget'] = value.name
         elif type(value) is str:
@@ -1106,7 +1119,7 @@ class ConstraintInfo(dict):
                 if len(tar) > 2:
                     weight = tar[2]
                 _targets.append({'target': targ_ob, 'subtarget': subtarget, 'weight': weight})
-            elif type(tar is dict):
+            elif type(tar) is dict:
                 if tar.get('target') in (None, self.metarig):
                     tar['target'] = self.rig
                 if type(tar.get('subtarget')) is not str:
@@ -1175,7 +1188,7 @@ class ConstraintInfo(dict):
         return self.get('space_object', self.rig)
 
     @space_object.setter
-    def space_object(self, value):
+    def space_object(self, value: Object):
         if value == self.metarig:
             value = self.rig
         self['space_object'] = value
@@ -1194,7 +1207,7 @@ class ConstraintInfo(dict):
         return self.get('head_tail', 0.0)
 
     @head_tail.setter
-    def head_tail(self, value):
+    def head_tail(self, value: float):
         self['use_bbone_shape'] = True
         self['head_tail'] = value
 
@@ -1232,7 +1245,7 @@ class ConstraintInfo(dict):
         elif self.type == 'IK':
             self.ik_chain_count = 2
 
-    def make_real(self, pose_bone: PoseBone):
+    def make_real(self, pose_bone: PoseBone) -> Constraint:
         """Create a constraint based on this ConstraintInfo on a given pose bone."""
         con = pose_bone.constraints.new(self.type)
 

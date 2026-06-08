@@ -1,11 +1,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from collections import OrderedDict
+from typing import TYPE_CHECKING, Iterator
+
+if TYPE_CHECKING:
+    from ..rig_components.cloud_base import Component_Base
 
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import (
+    Context,
     Operator,
     PoseBone,
     UI_UL_list,
@@ -25,6 +32,7 @@ class LinkedList(list):
         self.first = self.last = None
 
     def remove(self, value):
+        """Remove value and relink its neighbours."""
         super().remove(value)
         if value.prev:
             value.prev.next = value.next
@@ -32,6 +40,7 @@ class LinkedList(list):
             value.next.prev = value.prev
 
     def append(self, value):
+        """Append value and link it to the previous tail."""
         if len(self) > 0:
             self[-1].next = value
             value.prev = self[-1]
@@ -45,7 +54,7 @@ class BoneSet(LinkedList):
 
     def __init__(
         self,
-        rig_component,
+        rig_component: Component_Base,
         ui_name="Bone Set",
         collections=["Collection"],
         color_palette='DEFAULT',
@@ -67,14 +76,14 @@ class BoneSet(LinkedList):
         # Wire Width to assign to newly defined BoneInfos.
         self.wire_width = wire_width
 
-    def get(self, name):
+    def get(self, name: str) -> BoneInfo | None:
         """Find a BoneInfo instance by name, return it if found."""
         for bi in self:
             if bi.name == name:
                 return bi
         return None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.ui_name}: {super().__repr__()}"
 
     def new(
@@ -150,12 +159,13 @@ class BoneSetMixin:
     bone_set_defs: OrderedDict[str, str] = OrderedDict()
 
     @property
-    def bone_infos(self):
+    def bone_infos(self) -> Iterator[BoneInfo]:
+        """Iterate over all BoneInfo instances across all bone sets."""
         for name, bone_set in self.bone_sets.items():
             for bone_info in bone_set:
                 yield bone_info
 
-    def init_bone_set(self, bone_set_prop_name) -> BoneSet:
+    def init_bone_set(self, bone_set_prop_name: str) -> BoneSet:
         """Take a bone set definition stored in the class and create a single BoneSet for it."""
         rna_bone_set = getattr(self.params.bone_sets, bone_set_prop_name)
 
@@ -189,7 +199,7 @@ class BoneSetMixin:
     ##############################
     # UI
     @classmethod
-    def draw_bone_set_params(cls, layout, context, component, only_colors=False):
+    def draw_bone_set_params(cls, layout, context: Context, component, only_colors=False):
         """Bone Organization panel of the Component Parameters."""
         if not (component and component.enabled_with_parents):
             return
@@ -203,7 +213,9 @@ class BoneSetMixin:
         active_ui_bone_set = component.active_ui_bone_set
         active_bone_set = getattr(params.bone_sets, active_ui_bone_set.name)
         if not active_bone_set:
-            layout.label(text="Could not find Bone Set named " + active_ui_bone_set.name)
+            layout.label(
+                text=iface_("Could not find Bone Set named {bone_set}").format(bone_set=active_ui_bone_set.name)
+            )
             return
 
         prefs = get_addon_prefs(context)
@@ -259,7 +271,7 @@ class BoneSetMixin:
         col.operator('pose.cloudrig_bone_set_collection_reset', icon='FILE_REFRESH', text="")
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, _rig, params, set_name: str) -> bool:
         """Override in child classes to be able to check for unused bone sets based on current parameters."""
         set_name = set_name.replace(" ", "_").lower()
         bone_set = getattr(params.bone_sets, set_name)
@@ -274,7 +286,7 @@ class BoneSetMixin:
     @classmethod
     def define_bone_set(
         cls,
-        ui_name,
+        ui_name: str,
         collections: list[str] = [],
         color_palette='DEFAULT',
         wire_width=1.0,
@@ -323,13 +335,10 @@ class BoneSetMixin:
 
     @classmethod
     def define_bone_sets(cls):
-        # Each class should override this with their define_bone_set() calls.
-        # As well as a super().define_bone_sets().
-
-        # This needs to be defined in a function, otherwise every class shares a single instance of this dict.
-        # We want each class to have its own instance, so they only store the bone sets they actually define.
+        """Override in subclasses with define_bone_set() calls, always calling super().define_bone_sets() first.
+        Resetting the dict here ensures each class gets its own instance instead of sharing the parent's.
+        """
         cls.bone_set_defs: OrderedDict[str, str] = OrderedDict()
-        pass
 
 
 ##########################
@@ -338,7 +347,7 @@ class BoneSetMixin:
 
 
 class CLOUDRIG_UL_bone_set_collections(UIList):
-    def draw_item(self, context, layout, data, item, icon_value, active_data, active_propname):
+    def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
         collection = item
         metarig_ob = item.id_data
 
