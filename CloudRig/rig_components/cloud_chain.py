@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, FloatProperty, IntProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
@@ -35,7 +37,8 @@ class Component_ToonChain(Component_Base):
         self.str_chain: list[BoneInfo]
         self.tangent_helpers: list[BoneInfo]
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Create STR, sub-STR, tangent helper, and deform bones for this chain."""
         super().create_bone_infos(context)
 
         self.is_cyclic = self.toon__is_cyclic()
@@ -45,14 +48,14 @@ class Component_ToonChain(Component_Base):
             self.bones_org[-1].next = self.bones_org[0]
 
         # Calculate total bone length
-        self.chain_length = sum([bone.length for bone in self.bones_org])
+        self.chain_length = sum(bone.length for bone in self.bones_org)
 
         # Prepare connecting to parent component.
         first_org = self.bones_org[0]
         self.do_connect = self.__can_connect()
         if self.do_connect:
             first_org.prev = self.parent_component.bones_org[-1]
-            self.parent_component.bones_org[-1].next = first_org.prev
+            self.parent_component.bones_org[-1].next = first_org
 
         # Create Main STR controls
         self.main_str_bones = self.__make_main_str_bones(self.bones_org)
@@ -78,7 +81,8 @@ class Component_ToonChain(Component_Base):
 
         self.__connect_parent_component()
 
-    def base__relink_single(self, org_idx, con_info):
+    def base__relink_single(self, org_idx: int, con_info: ConstraintInfo):
+        """Move a constraint to its target, replacing the parent helper's Armature constraint if needed."""
         to_bone = self.base__relink_get_target(org_idx, con_info)
         org_bi = self.bones_org[org_idx]
 
@@ -208,7 +212,7 @@ class Component_ToonChain(Component_Base):
             main_str.put(org_bone.tail, length=main_str.length)
             main_str.custom_shape_scale_xyz *= -1
 
-        if not self.is_cyclic and org_bone == self.bones_org[0] or at_tip:
+        if not self.is_cyclic and (org_bone == self.bones_org[0] or at_tip):
             main_str.custom_shape_name = self.params.chain.shape_stretch_ends.shape_name
             main_str.custom_shape_scale_xyz.y *= -1
         else:
@@ -280,6 +284,7 @@ class Component_ToonChain(Component_Base):
         num_segments: int,
         index: int,
     ) -> BoneInfo:
+        """Create a single sub-STR control placed between two main STR bones."""
         # Add the index after the base name
         prefix, base, suffix, zeroes = self.naming.get_name_parts(main_start.name)
         base = base[:-1] + str(index + 1)
@@ -353,42 +358,43 @@ class Component_ToonChain(Component_Base):
         return tangent_helpers
 
     def chain__set_next_prev(self, str_bone: BoneInfo):
+        """Update the Damped Track constraints on a tangent helper to point at the current prev/next STR bones."""
         if not self.needs_tangent_helpers:
             return
-        nxt = str_bone.next
-        prev = str_bone.prev
-        if not prev and self.do_connect:
-            prev = self.parent_component.main_str_bones[-1]
+        next_bone = str_bone.next
+        prev_bone = str_bone.prev
+        if not prev_bone and self.do_connect:
+            prev_bone = self.parent_component.main_str_bones[-1]
 
         prev_con = next(
             (con for con in str_bone.tangent_helper.constraint_infos if con.name.startswith("Damped Track Prev")), None
         )
-        if not prev_con and prev:
+        if not prev_con and prev_bone:
             prev_con = str_bone.tangent_helper.add_constraint(
                 'DAMPED_TRACK',
                 name="Damped Track Prev (Smooth Spline)",
                 index=1,
-                subtarget=prev.name,
+                subtarget=prev_bone.name,
                 track_axis='TRACK_NEGATIVE_Y',
                 influence=1.0,
             )
-        if prev:
-            prev_con.subtarget = prev.name
+        if prev_bone:
+            prev_con.subtarget = prev_bone.name
 
         next_con = next(
             (con for con in str_bone.tangent_helper.constraint_infos if con.name.startswith("Damped Track Next")), None
         )
-        if not next_con and nxt:
+        if not next_con and next_bone:
             next_con = str_bone.tangent_helper.add_constraint(
                 'DAMPED_TRACK',
                 name="Damped Track Next (Smooth Spline)",
                 index=2,
-                subtarget=nxt.name,
+                subtarget=next_bone.name,
                 track_axis='TRACK_Y',
                 influence=0.5 if prev_con else 1.0,
             )
-        if nxt:
-            next_con.subtarget = nxt.name
+        if next_bone:
+            next_con.subtarget = next_bone.name
             next_con.influence = 0.5 if prev_con else 1.0
 
     def __make_tangent_helper(self, str_bone: BoneInfo) -> BoneInfo:
@@ -502,7 +508,7 @@ class Component_ToonChain(Component_Base):
         def_bone: BoneInfo,
         org_bone: BoneInfo,
         str_bone: BoneInfo,
-        next_str_bone: BoneInfo = None,
+        next_str_bone: BoneInfo | None = None,
     ):
         """Configure BBone setup for def_bone."""
 
@@ -521,7 +527,7 @@ class Component_ToonChain(Component_Base):
                 subtarget=next_str_bone,
                 use_bulge_min=not self.params.chain.preserve_volume,
                 use_bulge_max=True,
-                bulge_max=5 if self.params.chain.preserve_volume else 1,
+                bulge_max=5.0 if self.params.chain.preserve_volume else 1.0,
                 bulge=self.params.chain.volume_variation,
             )
 
@@ -655,7 +661,7 @@ class Component_ToonChain(Component_Base):
                 subtarget=str_bone.next.name,
                 use_bulge_min=not self.params.chain.preserve_volume,
                 use_bulge_max=True,
-                bulge_max=5,
+                bulge_max=5.0,
                 bulge=self.params.chain.volume_variation,
             )
         def_bone_control.custom_shape_name = self.params.chain.shape_def_control.shape_name
@@ -794,8 +800,8 @@ class Component_ToonChain(Component_Base):
     # Parameters
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
-        # We only want to draw this bone set UI if the option for it is enabled.
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+        """Return whether the named bone set is used given the current params."""
         if set_name in ["deform_controls", "deform_helpers"]:
             return params.chain.unlock_deform
         if set_name == 'shape_key_helpers':
@@ -803,7 +809,7 @@ class Component_ToonChain(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         if params.chain.unlock_deform:
@@ -811,7 +817,6 @@ class Component_ToonChain(Component_Base):
         cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch')
         cls.draw_prop_custom_shape(context, layout, params.chain, 'shape_stretch_ends')
         cls.draw_prop(context, layout, params.chain, 'shape_size', text="Size", enabled=component.appearance_enabled)
-        return layout
 
     @classmethod
     def define_bone_sets(cls):
@@ -839,7 +844,7 @@ class Component_ToonChain(Component_Base):
         )
 
     @classmethod
-    def draw_bendy_params(cls, layout, context, component):
+    def draw_bendy_params(cls, layout: UILayout, context: Context, component):
         params = component.params
         cls.draw_prop(context, layout, params.chain, 'bbone_density')
         enabled = params.chain.bbone_density > 0
@@ -854,12 +859,12 @@ class Component_ToonChain(Component_Base):
             cls.draw_prop(context, layout, params.chain, 'unlock_deform')
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         cls.draw_stretch_control_params(layout, context, component)
 
     @classmethod
-    def draw_stretch_control_params(cls, layout, context, component):
+    def draw_stretch_control_params(cls, layout: UILayout, context: Context, component):
         params = component.params
         cls.draw_control_label(layout, iface_("Stretch"))
         cls.draw_prop(context, layout, params.chain, 'segments')
@@ -920,10 +925,10 @@ class Params(PropertyGroup):
     volume_variation: FloatProperty(
         name="Volume Variation",
         description="How exaggerated the squashing and stretching should be",
-        min=0,
-        max=100,
-        soft_max=5,
-        default=1,
+        min=0.0,
+        max=100.0,
+        soft_max=5.0,
+        default=1.0,
     )
 
     shape_stretch: Component_Base.make_custom_shape_params(identifier="Stretch", default="Sphere 2")

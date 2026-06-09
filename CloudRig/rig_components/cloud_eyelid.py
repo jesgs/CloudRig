@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
+from bpy.types import Context
 
 from ..utils.maths import project_vector_on_plane
 from .cloud_aim import Component_Aim
@@ -17,7 +20,8 @@ class Component_Eyelid(Component_FaceChain):
     ##############################
     # Inherited functions.
 
-    def fchain__create_and_setup_intersections(self, context):
+    def fchain__create_and_setup_intersections(self, context: Context):
+        """Reparent eyelid to the eye's parent bone, then run the face-chain intersection setup."""
         # Since the cloud_eyelid rig demands to be parented to a cloud_aim rig,
         # but we obviously don't want to parent the eyelid to the eyeball,
         # parent it to the parent of the eyeball.
@@ -103,7 +107,7 @@ class Component_Eyelid(Component_FaceChain):
                 }
             )
 
-    def __create_sticky_property(self, eye_component: Component_Aim, sticky_prop_name):
+    def __create_sticky_property(self, eye_component: Component_Aim, sticky_prop_name: str):
         self.rig_ui__add_bone_property(
             prop_bone=eye_component.properties_bone,
             prop_id=sticky_prop_name,

@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.overlay_painter import no_overlay
@@ -31,6 +33,7 @@ class Component_TweakBone(Component_Base):
         self.bone_to_tweak = None
 
     def base__load_metarig_bones(self) -> dict[str, BoneInfo]:
+        """Load metarig bones, warn if multiple bones are present since only the first will be tweaked."""
         bone_infos = super().base__load_metarig_bones()
         if len(bone_infos) > 1:
             self.add_log(
@@ -41,12 +44,13 @@ class Component_TweakBone(Component_Base):
                 ),
             )
 
-        bone_info_tuple = [(key, value) for key, value in bone_infos.items()][0]
+        bone_info_tuple = next(iter(bone_infos.items()))
         self.original_name, self.org_bone = bone_info_tuple
         self.org_bone.name += "_Tweak"
         return bone_infos
 
-    def create_component_interactions(self, context):
+    def create_component_interactions(self, context: Context):
+        """Find the target bone by its original name and copy the selected metarig properties onto it."""
         meta_pbone = self.metarig_base_pbone
         org_boneinfo = self.bones_org[0]
         self.bone_to_tweak = bone_to_tweak = self.generator.find_bone_info(self.original_name)
@@ -156,7 +160,7 @@ class Component_TweakBone(Component_Base):
 
     @no_overlay
     def base__relink(self):
-        # Transfer and relink constraints and their drivers
+        """Transfer and relink constraints and their drivers from the ORG bone to the tweaked bone."""
         assert self.bone_to_tweak
 
         meta_pbone = self.bones_org[0]
@@ -167,15 +171,15 @@ class Component_TweakBone(Component_Base):
             meta_pbone.constraint_infos.remove(con_info)
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
-        # We use the collections the actual bone itself is assigned to.
+    def is_bone_set_used(cls, context: Context, _rig, _params, _set_name: str) -> bool:
+        """Always returns False: tweak bones use the collections of the actual bone they target."""
         return False
 
     ##############################
     # Parameters
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         params = component.params
         cls.draw_control_label(layout, iface_("Tweak"))
         cls.draw_prop(context, layout, params.tweak, "constraints_additive")

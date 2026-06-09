@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import bpy
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, PointerProperty
-from bpy.types import Object, PropertyGroup
+from bpy.types import Context, Object, PropertyGroup, UILayout
 from mathutils import Matrix
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -26,22 +28,24 @@ class Component_Lattice(Component_Base):
     ##############################
     # Inherited functions.
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Create the lattice root and hook control bones."""
         super().create_bone_infos(context)
         self.__check_lattice_already_used()
         self.root_bone = self.lattice_root = self.__make_lattice_root(self.root_bone)
         self.hook_bone = self.__make_hook_ctrl(self.lattice_root)
 
-    def create_helper_objects(self, context):
+    def create_helper_objects(self, context: Context):
+        """Ensure the lattice object exists, then reset or re-hook it."""
         super().create_helper_objects(context)
         lattice_ob = self.params.lattice.lattice = self.__ensure_lattice(context, self.hook_bone.name)
         if self.params.lattice.regenerate:
-            self.__reset_lattice(context, lattice_ob, self.lattice_root, self.hook_bone)
+            self.__reset_lattice(lattice_ob, self.lattice_root, self.hook_bone)
         else:
             # Reset Hook inverse matrices
-            for m in lattice_ob.modifiers:
-                if m.type == 'HOOK':
-                    m.subtarget = m.subtarget
+            for mod in lattice_ob.modifiers:
+                if mod.type == 'HOOK':
+                    mod.subtarget = mod.subtarget
         self.check_object_in_scene(context, lattice_ob)
 
     ##############################
@@ -51,7 +55,7 @@ class Component_Lattice(Component_Base):
         """Test if the target lattice object is already being used by
         another cloud_lattice rig."""
 
-        for bone_name, component in self.generator.component_map.items():
+        for _bone_name, component in self.generator.component_map.items():
             if isinstance(component, type(self)):
                 if component == self:
                     return
@@ -69,6 +73,7 @@ class Component_Lattice(Component_Base):
                     )
 
     def __make_lattice_root(self, org_bi: BoneInfo) -> BoneInfo:
+        """Create the root control bone for the lattice, inheriting any custom shape from the ORG bone."""
         root_bone = self.bone_sets['Lattice Controls'].new(
             name=self.naming.add_prefix(org_bi, "ROOT-LTC"),
             source=org_bi,
@@ -82,6 +87,7 @@ class Component_Lattice(Component_Base):
         return root_bone
 
     def __make_hook_ctrl(self, root_bone: BoneInfo) -> BoneInfo:
+        """Create the hook control bone, parented to the lattice root."""
         hook_bone = self.bone_sets['Lattice Controls'].new(
             name=self.naming.add_prefix(root_bone.source, "LTC"),
             source=root_bone,
@@ -91,7 +97,8 @@ class Component_Lattice(Component_Base):
         )
         return hook_bone
 
-    def __ensure_lattice(self, context, lattice_name="Lattice") -> Object:
+    def __ensure_lattice(self, context: Context, lattice_name="Lattice") -> Object:
+        """Return the existing lattice object from params, or create a new one linked to the scene."""
         lattice_ob = self.params.lattice.lattice
         if lattice_ob:
             return lattice_ob
@@ -103,40 +110,25 @@ class Component_Lattice(Component_Base):
 
     def __reset_lattice(
         self,
-        context,
         lattice_ob: Object,
         root_bone: BoneInfo,
         hook_bone: BoneInfo,
     ) -> Object:
-        # If lattice doesn't exist, create it.
-        if not lattice_ob:
-            lattice_name = hook_bone.name
-            lattice = bpy.data.lattices.new(lattice_name)
-            lattice_ob = bpy.data.objects.new(lattice_name, lattice)
-            context.scene.collection.objects.link(lattice_ob)
-        else:
-            lattice_ob.modifiers.clear()
-            lattice_ob.constraints.clear()
+        """Reset the lattice object: clear modifiers/constraints, set resolution, parent to the target rig, and add a hook modifier."""
+        lattice_ob.modifiers.clear()
+        lattice_ob.constraints.clear()
 
         resolution = 10
-        # Set resolution
-        lattice_ob.data.points_u, lattice_ob.data.points_v, lattice_ob.data.points_w = (
-            1,
-            1,
-            1,
-        )
         lattice_ob.data.points_u, lattice_ob.data.points_v, lattice_ob.data.points_w = [resolution] * 3
 
-        # Create a falloff vertex group
         vg = ensure_falloff_vgroup(lattice_ob, vg_name="Hook", multiplier=1.5)
 
-        # Parent lattice to the Target Rig
         lattice_ob.parent = self.target_rig
         # Bone-parent lattice to root bone
         lattice_ob.parent_type = 'BONE'
         lattice_ob.parent_bone = self.lattice_root.name
         lattice_ob.matrix_world = root_bone.matrix
-        scale = sum((abs(s) for s in root_bone.custom_shape_scale_xyz)) / 3
+        scale = sum(abs(s) for s in root_bone.custom_shape_scale_xyz) / 3
         if root_bone.use_custom_shape_bone_size:
             scale *= root_bone.length
         lattice_ob.matrix_world = lattice_ob.matrix_world @ Matrix.Scale(scale, 4)
@@ -164,19 +156,19 @@ class Component_Lattice(Component_Base):
         cls.define_bone_set(n_("Lattice Controls"), color_palette='THEME12', wire_width=2.0)
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
         if set_name == 'deform_bones':
             return False
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         params = component.params
         cls.draw_prop(context, layout, params.lattice, "lattice")
         cls.draw_prop(context, layout, params.lattice, "regenerate")
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.lattice, 'shape_root')

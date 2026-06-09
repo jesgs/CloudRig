@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty, FloatProperty, StringProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -33,7 +34,7 @@ class Component_Aim(Component_Base):
     ##############################
     # Inherited functions.
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
         super().create_bone_infos(context)
 
         aim_org = self.bones_org[0]
@@ -59,7 +60,8 @@ class Component_Aim(Component_Base):
         if self.params.aim.create_sub_control:
             self.__create_eye_highlight(self.ctr_bone)
 
-    def create_component_interactions(self, context):
+    def create_component_interactions(self, context: Context):
+        """Set up cross-component interactions, including group master creation."""
         if self.params.aim.group != "" and not hasattr(self, 'group_master'):
             self.group_master = self.__ensure_group_master()
         return super().create_component_interactions(context)
@@ -68,8 +70,8 @@ class Component_Aim(Component_Base):
     def base__apply_parent_switching(
         self,
         *,
-        child_bone=None,
-        prop_bone=None,
+        child_bone: BoneInfo | None = None,
+        prop_bone: BoneInfo | None = None,
         prop_name="",
         panel_name=n_("Face"),
         row_name="",
@@ -84,9 +86,8 @@ class Component_Aim(Component_Base):
             panel_name=panel_name,
             label_name=label_name or "Aim Target Parent",
             row_name=row_name,
-            entry_name=entry_name or self.params.aim.group + " Parent",
+            entry_name=entry_name or self.params.aim.group + iface_(" Parent"),
         )
-        return
 
     ##############################
     # Aim Rig functions.
@@ -129,7 +130,7 @@ class Component_Aim(Component_Base):
 
         return target_bone
 
-    def __make_aim_control(self, org_bone, aim_bone) -> BoneInfo:
+    def __make_aim_control(self, org_bone: BoneInfo, aim_bone: BoneInfo) -> BoneInfo:
         """Create direct control, with a display bone at the tip of it."""
         ctr_bone = self.bone_sets['Aim Target Control'].new(
             name=self.naming.add_prefix(org_bone, 'CTR'),
@@ -155,36 +156,38 @@ class Component_Aim(Component_Base):
             use_max_x=True,
             use_max_y=True,
             use_max_z=True,
-            min_x=1,
-            min_y=1,
-            min_z=1,
-            max_x=1,
-            max_y=1,
-            max_z=1,
+            min_x=1.0,
+            min_y=1.0,
+            min_z=1.0,
+            max_x=1.0,
+            max_y=1.0,
+            max_z=1.0,
             use_transform_limit=False,
             space='LOCAL',
         )
         dsp_bone = self.create_dsp_bone(ctr_bone)
         dsp_bone.put(ctr_bone.tail)
         dsp_bone.drivers.append({'prop': 'scale', 'index': 0, 'variables': [(ctr_bone.name, '.scale[0]')]})
-        dsp_bone.drivers.append({'prop': '.scale', 'index': 2, 'variables': [(ctr_bone.name, '.scale[2]')]})
+        dsp_bone.drivers.append({'prop': 'scale', 'index': 2, 'variables': [(ctr_bone.name, '.scale[2]')]})
         return ctr_bone
 
-    def __make_root_bone(self, org_bone) -> BoneInfo:
+    def __make_root_bone(self, org_bone: BoneInfo) -> BoneInfo:
+        """Create a root control bone and reparent the org bone under it."""
         root_bone = self.bone_sets['Aim Root Control'].new(
             name=self.naming.add_prefix(org_bone, 'ROOT'),
             source=org_bone,
             parent=org_bone.parent,
             custom_shape_name=self.params.aim.shape_root.shape_name,
-            custom_shape_scale=2,
-            custom_shape_along_length=1,
+            custom_shape_scale=2.0,
+            custom_shape_along_length=1.0,
         )
 
         org_bone.parent = root_bone
 
         return root_bone
 
-    def __create_eye_highlight(self, ctr_bone):
+    def __create_eye_highlight(self, ctr_bone: BoneInfo):
+        """Create a secondary highlight sub-control attached to the aim control."""
         highlight_ctr = self.bone_sets['Aim Target Control'].new(
             name=self.naming.suffix_base_name(ctr_bone, "_Highlight"),
             source=ctr_bone,
@@ -227,19 +230,19 @@ class Component_Aim(Component_Base):
             self.make_def_bone(highlight_ctr, highlight_ctr.name.replace("CTR-", "DEF-"), self.bones_def)
 
     def __group_get_components(self) -> list[Component_Aim]:
+        """Get all Component_Aim instances belonging to the same aim group."""
         return [
             comp
             for comp in self.generator.all_components
             if isinstance(comp, Component_Aim) and comp.params.aim.group == self.params.aim.group
         ]
 
-    def __is_last_of_group(self) -> bool:
-        return self is self.__group_get_components()[-1]
-
     def __group_get_tgt_ctrls(self) -> list[BoneInfo]:
+        """Get target control bones from all components in the same aim group."""
         return [comp.target_bone for comp in self.__group_get_components()]
 
     def __group_get_org_bones(self) -> list[BoneInfo]:
+        """Get org bones from all components in the same aim group."""
         return [comp.bones_org[0] for comp in self.__group_get_components()]
 
     def __ensure_group_master(self) -> BoneInfo | None:
@@ -264,20 +267,20 @@ class Component_Aim(Component_Base):
             return None
 
         # Find center of all org bones
-        orgs_center = bounding_box_center([b.head for b in org_bones])
+        orgs_center = bounding_box_center([bone.head for bone in org_bones])
 
         # Find center of all targets
-        target_positions = [b.head for b in tgt_bones]
+        target_positions = [bone.head for bone in tgt_bones]
         target_center = bounding_box_center(target_positions)
         z_axis = Vector((0, 0, 0))
-        lgt = 0
-        for b in tgt_bones:
-            z_axis += b.z_axis
-            lgt += b.length
-        lgt /= len(tgt_bones)
+        avg_length = 0
+        for bone in tgt_bones:
+            z_axis += bone.z_axis
+            avg_length += bone.length
+        avg_length /= len(tgt_bones)
 
         bbox_low, bbox_high = bounding_box(target_positions)
-        shape_size = max(sorted(tgt_bones, key=lambda b: b.custom_shape_scale_xyz.x)[0].custom_shape_scale_xyz)
+        shape_size = max(sorted(tgt_bones, key=lambda bone: bone.custom_shape_scale_xyz.x)[0].custom_shape_scale_xyz)
         targets_size = (bbox_high - bbox_low).length + shape_size * 1.2
 
         # Create a helper bone in the center.
@@ -286,25 +289,18 @@ class Component_Aim(Component_Base):
             name=self.naming.add_prefix(group_name, "CEN"),
             source=self.bones_org[0],
             head=orgs_center,
-            tail=orgs_center + group_vec.normalized() * lgt,
+            tail=orgs_center + group_vec.normalized() * avg_length,
             parent=self.generator.find_bone_info(first_parent),
         )
         center_bone.roll_align_vector(center_bone.head + z_axis)
         center_bone.add_constraint('ARMATURE', targets=[{'subtarget': bone.name} for bone in org_bones])
-
-        max_dist = 0
-        for i, target_pos in enumerate(target_positions[1:]):
-            prev = target_positions[i]
-            dist = (target_pos - prev).length
-            if dist > max_dist:
-                max_dist = dist
 
         # Create the master bone.
         group_master = self.bone_sets['Aim Group Target Control'].new(
             name=self.naming.add_prefix(group_name, "TGT"),
             source=self.bones_org[0],
             head=target_center,
-            tail=target_center + group_vec.normalized() * lgt,
+            tail=target_center + group_vec.normalized() * avg_length,
             custom_shape_name=self.params.aim.shape_master.shape_name,
             use_custom_shape_bone_size=False,
             custom_shape_scale_xyz=Vector((targets_size, 1, shape_size * 2.2)),
@@ -323,7 +319,8 @@ class Component_Aim(Component_Base):
     # Parameters
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+        """Return whether the named bone set is used given the current params."""
         if set_name == 'deform_bones':
             return params.aim.deform
         if set_name == 'aim_root_control':
@@ -347,7 +344,7 @@ class Component_Aim(Component_Base):
         cls.define_bone_set(n_("Aim Deform"), collections=['Deform Bones'], is_advanced=True)
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_eye')
@@ -359,7 +356,7 @@ class Component_Aim(Component_Base):
         cls.draw_prop(context, layout, params.aim, 'target_size', enabled=component.appearance_enabled)
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         params = component.params
         cls.draw_prop(context, layout, params.aim, 'group')
         cls.draw_prop(context, layout, params.aim, 'target_distance')

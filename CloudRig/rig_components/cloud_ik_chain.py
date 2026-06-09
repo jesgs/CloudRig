@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from math import radians
 
 from bpy.app.translations import pgettext_iface as iface_
@@ -7,7 +9,7 @@ from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty
-from bpy.types import Action, ActionSlot, PropertyGroup
+from bpy.types import Action, ActionSlot, Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..bs_utils.ui import label_split
@@ -63,14 +65,15 @@ class Component_Chain_IKFK(Component_Chain_FK):
     def base__apply_parent_switching(
         self,
         *,
-        child_bone=None,
-        prop_bone=None,
+        child_bone: BoneInfo | None = None,
+        prop_bone: BoneInfo | None = None,
         prop_name="",
         panel_name=n_("IK"),
         row_name="",
         label_name=n_("Parent Switching"),
         entry_name="",
     ):
+        """Apply parent switching, defaulting the child to the IK master and the prop bone to the properties bone."""
         ik_parents_prop_name = "ik_parents_" + self.base_name_props
         super().base__apply_parent_switching(
             child_bone=child_bone or self.ik_mstr,
@@ -83,8 +86,11 @@ class Component_Chain_IKFK(Component_Chain_FK):
         )
 
     @no_overlay
-    def rig_ui__add_bone_property(self, operator="", op_kwargs={}, **kwargs):
+    def rig_ui__add_bone_property(self, operator="", op_kwargs: dict | None = None, **kwargs):
+        """Override to also append the pole control bone name to snap operations that move the IK master."""
         # TODO: This should be restructured, we shouldn't be overriding this function.
+
+        op_kwargs = op_kwargs or {}
 
         if self.pole_ctrl and operator == "pose.cloudrig_switch_parent_bake":
             # Hacky fix to issue #188. base__apply_parent_switching() is designed for ONE child
@@ -95,6 +101,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     @no_overlay
     def gizmos__add_interactions(self):
+        """Register FK→IK and IK→FK gizmo interactions for the IK/FK switch operator."""
         if "operator" not in self.ui_data:
             return
         op_kwargs = self.ui_data.copy()
@@ -122,7 +129,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self.disable_property_until_frame(action, slot, last_frame, self.ikfk_name)
         return last_frame
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Build the full IK/FK setup: validate chain, build FK, IK chain, stretch, and snapping UI."""
         req_len = 2
         if len(self.bones_org) < 2:
             self.raise_generation_error(
@@ -164,7 +172,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         self.ik_chain__attach_org_to_ik(self.bones_org, self.ik_chain)
 
-    def create_component_interactions(self, context):
+    def create_component_interactions(self, context: Context):
+        """Set up IK pole parent switching after all components have been generated."""
         super().create_component_interactions(context)
 
         if self.params.ik_chain.use_pole:
@@ -222,6 +231,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         )
 
     def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo], ik_bone_set: BoneSet):
+        """Create the IK master control, optional pole, IK mechanism chain, and stretch setup."""
         # Create IK Master control
         self.ik_mstr = self.ik_chain__make_master_ctr(
             ik_bone_set,
@@ -270,8 +280,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
         self.pole_location = pole_location
 
-    def __make_pole_control(self):
-        # Create IK Pole Control
+    def __make_pole_control(self) -> BoneInfo:
+        """Create the IK pole control bone and append it to the IK controls list."""
         prefix, base_name, suffix, blender_zeroes = self.naming.get_name_parts(self.bones_org[0])
         base_name = prefix + self.base_name + suffix + blender_zeroes
         pole_ctrl = self.pole_ctrl = self.create_ik_pole_control(
@@ -291,7 +301,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         self,
         org_chain: list[BoneInfo],
         ik_mstr: BoneInfo,
-        pole_target: BoneInfo = None,
+        pole_target: BoneInfo | None = None,
     ) -> list[BoneInfo]:
         """Based on a chain of ORG bones, create an IK chain, optionally with a pole target."""
         ik_chain = []
@@ -367,7 +377,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         )
 
         # That property drives a Limit Distance constraint.
-        distance = sum([b.length for b in ik_chain[: self.ik_chain_count]])
+        distance = sum(b.length for b in ik_chain[: self.ik_chain_count])
         limit_con = self.ik_tgt_bone.add_constraint(
             'LIMIT_DISTANCE',
             subtarget=self.root_bone,
@@ -422,7 +432,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     @no_overlay
     def ik_chain__world_align_fk(self):
-        # Make last FK bone world-aligned.
+        """World-align the last FK bone by delegating to the generic world-aligned helper."""
         self.ik_chain__world_aligned_helper(self.fk_chain[-1])
 
     def ik_chain__world_aligned_helper(self, fk_bone: BoneInfo) -> BoneInfo:
@@ -444,7 +454,13 @@ class Component_Chain_IKFK(Component_Chain_FK):
         return world_bone
 
     @no_overlay(return_value={})
-    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
+    def ik_chain__get_ik_switch_ui_data(
+        self,
+        fk_chain: list[BoneInfo],
+        ik_chain: list[BoneInfo],
+        ik_mstr: BoneInfo,
+        ik_pole: BoneInfo | None,
+    ) -> dict:
         """Return UI data to be stored for FK/IK switching and snapping."""
 
         # List of bone tuples to snap (from, to).
@@ -494,6 +510,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     @no_overlay
     def ik_chain__attach_org_to_ik(self, org_chain: list[BoneInfo], ik_chain: list[BoneInfo]):
+        """Add IK Copy Transforms constraints to ORG bones, driven by the IK/FK switch property."""
         # NOTE: Runs after fk_chain__attach_org_to_fk().
 
         # Add Copy Transforms constraints to the ORG bones to copy the IK bones.
@@ -528,6 +545,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
 
     @no_overlay
     def ik_chain__make_pole_parent_switch(self, pole_ctrl: BoneInfo, ik_mstr: BoneInfo):
+        """Set up the pole control's parent switching, either follow-mode or individual parent options."""
         if self.params.ik_chain.pole_parent_switch == 'FOLLOW':
             self.ik_chain__make_pole_follow_switch(pole_ctrl, ik_mstr)
         else:
@@ -542,7 +560,8 @@ class Component_Chain_IKFK(Component_Chain_FK):
             )
 
     @no_overlay
-    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr):
+    def ik_chain__make_pole_follow_switch(self, ik_pole: BoneInfo, ik_mstr: BoneInfo):
+        """Set up a driven Armature constraint on a pole parent helper, blending between root and IK master."""
         pole_parent_helper = self.create_parent_bone(ik_pole, bone_set=self.bones_mch)
         pole_parent_helper.custom_shape = None
 
@@ -608,7 +627,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -632,7 +651,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         split.operator("armature.flatten_ik_chain")
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()
@@ -640,10 +659,9 @@ class Component_Chain_IKFK(Component_Chain_FK):
         cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_ik_first')
         if params.ik_chain.use_pole:
             cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_pole')
-        return layout
 
     @classmethod
-    def draw_custom_prop_params(cls, layout, context, component):
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component):
         super().draw_custom_prop_params(layout, context, component)
         layout.separator()
         cls.draw_prop(context, layout, component.params.ik_chain, 'default_fkik', slider=True)
@@ -695,21 +713,21 @@ class Params(PropertyGroup):
 
     default_fkik: FloatProperty(
         name="Default FK/IK",
-        min=0,
-        max=1,
-        default=1,
+        min=0.0,
+        max=1.0,
+        default=1.0,
     )
     default_stretch: FloatProperty(
         name="Default IK Stretch",
-        min=0,
-        max=1,
-        default=0,
+        min=0.0,
+        max=1.0,
+        default=0.0,
     )
     default_ik_pole_follow: FloatProperty(
         name="Default IK Pole Follow",
-        min=0,
-        max=1,
-        default=0,
+        min=0.0,
+        max=1.0,
+        default=0.0,
     )
 
     shape_ik_master: Component_Chain_FK.make_custom_shape_params(identifier="IK Master", default="Saddle")

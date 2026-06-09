@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from math import pi
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, FloatProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -34,8 +36,8 @@ class Component_Spine_Toon(Component_Chain_FK):
     ################################
     # Inherited functions.
 
-    def fk_chain__make_root_bone(self):
-        # Create Torso Master control.
+    def fk_chain__make_root_bone(self) -> BoneInfo:
+        """Create the Torso Master control at the center of the first ORG bone."""
         self.torso_ctr = self.bone_sets['FK Controls'].new(
             name=self.naming.add_prefix(self.base_name, 'TORSO'),
             parent=self.bones_org[0].parent,
@@ -56,6 +58,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         return self.torso_ctr
 
     def fk_chain__make(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
+        """Build the FK chain, re-parent its first bone to root, and center each FK bone on its source."""
         fk_chain = super().fk_chain__make(org_chain)
         fk_chain[0].parent = self.root_bone
 
@@ -71,7 +74,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         return fk_chain
 
     @no_overlay
-    def fk_chain__attach_org_to_fk(self, org_bones, fk_bones):
+    def fk_chain__attach_org_to_fk(self, org_bones: list[BoneInfo], fk_bones: list[BoneInfo]):
         """Parent original bones to FK bones.
         The purpose of original bones in this component is just for any child
         components to follow along in an expected way.
@@ -80,9 +83,8 @@ class Component_Spine_Toon(Component_Chain_FK):
             org_bone.use_connect = False
             org_bone.parent = fk_bone
 
-    def create_bone_infos(self, context):
-        """First function called by the generator.
-        You should populate your BoneSets with BoneInfo instances here."""
+    def create_bone_infos(self, context: Context):
+        """Build the toon spine: chest and hip IK controls, squash helper, and the full IK/FK setup."""
         super().create_bone_infos(context)
 
         chest = self.bone_sets['Toon Spine IK'].new(
@@ -170,6 +172,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         chest: BoneInfo,
         hips_fwd: BoneInfo,
     ):
+        """Register the FK/IK switch property, then build the IK bone chain and IK STR chain."""
         ikfk_prop_name = f'{self.base_name}_ik'
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
@@ -187,6 +190,7 @@ class Component_Spine_Toon(Component_Chain_FK):
 
     @no_overlay
     def __make_ik_chain(self, fk_chain: list[BoneInfo], chest: BoneInfo, hips: BoneInfo) -> list[BoneInfo]:
+        """Build the hidden IK helper bone chain that drives the toon spine IK controls."""
         ik_chain = []
 
         def make_ik_bone(bone_name: str, parent: BoneInfo) -> BoneInfo:
@@ -212,12 +216,12 @@ class Component_Spine_Toon(Component_Chain_FK):
 
         # Make the IK chain.
         next_parent = hips if len(self.fk_chain) > 3 else chest
-        for i, fk_bone in enumerate(fk_chain[1:]):
+        for fk_idx, fk_bone in enumerate(fk_chain[1:]):
             ik_name = self.naming.add_prefix(fk_bone.source, "IK")
             ik_hlp = make_ik_bone(ik_name, next_parent)
-            if 0 < i < len(fk_chain) - 3:
+            if 0 < fk_idx < len(fk_chain) - 3:
                 unit = 1 / (len(fk_chain) - 3)
-                chest_influence = unit * i
+                chest_influence = unit * fk_idx
                 parent_helper = self.create_parent_bone(ik_hlp, bone_set=self.bone_sets['Mechanism Bones'])
                 parent_helper.put(Vector.lerp(hips.tail, chest.head, chest_influence))
                 parent_helper.vector = (chest.head - hips.tail).normalized() * parent_helper.vector.length
@@ -234,8 +238,8 @@ class Component_Spine_Toon(Component_Chain_FK):
         ik_hlp.put(fk_bone.tail)
 
         # The last two should be hidden.
-        for i in (1, 2):
-            ik_hlp = ik_chain[-i]
+        for offset in (1, 2):
+            ik_hlp = ik_chain[-offset]
             ik_hlp.collections = self.bone_sets['Toon Spine Mechanism'].collections
         return ik_chain
 
@@ -248,6 +252,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         chest: BoneInfo,
         ikfk_prop_name: str,
     ) -> list[BoneInfo]:
+        """Create IK stretch bones between hips and chest, then add Copy Transforms constraints driven by the FK/IK switch."""
         squash_prop_name = f"squash_{self.base_name}"
         self.rig_ui__add_bone_property(
             prop_bone=self.properties_bone,
@@ -260,16 +265,16 @@ class Component_Spine_Toon(Component_Chain_FK):
 
         ik_str_chain: list[BoneInfo] = []
         next_parent = hips_fwd
-        for i, fk_bone in enumerate(fk_chain):
+        for fk_idx, fk_bone in enumerate(fk_chain):
             ik_str = self.bone_sets['Toon Spine Mechanism'].new(
                 name=self.naming.add_prefix(fk_bone.source, "IK-STR"),
                 source=fk_bone,
                 head=fk_bone.head,
-                tail=ik_chain[i].head,
+                tail=ik_chain[fk_idx].head,
                 parent=next_parent,
             )
             str_con = ik_str.add_constraint(
-                'STRETCH_TO', subtarget=ik_chain[i], use_bulge_min=False, use_bulge_max=True, bulge_max=2.0
+                'STRETCH_TO', subtarget=ik_chain[fk_idx], use_bulge_min=False, use_bulge_max=True, bulge_max=2.0
             )
             str_con.drivers.append(
                 {
@@ -277,7 +282,7 @@ class Component_Spine_Toon(Component_Chain_FK):
                     'variables': [(self.properties_bone.name, squash_prop_name)],
                 }
             )
-            next_parent = ik_chain[i]
+            next_parent = ik_chain[fk_idx]
             copycon = fk_bone.add_constraint(
                 'COPY_TRANSFORMS',
                 name='Copy Transform (IK)',
@@ -298,6 +303,7 @@ class Component_Spine_Toon(Component_Chain_FK):
 
     @classmethod
     def define_bone_sets(cls):
+        """Create parameters for this rig's bone sets."""
         super().define_bone_sets()
         cls.define_bone_set(
             n_("Toon Spine IK"),
@@ -314,7 +320,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         cls.define_bone_set(n_("Toon Spine Mechanism"), collections=["Mechanism Bones"], is_advanced=True)
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -326,21 +332,21 @@ class Component_Spine_Toon(Component_Chain_FK):
         )
 
     @classmethod
-    def draw_stretch_control_params(cls, layout, context, component):
+    def draw_stretch_control_params(cls, _layout: UILayout, _context: Context, _component):
+        """No-op override: toon spine has no stretch control params to draw."""
         return
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()
         cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_torso")
         cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_ik")
         cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_ik_secondary")
-        return layout
 
     @classmethod
-    def draw_custom_prop_params(cls, layout, context, component):
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component):
         super().draw_custom_prop_params(layout, context, component)
         layout.separator()
         cls.draw_prop(context, layout, component.params.spine_toon, 'default_fkik', slider=True)
@@ -367,14 +373,14 @@ class Params(PropertyGroup):
 
     default_fkik: FloatProperty(
         name="Default FK/IK",
-        min=0,
-        max=1,
-        default=1,
+        min=0.0,
+        max=1.0,
+        default=1.0,
     )
     default_stretch: FloatProperty(
         name="Default IK Squash",
-        min=0,
-        max=1,
+        min=0.0,
+        max=1.0,
         default=0.7,
     )
 

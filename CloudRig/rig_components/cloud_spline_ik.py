@@ -1,13 +1,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
+from ..rig_component_features.bone_set import BoneSet
 from ..rig_component_features.overlay_painter import no_overlay
 from ..utils.curve import evaluate_point_tangents
 from .cloud_curve import Component_Curve_Hooked
@@ -28,6 +31,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     # Inherited functions.
 
     def base__relink_get_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+        """Return the FK bone, a hook control, or the default relink target depending on component settings."""
         if self.params.spline_ik.create_fk_chain:
             return self.fk_chain[org_i]
 
@@ -41,6 +45,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         return self.bone_sets['Curve Hooks'][org_i]
 
     def curve__initialize(self):
+        """Validate bone count against Spline IK's 255-bone limit, clamp subdivisions if needed, and set num_controls."""
         length = self.bone_count
         subdiv = self.params.spline_ik.subdivide
         total = length * subdiv
@@ -68,7 +73,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
         self.num_controls = self.bone_count + 1 if self.params.spline_ik.match_hooks else self.params.spline_ik.hooks
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Create or reuse the curve object, build hook controls and optionally an FK chain, then attach the Spline IK constraint."""
         curve_ob = self.params.curve.target
         if not curve_ob:
             curve_ob = self.curve__create_curve_object(context)
@@ -101,7 +107,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             ik_chain = self.__make_def_chain()
         self.__add_spline_ik(ik_chain)
 
-    def create_helper_objects(self, context):
+    def create_helper_objects(self, context: Context):
         """Apply the rest pose of the deform bones, as dictated by
         the Spline IK constraint."""
         super().create_helper_objects(context)
@@ -111,7 +117,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
     # Spline IK functions.
 
     def __make_fk_chain(self):
-        for spline_idx, hooks_of_spline in enumerate(self.hooks_of_splines):
+        """Create an FK control layer on top of each hook control, with counter-rotation on intermediate hooks."""
+        for _spline_idx, hooks_of_spline in enumerate(self.hooks_of_splines):
             next_parent = hooks_of_spline[0].parent or self.root_bone
             for hook_idx, hook_ctrl in enumerate(hooks_of_spline):
                 fk_ctrl = self.bone_sets['Curve FK Controls'].new(
@@ -140,7 +147,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
                     )
 
     @no_overlay
-    def __make_def_chain(self):
+    def __make_def_chain(self) -> BoneSet:
+        """Subdivide each ORG bone into DEF bones and return the resulting BoneSet."""
         segments = self.params.spline_ik.subdivide
 
         next_parent = self.bones_org[0] if self.bones_org[0].preserve else self.bones_org[0].parent
@@ -174,8 +182,8 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         return self.bone_sets['Deform Bones']
 
     @no_overlay
-    def __add_spline_ik(self, bone_chain):
-        # Add constraint to deform chain
+    def __add_spline_ik(self, bone_chain: list[BoneInfo] | BoneSet):
+        """Add a Spline IK constraint to the last bone in the chain, targeting the curve object."""
         bone_chain[-1].add_constraint(
             'SPLINE_IK',
             target=self.params.curve.target,
@@ -185,6 +193,7 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
 
     @no_overlay
     def __apply_def_chain_pose(self):
+        """Apply the Spline IK-deformed pose as the rest pose for all DEF bones."""
         # TODO: This is quite hacky. We could add a flag in BoneInfo named "Apply Pose", then
         # if any bones have that flag during generation, run the Apply Pose as Rest Pose
         # operator with those bones selected. That's also a little hacky, but maybe a bit less. (I'm not sure if all the bones would be visible)
@@ -215,14 +224,14 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
         )
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
         if set_name == 'curve_fk_controls':
             return params.spline_ik.create_fk_chain
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def curve__draw_selector_ui(cls, layout, context, params):
+    def curve__draw_selector_ui(cls, layout: UILayout, context: Context, params):
         """Disable the curve selection."""
         row = cls.draw_prop(context, layout.row(), params.curve, "target", icon='OUTLINER_OB_CURVE')
         if not cls.is_advanced_mode(context):
@@ -231,16 +240,15 @@ class Component_Curve_SplineIK(Component_Curve_Hooked):
             row.enabled = False
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         if params.spline_ik.create_fk_chain:
             layout.separator()
             cls.draw_prop_custom_shape(context, layout, params.spline_ik, "shape_fk")
-        return layout
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 

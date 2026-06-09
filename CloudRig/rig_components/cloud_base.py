@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 import bpy
 from bpy.props import BoolProperty, EnumProperty, PointerProperty, StringProperty
-from bpy.types import Object, PoseBone, PropertyGroup
+from bpy.types import Context, Object, PoseBone, PropertyGroup, UILayout
 
 from ..generation.troubleshooting import LoggerMixin
 from ..rig_component_features.bone_gizmos import BoneGizmoMixin
@@ -72,7 +72,7 @@ class Component_Base(
     def __str__(self) -> str:
         return f'{self.base_bone_name}: {type(self).ui_name}'
 
-    def __init__(self, generator: CloudRig_Generator, bone_name: str, parent_component=None):
+    def __init__(self, generator: CloudRig_Generator, bone_name: str, parent_component: Component_Base | None = None):
         # Quick access to generator features.
         self.generator = generator
         # Presence of an OverlayPainter instance determines whether code is running for a real rig generation, or just for overlay drawing.
@@ -188,10 +188,12 @@ class Component_Base(
         return bone_infos
 
     ### Functions called by the CloudRig Generator.
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, _context: Context):
+        """Set up BoneInfo instances for this component. Override in subclasses to add more bones."""
         self.root_bone = self.bones_org[0]
 
-    def create_component_interactions(self, context):
+    def create_component_interactions(self, _context: Context):
+        """Apply relinking, custom root parenting, and parent switching after all bone infos are created."""
         self.base__relink()
         skip_root_parenting = self.parent_switch_overwrites_root_parent and self.params.parenting.parent_switching
         if not skip_root_parenting and self.params.parenting.root_parent != "":
@@ -200,9 +202,8 @@ class Component_Base(
             self.base__apply_parent_switching(entry_name=self.base_name_ui)
         # self.gizmos__add_interactions()
 
-    def create_helper_objects(self, context):
-        # Called by the generator. Subclasses can use this to create
-        # helpers like curves, empties, lattices.
+    def create_helper_objects(self, _context: Context):
+        """Create helper objects such as curves, empties, or lattices. Override in subclasses."""
         pass
 
     ### Relinking - Allow users to easily add constraints to the Target Rig to specific bones,
@@ -219,7 +220,8 @@ class Component_Base(
 
                 self.base__relink_single(org_idx, con_info)
 
-    def base__relink_single(self, org_idx, con_info):
+    def base__relink_single(self, org_idx: int, con_info: ConstraintInfo):
+        """Move a single constraint from its original bone to its relink target."""
         org_bi = self.bones_org[org_idx]
         to_binfo = self.base__relink_get_target(org_idx, con_info)
         if con_info.type == 'ARMATURE' and 'NOHLP' not in con_info.name:
@@ -242,16 +244,16 @@ class Component_Base(
                 trouble_bone=org_bi.name,
             )
 
-    def base__relink_get_target(self, org_i: int, con_info: ConstraintInfo) -> BoneInfo:
+    def base__relink_get_target(self, org_idx: int, con_info: ConstraintInfo) -> BoneInfo:
         """Return which BoneInfo a given constraint should be moved to.
         Params:
-            org_i: Index of the original bone that has the constraint
+            org_idx: Index of the original bone that has the constraint
             con_info: The constraint itself.
         This function should be overridden by child classes.
         By default, we will return the original bone itself, ie. not moving the constraint anywhere.
         """
 
-        org_name = self.bones_org[org_i].name
+        org_name = self.bones_org[org_idx].name
 
         name_without_target = con_info.name.replace("NOHLP-", "NOHLP_").split("@")[0]
         if "-" in name_without_target:
@@ -264,11 +266,12 @@ class Component_Base(
             if bone_info.name == target_name:
                 return bone_info
 
-        return self.bones_org[org_i]
+        return self.bones_org[org_idx]
 
     @property
     def all_bone_infos(self) -> Iterable[BoneInfo]:
-        for set_name, bone_set in self.bone_sets.items():
+        """Yield every BoneInfo across all bone sets of this component."""
+        for _set_name, bone_set in self.bone_sets.items():
             for bone_info in bone_set:
                 yield bone_info
 
@@ -292,18 +295,21 @@ class Component_Base(
                     setattr(component_prop, parts[0], forced_value)
 
     @classmethod
-    def set_param_defaults(cls, component):
+    def set_param_defaults(cls, _component: Component_Base):
+        """Override in subclasses to set component-specific parameter defaults at creation time."""
         pass
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: Component_Base):
+        """Draw control parameter widgets in the component's UI panel."""
         params = component.params
         if cls.is_advanced_mode(context) and cls.use_base_name:
             layout.prop(params.base, 'base_name', text="Base Name")
             layout.separator()
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, _context: Context, _component: Component_Base):
+        """Draw appearance parameter widgets in the component's UI panel."""
         layout.operator('pose.cloudrig_refresh_widget_list', icon='FILE_REFRESH')
         layout.separator()
 
@@ -335,6 +341,7 @@ class Component_Base(
         can_propagate=True,
         default='XYZ',
     ):
+        """Build an EnumProperty for rotation mode, optionally including a Propagate option."""
         items = [
             ('XYZ', 'XYZ Euler', ''),
             ('XZY', 'XZY Euler', ''),
@@ -364,6 +371,7 @@ class Component_Base(
         can_propagate=True,
         default='FULL',
     ):
+        """Build an EnumProperty for scale inheritance mode, optionally including a Propagate option."""
         items = [
             ('FULL', 'Full', 'Inherit all effects of parent scaling'),
             (
@@ -401,12 +409,19 @@ class Component_Base(
         identifier: str,
         default: str,
         description="",
-    ) -> dict[str, type]:
-        def update_widgets(self, context):
+    ) -> type[PropertyGroup]:
+        """Dynamically create and return a PropertyGroup subclass for a custom shape parameter.
+
+        The returned class holds name, enum, pointer, and shape_name/shape_object properties
+        for selecting a widget mesh. It is later converted to a PointerProperty by
+        get_param_classes_ordered() once registration is complete.
+        """
+
+        def update_widgets(self, _context):
             refresh_widget_list()
 
-        def update_pointer(self, context):
-            update_widgets(self, context)
+        def update_pointer(self, _context):
+            update_widgets(self, _context)
             if not self.use_pointer:
                 # Pointer was de-toggled.
                 if self.custom_shape:

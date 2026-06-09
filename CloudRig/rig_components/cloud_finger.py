@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from math import radians
 
 from bpy.app.translations import pgettext_n as n_
@@ -35,8 +37,15 @@ class Component_Finger(Component_Chain_IKFK):
 
     @no_overlay
     def rig_ui__add_bone_property(
-        self, prop_bone: BoneInfo, prop_id: str, panel_name: str, label_name="", custom_prop_settings={}, **kwargs
+        self,
+        prop_bone: BoneInfo,
+        prop_id: str,
+        panel_name: str,
+        label_name="",
+        custom_prop_settings: dict | None = None,
+        **kwargs,
     ):
+        """Override to redirect all bone property UI entries into the Fingers panel, dropping the pole-follow entry."""
         # TODO: This should be restructured, we shouldn't be overriding this function.
         if panel_name == "FK/IK Switch":
             label_name = n_("FK/IK Switch")
@@ -58,8 +67,9 @@ class Component_Finger(Component_Chain_IKFK):
         self,
         org_chain: list[BoneInfo],
         ik_mstr: BoneInfo,
-        pole_target: BoneInfo = None,
+        pole_target: BoneInfo | None = None,
     ) -> list[BoneInfo]:
+        """Extend the parent IK chain with a second two-bone IK chain for the partial-finger mode."""
         ik_chain = super().ik_chain__make_ik_chain(org_chain, ik_mstr, pole_target)
         ik_mstr.parent = self.root_bone
 
@@ -77,29 +87,31 @@ class Component_Finger(Component_Chain_IKFK):
         org_chain: list[BoneInfo],
         ik_chain: list[BoneInfo],
     ):
+        """Extend parent stretch setup, then reparent the pole control to the second-to-last ORG bone."""
         super().ik_chain__make_ik_stretch(org_chain, ik_chain)
         if self.pole_ctrl:
             self.pole_ctrl.parent = org_chain[-2]
 
     @no_overlay
-    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr):
+    def ik_chain__make_pole_follow_switch(self, _ik_pole: BoneInfo, _ik_mstr: BoneInfo):
         """It's not currently necessary to override this function,
         but just to be safe.
         """
         pass
 
     @no_overlay
-    def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
+    def ik_chain__make_pole_parent_switch(self, ik_pole: BoneInfo, ik_mstr: BoneInfo):
         """Avoid creating complex inherited setup. Just parent the pole to the master."""
         ik_pole.parent = ik_mstr
 
     @no_overlay
     def ik_chain__attach_org_to_ik(self, org_chain: list[BoneInfo], ik_chain: list[BoneInfo]):
+        """Extend parent attachment with drivers for switching between full-length and partial-finger IK modes."""
         super().ik_chain__attach_org_to_ik(org_chain, ik_chain)
 
         # The finger has two IK modes, so we need to add a driver to the IK set-up
         # that was inherited from the IK chain implementation.
-        for org_bone, ik_bone, ik2_bone in zip(org_chain, ik_chain, self.ik2_chain):
+        for org_bone, _ik_bone, ik2_bone in zip(org_chain, ik_chain, self.ik2_chain):
             # Copy Transforms of IK bone
             if not org_bone.constraint_infos:
                 continue

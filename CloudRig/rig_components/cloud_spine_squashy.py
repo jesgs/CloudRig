@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -38,11 +40,12 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
         self.root_torso = None
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Build the FK chain, then add squashy spine controls and optionally a duplicate parent control."""
         super().create_bone_infos(context)
 
         # If we want to parent things to the root bone, we use self.root_torso.
-        # However, for spine.double to work, self.root_bone must be the bone
+        # However, for spine_squashy.double to work, self.root_bone must be the bone
         # returned from create_parent_bone().
         self.root_torso = self.root_bone
 
@@ -51,8 +54,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
         if self.params.spine_squashy.double:
             self.root_bone = self.create_parent_bone(self.root_torso, self.bone_sets['Spine Parent Controls'])
 
-    def fk_chain__make_root_bone(self):
-        # Create Torso Master control
+    def fk_chain__make_root_bone(self) -> BoneInfo:
+        """Create the Torso Master control at the center of the first ORG bone."""
         root_bone = self.bone_sets['Spine Main Controls'].new(
             name=self.naming.add_prefix(self.base_name, 'TORSO'),
             parent=self.bones_org[0].parent,
@@ -63,7 +66,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
         )
         return root_bone
 
-    def fk_chain__make(self, org_chain) -> list[BoneInfo]:
+    def fk_chain__make(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
+        """Build the FK chain, then add the Hip Master control and reparent the first FK and STR bones under it."""
         fk_chain = super().fk_chain__make(org_chain)
 
         # Create master hip control
@@ -93,6 +97,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
     # Squashy Spine functions.
 
     def __make_squashy_spine(self):
+        """Create the chest and squash helper bones, wire up armature constraints for IK-like squash behaviour, and register the UI properties."""
         ### Create master chest control
         chest_org = self.bones_org[-1]
         self.mstr_chest = self.bone_sets['Spine Main Controls'].new(
@@ -224,8 +229,8 @@ class Component_Spine_Squashy(Component_Chain_FK):
 
     @classmethod
     def define_bone_sets(cls):
-        super().define_bone_sets()
         """Create parameters for this rig's bone sets."""
+        super().define_bone_sets()
         cls.define_bone_set(
             n_("Spine Main Controls"),
             color_palette='THEME12',
@@ -245,14 +250,14 @@ class Component_Spine_Squashy(Component_Chain_FK):
         )
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
         if set_name == "spine_parent_controls":
-            return params.spine.double
+            return params.spine_squashy.double
 
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 

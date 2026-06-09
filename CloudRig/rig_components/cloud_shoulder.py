@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from math import radians
 
 from bpy.props import EnumProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from .cloud_fk_chain import Component_Chain_FK
@@ -26,7 +28,8 @@ class Component_Shoulder(Component_Chain_FK):
     ##############################
     # Inherited functions.
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Build the FK chain, then apply shoulder-specific shape rotation and parent override."""
         super().create_bone_infos(context)
         self.__make_shoulder()
 
@@ -34,6 +37,7 @@ class Component_Shoulder(Component_Chain_FK):
     # Shoulder functions.
 
     def __make_shoulder(self):
+        """Rotate the shoulder control's custom shape to match the up_axis parameter, then reparent to the ORG bone's parent."""
         shoulder = self.bone_sets['FK Controls'][0]
         shoulder.custom_shape_name = self.params.fk_chain.shape_fk.shape_name
         up_axis = self.params.shoulder.up_axis
@@ -57,7 +61,7 @@ class Component_Shoulder(Component_Chain_FK):
     # Parameters
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
 

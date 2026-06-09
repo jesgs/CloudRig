@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from copy import deepcopy
 from math import pow
 
@@ -8,7 +10,7 @@ from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty, EnumProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.bone_set import BoneSet
@@ -39,7 +41,8 @@ class Component_Limb(Component_Chain_IKFK):
 
         self.ik_pole_direction = 1
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Build the limb rig, then add rubber hose constraints if enabled."""
         super().create_bone_infos(context)
         segments = self.params.chain.segments
         if self.params.limb.auto_hose and segments > 1:
@@ -51,14 +54,15 @@ class Component_Limb(Component_Chain_IKFK):
     def base__apply_parent_switching(
         self,
         *,
-        child_bone=None,
-        prop_bone=None,
+        child_bone: BoneInfo | None = None,
+        prop_bone: BoneInfo | None = None,
         prop_name="",
         panel_name=n_("IK"),
         row_name="",
         label_name=n_("Parent Switching"),
         entry_name="",
     ):
+        """When double IK is enabled and no explicit child is given, use the outer IK master as the switching target."""
         if self.params.limb.double_ik and child_bone in (None, self.ik_mstr):
             child_bone = self.ik_mstr.parent
 
@@ -72,7 +76,7 @@ class Component_Limb(Component_Chain_IKFK):
             entry_name=entry_name,
         )
 
-    def base__create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
+    def base__create_properties_bone(self, source: BoneInfo | None = None) -> BoneInfo:
         """Place the properties bone near the end of the limb, parented to the last original bone."""
         if not source:
             source = self.bones_org[0]
@@ -86,7 +90,8 @@ class Component_Limb(Component_Chain_IKFK):
             return 1
         return self.params.chain.segments
 
-    def fk_chain__make(self, org_chain) -> list[BoneInfo]:
+    def fk_chain__make(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
+        """Build the FK chain, locking the elbow bone's Y/Z axes if the limit parameter is set."""
         fk_chain = super().fk_chain__make(org_chain)
         if self.params.limb.limit_elbow_axes:
             # Locking the FK elbow/knee's Y/Z rotation is necessary for accurate
@@ -97,6 +102,7 @@ class Component_Limb(Component_Chain_IKFK):
         return fk_chain
 
     def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo], ik_bone_set: BoneSet):
+        """Extend the parent IK setup with counter-rotation on the first STR bone and optional elbow axis locking."""
         if self.params.limb.double_ik:
             ik_bone_set = self.bone_sets['IK Child Controls']
 
@@ -119,6 +125,7 @@ class Component_Limb(Component_Chain_IKFK):
             ik_elbow.lock_ik_z = ik_elbow.lock_ik_y = True
 
     def ik_chain__make_master_ctr(self, bone_set: BoneSet, source_bone: BoneInfo) -> BoneInfo:
+        """Create the IK master control, wrapping it in a parent control when double IK is enabled."""
         ik_mstr = super().ik_chain__make_master_ctr(bone_set, source_bone)
 
         # Create Duplicate IK Master.
@@ -132,14 +139,18 @@ class Component_Limb(Component_Chain_IKFK):
         return ik_mstr
 
     @no_overlay
-    def ik_chain__make_pole_parent_switch(self, ik_pole, ik_mstr):
+    def ik_chain__make_pole_parent_switch(self, ik_pole: BoneInfo, ik_mstr: BoneInfo):
+        """When double IK is enabled, use the outer IK master as the pole parent target."""
         if self.params.limb.double_ik:
             ik_mstr = ik_mstr.parent
 
         super().ik_chain__make_pole_parent_switch(ik_pole, ik_mstr)
 
     @no_overlay(return_value={})
-    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
+    def ik_chain__get_ik_switch_ui_data(
+        self, fk_chain: list[BoneInfo], ik_chain: list[BoneInfo], ik_mstr: BoneInfo, ik_pole: BoneInfo | None
+    ) -> dict:
+        """Extend the switch UI data to include the outer IK master when double IK is enabled."""
         ui_data = super().ik_chain__get_ik_switch_ui_data(fk_chain, ik_chain, ik_mstr, ik_pole)
 
         if self.params.limb.double_ik:
@@ -271,7 +282,7 @@ class Component_Limb(Component_Chain_IKFK):
 
         control_bone.roll_align_vector(org_lower.head)
         if self.painter:
-            return
+            return control_bone
 
         self.lock_transforms(control_bone, scale=[True, False, True])
         control_bone.add_constraint('LIMIT_SCALE', use_max_y=True, max_y=2, use_min_y=True, min_y=1)
@@ -308,8 +319,7 @@ class Component_Limb(Component_Chain_IKFK):
             ],
         }
 
-        for i, str_list in enumerate([str_upper_section, str_lower_section]):
-            org_bone = [org_upper, org_lower][i]
+        for org_bone, str_list in zip([org_upper, org_lower], [str_upper_section, str_lower_section]):
             for str_bone in str_list:
                 offset = org_bone.length / 2.5
 
@@ -364,101 +374,100 @@ class Component_Limb(Component_Chain_IKFK):
                 driver_to_min_z['variables'][0]['targets'][0]['transform_type'] = 'ROT_X'
                 trans_con.drivers.append(driver_to_min_z)
 
-            # Scale the main STR bone on local Y to get a smooth curve
-            # in spite of Sharp Sections parameter being enabled.
-            if i == 1:
-                main_str = str_list[0].prev
-                # Scale constraint
-                scale_con = main_str.add_constraint(
-                    'TRANSFORM',
-                    name="Transformation (Rubber Hose Elbow Scale)",
-                    subtarget=org_lower.name,
-                    map_to='SCALE',
-                )
+        # Scale the main STR bone on local Y to get a smooth curve
+        # in spite of Sharp Sections parameter being enabled.
+        main_str = str_lower_section[0].prev
+        # Scale constraint
+        scale_con = main_str.add_constraint(
+            'TRANSFORM',
+            name="Transformation (Rubber Hose Elbow Scale)",
+            subtarget=org_lower.name,
+            map_to='SCALE',
+        )
 
-                # Influence driver
-                scale_con.drivers.append(deepcopy(driver_influence))
+        # Influence driver
+        scale_con.drivers.append(deepcopy(driver_influence))
 
-                # Scale driver
-                scale_con.drivers.append(
-                    {
-                        'prop': 'to_min_y_scale',
-                        'expression': "1 + pow( (abs(rot_x) + abs(rot_z)) / pi, 0.5 ) * 1.5",
-                        'variables': {
-                            'rot_x': {
-                                'type': 'TRANSFORMS',
-                                'targets': [
-                                    {
-                                        'bone_target': org_lower.name,
-                                        'transform_space': 'LOCAL_SPACE',
-                                        'transform_type': 'ROT_X',
-                                        'rotation_mode': 'SWING_TWIST_Y',
-                                    }
-                                ],
-                            },
-                            'rot_z': {
-                                'type': 'TRANSFORMS',
-                                'targets': [
-                                    {
-                                        'bone_target': org_lower.name,
-                                        'transform_space': 'LOCAL_SPACE',
-                                        'transform_type': 'ROT_Z',
-                                        'rotation_mode': 'SWING_TWIST_Y',
-                                    }
-                                ],
-                            },
-                        },
-                    }
-                )
-
-                if not hose_type == 'ELBOW_IN':
-                    return
-
-                ### Additional constraints for alternate, "Long" rubberhose type
-                # Translation constraint
-                trans_con = main_str.add_constraint(
-                    'TRANSFORM',
-                    name="Transformation (Rubber Hose Elbow Translate)",
-                    subtarget=org_lower.name,
-                )
-
-                # Influence driver
-                trans_con.drivers.append(deepcopy(driver_influence))
-
-                # Translation drivers
-                var_x = {
-                    'type': 'TRANSFORMS',
-                    'targets': [
-                        {
-                            'bone_target': org_lower.name,
-                            'transform_space': 'LOCAL_SPACE',
-                            'transform_type': 'ROT_X',
-                            'rotation_mode': 'SWING_TWIST_Y',
-                        }
-                    ],
-                }
-                var_z = deepcopy(var_x)
-                var_z['targets'][0]['transform_type'] = 'ROT_Z'
-                driver_to_min_y = {
-                    'prop': 'to_min_y',
-                    'expression': f"(abs(x + z)/pi) * {org_lower.length / 4}",
-                    'variables': {
-                        'x': var_x,
-                        'z': var_z,
+        # Scale driver
+        scale_con.drivers.append(
+            {
+                'prop': 'to_min_y_scale',
+                'expression': "1 + pow( (abs(rot_x) + abs(rot_z)) / pi, 0.5 ) * 1.5",
+                'variables': {
+                    'rot_x': {
+                        'type': 'TRANSFORMS',
+                        'targets': [
+                            {
+                                'bone_target': org_lower.name,
+                                'transform_space': 'LOCAL_SPACE',
+                                'transform_type': 'ROT_X',
+                                'rotation_mode': 'SWING_TWIST_Y',
+                            }
+                        ],
                     },
+                    'rot_z': {
+                        'type': 'TRANSFORMS',
+                        'targets': [
+                            {
+                                'bone_target': org_lower.name,
+                                'transform_space': 'LOCAL_SPACE',
+                                'transform_type': 'ROT_Z',
+                                'rotation_mode': 'SWING_TWIST_Y',
+                            }
+                        ],
+                    },
+                },
+            }
+        )
+
+        if hose_type != 'ELBOW_IN':
+            return
+
+        ### Additional constraints for alternate, "Long" rubberhose type
+        # Translation constraint
+        trans_con = main_str.add_constraint(
+            'TRANSFORM',
+            name="Transformation (Rubber Hose Elbow Translate)",
+            subtarget=org_lower.name,
+        )
+
+        # Influence driver
+        trans_con.drivers.append(deepcopy(driver_influence))
+
+        # Translation drivers
+        var_x = {
+            'type': 'TRANSFORMS',
+            'targets': [
+                {
+                    'bone_target': org_lower.name,
+                    'transform_space': 'LOCAL_SPACE',
+                    'transform_type': 'ROT_X',
+                    'rotation_mode': 'SWING_TWIST_Y',
                 }
+            ],
+        }
+        var_z = deepcopy(var_x)
+        var_z['targets'][0]['transform_type'] = 'ROT_Z'
+        driver_to_min_y = {
+            'prop': 'to_min_y',
+            'expression': f"(abs(x + z)/pi) * {org_lower.length / 4}",
+            'variables': {
+                'x': var_x,
+                'z': var_z,
+            },
+        }
 
-                trans_con.drivers.append(driver_to_min_y)
+        trans_con.drivers.append(driver_to_min_y)
 
-                driver_to_min_z = deepcopy(driver_to_min_y)
-                driver_to_min_z['prop'] = 'to_min_z'
-                driver_to_min_z['expression'] = f"(x/pi) * {org_lower.length / 4}"
-                trans_con.drivers.append(driver_to_min_z)
+        driver_to_min_z = deepcopy(driver_to_min_y)
+        driver_to_min_z['prop'] = 'to_min_z'
+        driver_to_min_z['expression'] = f"(x/pi) * {org_lower.length / 4}"
+        trans_con.drivers.append(driver_to_min_z)
 
-                driver_to_min_x = deepcopy(driver_to_min_y)
-                driver_to_min_x['prop'] = 'to_min_x'
-                driver_to_min_x['expression'] = f"(-z/pi) * {org_lower.length / 4}"
-                trans_con.drivers.append(driver_to_min_x)
+        driver_to_min_x = deepcopy(driver_to_min_y)
+        driver_to_min_x['prop'] = 'to_min_x'
+        driver_to_min_x['expression'] = f"(-z/pi) * {org_lower.length / 4}"
+        trans_con.drivers.append(driver_to_min_x)
 
     ##############################
     # Parameters
@@ -475,7 +484,7 @@ class Component_Limb(Component_Chain_IKFK):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -496,7 +505,7 @@ class Component_Limb(Component_Chain_IKFK):
             cls.draw_prop(context, split.row(), params.limb, 'auto_hose_type', expand=True)
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         if params.limb.auto_hose:

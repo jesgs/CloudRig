@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import PointerProperty, StringProperty
-from bpy.types import Object, PropertyGroup
+from bpy.types import Context, Object, PropertyGroup, UILayout
 
 from ..rig_component_features.bone_info import BoneInfo
 from .cloud_chain import Component_ToonChain
@@ -17,10 +19,8 @@ class Component_SphereChain(Component_ToonChain):
     ##############################
     # Inherited functions.
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def toon__make_main_str_bone(self, org_bone: BoneInfo, at_tip=False) -> BoneInfo:
+        """Extend the parent implementation by adding a sphere control to each stretch bone."""
         str_bone = super().toon__make_main_str_bone(org_bone, at_tip)
         self.__make_sphere_control(str_bone)
         return str_bone
@@ -36,7 +36,6 @@ class Component_SphereChain(Component_ToonChain):
                 rpt_("Sphere Bone not found"),
                 trouble_bone=sphere_bone_name,
             )
-            return str_bone
 
         sph_ctrl = self.bone_sets['Sphere Controls'].new(
             source=str_bone,
@@ -56,14 +55,14 @@ class Component_SphereChain(Component_ToonChain):
         if arm_con:
             arm_con.targets = [sph_ctrl.name]
 
-        return sphere_ctrl
+        return sph_ctrl
 
     ##############################
     # Parameters
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
-        # We only want to draw this bone set UI if the option for it is enabled.
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+        """Return whether the named bone set is used given the current params."""
         if set_name in ["deform_controls", "deform_helpers"]:
             return params.chain.unlock_deform
         if set_name == 'shape_key_helpers':
@@ -71,7 +70,7 @@ class Component_SphereChain(Component_ToonChain):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.chain_sphere, 'shape_sphere_control')
@@ -86,7 +85,7 @@ class Component_SphereChain(Component_ToonChain):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
         cls.draw_prop_search(

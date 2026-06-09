@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from math import pi
 from math import radians as rad
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
 
@@ -42,7 +44,8 @@ class Component_Limb_BipedLeg(Component_Limb):
         self.pole_side = -1
         self.ik_chain_count -= 1
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Build the leg rig: standard limb setup plus foot roll and forefoot."""
         super().create_bone_infos(context)
         self.__tweak_org_foot()
 
@@ -50,15 +53,14 @@ class Component_Limb_BipedLeg(Component_Limb):
             return
         # Tweak foot bone's first DEF bone.
         foot_def = self.bones_def[-2]
-        for d in foot_def.drivers:
-            if d['prop'] == 'bbone_easein':
-                foot_def.drivers.remove(d)
+        for driver in foot_def.drivers:
+            if driver['prop'] == 'bbone_easein':
+                foot_def.drivers.remove(driver)
 
-    def ik_chain__prevent_straight_chain(self, invert_offset=False):
-        # Since legs face the opposite direction, let's flip the offset here.
+    def ik_chain__prevent_straight_chain(self, _invert_offset=False):
         super().ik_chain__prevent_straight_chain(invert_offset=True)
 
-    def base__create_properties_bone(self, source: BoneInfo = None) -> BoneInfo:
+    def base__create_properties_bone(self, _source: BoneInfo | None = None) -> BoneInfo:
         """Place the properties bone near where the foot IK will be,
         parented to the 2nd-to-last ORG bone.
         """
@@ -78,13 +80,15 @@ class Component_Limb_BipedLeg(Component_Limb):
             return 1
         return self.params.chain.segments
 
-    def fk_chain__make(self, org_chain) -> list[BoneInfo]:
+    def fk_chain__make(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
+        """Build the FK chain, then also add the toe FK bone to the IK Controls collection."""
         fk_chain = super().fk_chain__make(org_chain)
         # Toe FK should be available in the IK collection too.
         fk_chain[-1].collections += self.bone_sets['IK Controls'].collections
         return fk_chain
 
     def ik_chain__make_ik_setup(self, org_chain: list[BoneInfo], ik_bone_set: BoneSet):
+        """Extend the parent IK setup with foot display bones, optional forefoot control, foot roll, and IK toe."""
         super().ik_chain__make_ik_setup(org_chain, ik_bone_set)
         if self.params.limb.double_ik:
             self.__create_foot_dsp(self.ik_mstr.parent)
@@ -140,7 +144,13 @@ class Component_Limb_BipedLeg(Component_Limb):
         return ik_master
 
     @no_overlay(return_value={})
-    def ik_chain__get_ik_switch_ui_data(self, fk_chain, ik_chain, ik_mstr, ik_pole) -> dict:
+    def ik_chain__get_ik_switch_ui_data(
+        self,
+        fk_chain: list[BoneInfo],
+        ik_chain: list[BoneInfo],
+        ik_mstr: BoneInfo,
+        ik_pole: BoneInfo | None,
+    ) -> dict:
         """Toe is not relevant for IK/FK switching."""
         fk_chain = fk_chain[:-1]
 
@@ -157,7 +167,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         return ui_data
 
     @no_overlay
-    def ik_chain__make_pole_follow_switch(self, ik_pole, ik_mstr):
+    def ik_chain__make_pole_follow_switch(self, ik_pole: BoneInfo, ik_mstr: BoneInfo):
         """Let leg IK poles follow the IK master by default."""
         super().ik_chain__make_pole_follow_switch(ik_pole, ik_mstr)
 
@@ -231,6 +241,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         foot_ik: BoneInfo,
         ik_mstr: BoneInfo,
     ):
+        """Create the foot roll control and reverse IK chain for heel/toe roll behaviour."""
         ik_foot_chain = ik_chain[-2:]
         _org_thigh, org_knee, org_foot, org_toe = org_chain
         org_toe.roll_align_other(org_foot)
@@ -326,8 +337,6 @@ class Component_Limb_BipedLeg(Component_Limb):
                 map_to_z_from='Y',
                 map_to_y_from='X',
             )
-            # The right side needs some inversion...
-            # print("Dot: ", heel_pvt_back.y_axis.dot(roll_ctrl.x_axis), heel_pvt_back.name, roll_ctrl.name)
             if heel_pvt_back.y_axis.dot(roll_ctrl.x_axis) < 0:
                 # RIGHT SIDE
                 back_con.from_min_x_rot = rad(-HEEL_LIMIT)
@@ -428,6 +437,7 @@ class Component_Limb_BipedLeg(Component_Limb):
 
     @property
     def heel_pivot_bone(self) -> BoneInfo | None:
+        """Lazily resolve and cache the heel pivot BoneInfo from the params bone name."""
         if not hasattr(self, '_heel_pivot_bone'):
             heel_pivot_name = self.params.leg.heel_bone
             heel_pivot = self._heel_pivot_bone = self.find_bone_info(heel_pivot_name)
@@ -463,7 +473,7 @@ class Component_Limb_BipedLeg(Component_Limb):
     # Parameters
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
         if set_name == 'foot_reverse_ik_control':
             return params.leg.use_foot_roll
 
@@ -486,7 +496,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         component.params.ik_chain.default_ik_pole_follow = 1.0
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -511,7 +521,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         cls.draw_prop(context, layout, params.leg, "create_forefoot")
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()

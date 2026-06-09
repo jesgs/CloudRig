@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from math import radians
 
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.types import Context, UILayout
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.overlay_painter import no_overlay
@@ -28,12 +31,12 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
     # Inherited functions.
 
     def curve__initialize(self):
-        # If the user hasn't assigned a curve yet, defer initialization
-        # until create_bone_infos() has a chance to generate a default one.
+        """Defer initialization until create_bone_infos() if no curve is assigned yet."""
         if self.params.curve.target:
             super().curve__initialize()
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Auto-generate the curve if missing, then build IK handles and pole controls for each spline."""
         if not self.params.curve.target:
             num_points = self.bone_count + 1 if self.params.spline_ik.match_hooks else self.params.spline_ik.hooks
             curve_ob = self.curve__create_curve_object(context)
@@ -60,13 +63,13 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
     def base__apply_parent_switching(
         self,
         *,
-        child_bone=None,
-        prop_bone=None,
-        prop_name="",
+        _child_bone: BoneInfo | None = None,
+        prop_bone: BoneInfo | None = None,
+        _prop_name="",
         panel_name=n_("IK"),
-        row_name="",
+        _row_name="",
         label_name=n_("Parent Switching"),
-        entry_name="",
+        _entry_name="",
     ):
         """Apply parent switching to each IK master"""
         for ik_master in getattr(self, 'ik_masters', []):
@@ -84,6 +87,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
     # IK Curve functions.
 
     def __make_ik_for_spline(self, spline_idx: int, hooks: list[BoneInfo]):
+        """Build the IK mechanism chain, master control, optional pole, and reparent hooks for one spline."""
         if len(hooks) < 2:
             self.add_log(
                 rpt_("Spline skipped for IK"),
@@ -104,7 +108,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
 
         ik_chain = self.__make_ik_mech_chain(hooks, spline_root)
 
-        ik_master = self.__make_ik_master(spline_idx, hooks, ik_chain)
+        ik_master = self.__make_ik_master(spline_idx, hooks)
         self.ik_masters.append(ik_master)
         ik_chain[-1].parent = ik_master
 
@@ -133,6 +137,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         self.__reparent_hooks_on_ik(hooks, ik_chain)
 
     def __make_ik_mech_chain(self, hooks: list[BoneInfo], root_parent: BoneInfo) -> list[BoneInfo]:
+        """Create a chain of one IK mechanism bone per hook."""
         num_hooks = len(hooks)
         ik_chain: list[BoneInfo] = []
         for i, hook in enumerate(hooks):
@@ -154,7 +159,8 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
             ik_chain.append(ik_bone)
         return ik_chain
 
-    def __make_ik_master(self, spline_idx: int, hooks: list[BoneInfo], ik_chain: list[BoneInfo]) -> BoneInfo:
+    def __make_ik_master(self, spline_idx: int, hooks: list[BoneInfo]) -> BoneInfo:
+        """Create the IK handle control positioned at the tip of the spline."""
         last_hook = hooks[-1]
         tip_head = last_hook.head.copy()
         direction = (last_hook.head - hooks[-2].head).normalized()
@@ -180,8 +186,14 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         return ik_master
 
     def __make_pole_control(
-        self, spline_idx: int, hooks: list[BoneInfo], ik_chain: list[BoneInfo]
-    ) -> tuple[BoneInfo, float] | tuple[None, float]:
+        self,
+        spline_idx: int,
+        hooks: list[BoneInfo],
+        ik_chain: list[BoneInfo],
+    ) -> tuple[BoneInfo | None, float]:
+        """Create the IK pole control and return it with the computed pole angle,
+        or (None, 0.0) for straight chains.
+        """
         pole_angle_deg, pole_vector, pole_location = calculate_ik_pole_vector(ik_chain[0], ik_chain[1])
 
         # A perfectly straight chain has no defined bend direction, so
@@ -216,6 +228,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         return pole_ctrl, pole_angle_deg
 
     def __reparent_hooks_on_ik(self, hooks: list[BoneInfo], ik_chain: list[BoneInfo]):
+        """Reparent hooks onto the IK chain, inserting tangent-averaging bones at interior points."""
         num_hooks = len(hooks)
         for i, hook in enumerate(hooks):
             if 0 < i < num_hooks - 1:
@@ -243,6 +256,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
                 hook.parent = ik_chain[i]
 
     def __get_ik_name(self, spline_idx: int, prefix: str) -> str:
+        """Build a prefixed bone name for IK bones, appending a spline index suffix for multi-spline curves."""
         spline_part = ""
         if len(self.params.curve.target.data.splines) > 1:
             spline_part = f"_{spline_idx}"
@@ -274,14 +288,16 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         )
 
     @classmethod
-    def curve__draw_selector_ui(cls, layout, context, params):
+    def curve__draw_selector_ui(cls, layout: UILayout, context: Context, params):
         # The curve is optional here — it'll be auto-generated if missing.
         curve_ob = params.curve.target
+        # TODO: UI consistency - If we want to use an Add icon when a pointer wasn't specified yet, just do it
+        # automatically inside draw_prop.
         icon = 'OUTLINER_OB_CURVE' if curve_ob else 'ADD'
         cls.draw_prop(context, layout, params.curve, 'target', icon=icon)
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -299,14 +315,13 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
                 cls.draw_prop(context, layout, params.spline_ik, 'handle_length')
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()
         cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_ik_master')
         if params.ik_chain.use_pole:
             cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_pole')
-        return layout
 
 
 RIG_COMPONENT_CLASS = Component_Curve_IK_Hooked

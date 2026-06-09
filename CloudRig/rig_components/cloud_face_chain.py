@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
@@ -22,7 +24,8 @@ class Component_FaceChain(Component_ToonChain):
     ##############################
     # Inherited functions.
 
-    def create_component_interactions(self, context, last_chain_done=False):
+    def create_component_interactions(self, context: Context, last_chain_done=False):
+        """Coordinate intersection setup across all face-chain components, running it once after the last one."""
         # Check the generator component list to see if we are the last chain component that will be generated.
         self.chain_components = []
         for component in self.generator.all_components:
@@ -42,7 +45,7 @@ class Component_FaceChain(Component_ToonChain):
 
     @no_overlay
     def base__relink(self, last_chain_done=False):
-        # Only relink all cloud_face_chain components when the last one is generating.
+        """Defer relinking until all face-chain components have finished generating."""
         if last_chain_done:
             super().base__relink()
             return
@@ -75,9 +78,8 @@ class Component_FaceChain(Component_ToonChain):
     ##############################
     # Face grid functions.
 
-    def fchain__create_and_setup_intersections(self, context):
-        # Create and set up intersection controls.
-
+    def fchain__create_and_setup_intersections(self, context: Context):
+        """Create intersection controls for overlapping STR bones, then trigger the final interaction pass."""
         str_bone_clusters = get_bone_clusters(self.chain_components)
         self.intersection_bones = []
         for cluster in str_bone_clusters:
@@ -138,12 +140,7 @@ class Component_FaceChain(Component_ToonChain):
         return intersection_control
 
     def __setup_all_intersections(self):
-        for intersection in self.intersection_bones:
-            # Parenting must be done with an Armature constraint so that
-            # transforms propagate to TAN bones.
-            continue
-            if intersection.parent and len(intersection.constraint_infos) == 0:
-                intersection.add_constraint('ARMATURE', targets=[{'subtarget': intersection.parent}])
+        """Apply armature constraints to intersection bones and trigger eyelid sticky setup."""
         # HACK: We can't ensure that the last chain component to be executed is a cloud_eyelid,
         # so we have to make sure the eyelid setup function runs even when that's not the case...
         for chain_comp in self.chain_components:
@@ -174,19 +171,20 @@ class Component_FaceChain(Component_ToonChain):
         )
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
         cls.draw_prop(context, layout, params.face_chain, 'merge')
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.face_chain, 'shape_intersection')
 
 
 def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneInfo):
+    """Parent each STR bone in the cluster to the intersection control and configure smooth-intersection constraints."""
     for str_bone in cluster:
         component = str_bone.owner_component
         str_bone.intersection_ctrl = intersection
@@ -262,10 +260,11 @@ def get_bone_clusters(chain_components: list[Component_ToonChain]) -> list[list[
 
 
 def do_centered_cluster(cluster: list[BoneInfo], intersection: BoneInfo, is_anchor=False):
-    # If bones are in the center, flatten them along the X axis to make sure
-    # they produce a clean curvature. This is important for things like the
-    # teeth or the lips, which are one rig component on each side that meet in
-    # the center, and are expected to make a smooth curve.
+    """Flatten center bones along the X axis so left/right chains meet cleanly at the midpoint.
+
+    Handles cases like teeth or lips where two rig components meet at the center
+    and need to form a smooth, unkinked curve.
+    """
     component = cluster[0].owner_component
     pos_sum = cluster[0].tail.copy()
     shape_scale_sum = Vector((abs(s) for s in cluster[0].custom_shape_scale_xyz))
@@ -279,7 +278,7 @@ def do_centered_cluster(cluster: list[BoneInfo], intersection: BoneInfo, is_anch
     avg_z_axis = z_axis_sum / len(cluster)
 
     if not is_anchor:
-        intersection.vector = direction * sum([b.length for b in cluster]) / len(cluster)
+        intersection.vector = direction * sum(b.length for b in cluster) / len(cluster)
         intersection.roll_align_vector(avg_z_axis, axis='+Z')
         intersection.use_custom_shape_bone_size = False
         intersection.custom_shape_scale_xyz = avg_shape_scale

@@ -34,15 +34,18 @@ class CloudUIMixin:
         slider_name="",
         texts=[],
         ###
-        custom_prop_settings={},
+        custom_prop_settings: dict | None = None,
         ###
         operator="",
         op_icon='BLANK1',
-        op_kwargs={},
+        op_kwargs: dict | None = None,
         ###
-        context_bones: list[str | BoneInfo] = [],
+        context_bones: list[str | BoneInfo] | None = None,
     ) -> OrderedDict:
         """Ensure a custom property exists on prop_bone and register it in the rig UI."""
+        custom_prop_settings = custom_prop_settings or {}
+        op_kwargs = op_kwargs or {}
+        context_bones = context_bones or []
         ensure_custom_property(prop_bone, prop_id, **custom_prop_settings)
 
         op_kwargs.update({'prop_bone': prop_bone.name, 'prop_id': prop_id})

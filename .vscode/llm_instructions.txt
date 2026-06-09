@@ -8,7 +8,11 @@ Instructions for formatting and in general:
 - Unused function variable names always start with _, and still be type annotated.
 - Avoid inserting comments that tell linters to ignore errors. Instead, notify the user about the linter's complaints, so user can decide what to do.
 - Add missing docstrings to functions, unless you find them not needed.
-- Do NOT remove existing docstrings or comments, even if you don't find them useful.
+    - Docstrings for <5 line functions are likely not needed.
+    - You may suggest improved wording for docstrings, if you find it really necessary.
+    - Avoid docstrings for rig component functions whose name starts with `draw`, or is `__init__` or `is_bone_set_used`.
+    - Avoid docstrings that are just a rewording of the function name!
+    - NEVER remove existing docstrings or comments, but point out if a comment you inserted may have caused a pre-existing comment to become redundant.
 - Keep strings translatable:
     - Point out strings that look like they should be surrounded by a translation function, but aren't.
     - Point out f-strings or such that would not play well with gettext.

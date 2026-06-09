@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from math import sqrt
 
 import bmesh
@@ -7,7 +9,7 @@ import bpy
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, PointerProperty
-from bpy.types import Object, PropertyGroup
+from bpy.types import Context, Object, PropertyGroup, UILayout
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.object import lock_transforms
@@ -30,7 +32,8 @@ class CloudPhysicsChainRig(Component_Chain_FK):
     ##############################
     # Inherited functions.
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Build the FK chain, then create and constrain the physics cloth object."""
         super().create_bone_infos(context)
 
         self.phys_name = self.naming.add_prefix(self.base_bone_name, PHYS_PREFIX)
@@ -40,21 +43,22 @@ class CloudPhysicsChainRig(Component_Chain_FK):
             self.__make_physics_chain(self.bone_sets['FK Controls'])
         self.__constrain_chain_to_phys_ob(phys_ob, self.bone_sets['FK Controls'])
 
-    def create_helper_objects(self, context):
+    def create_helper_objects(self, context: Context):
         """This is called by the generator. In this case, the helper object
         needed to be created earlier, so that was already done at the create_bone_infos() stage.
         But here we still need to poke the Armature constraint to wake up,
         because we initialized it before the real bone existed..."""
         context.view_layer.update()
         phys_obj = self.params.physics_chain.phys_obj
-        for c in phys_obj.constraints:
-            c.influence = c.influence
+        for constraint in phys_obj.constraints:
+            constraint.influence = constraint.influence
 
     ##############################
     # Physics chain functions.
 
     @no_overlay
-    def __ensure_physics_object(self, context, bone_chain: list[BoneInfo]):
+    def __ensure_physics_object(self, context: Context, bone_chain: list[BoneInfo]) -> Object:
+        """Return the existing physics cloth object, or create and fully configure a new one."""
         phys_obj = self.params.physics_chain.phys_obj
         if phys_obj and not self.params.physics_chain.force_regen:
             return phys_obj
@@ -92,12 +96,12 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         # Create verts and edges using bmesh.
         bm = bmesh.new()
         bm.from_mesh(cloth_mesh)
-        for i, bone in enumerate(bone_chain):
+        for bone_idx, bone in enumerate(bone_chain):
             vert = bm.verts.new(bone.head)
             bm.verts.ensure_lookup_table()
-            if i > 0:
-                bm.edges.new((bm.verts[i], bm.verts[i - 1]))
-            if i == len(bone_chain) - 1:
+            if bone_idx > 0:
+                bm.edges.new((bm.verts[bone_idx], bm.verts[bone_idx - 1]))
+            if bone_idx == len(bone_chain) - 1:
                 tail_vert = bm.verts.new(bone.tail)
                 bm.edges.new((vert, tail_vert))
 
@@ -108,8 +112,8 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 
         # Total length of the chain
         total_length = 0
-        for b in bone_chain:
-            total_length += b.length
+        for bone in bone_chain:
+            total_length += bone.length
         total_length *= self.params.physics_chain.pin_falloff_offset
         cum_length = 0
 
@@ -118,16 +122,16 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         # Assign weights.
         pin_vg = phys_obj.vertex_groups.new(name=pin_name)
         pin_vg.add([0], 1, 'REPLACE')
-        for i, v in enumerate(cloth_mesh.vertices):
-            if i == 0:
+        for vertex_idx, _vertex in enumerate(cloth_mesh.vertices):
+            if vertex_idx == 0:
                 continue
-            pin_weight = 1
-            name = self.naming.add_prefix(bone_chain[i - 1], PHYS_PREFIX)
+            pin_weight = 1.0
+            name = self.naming.add_prefix(bone_chain[vertex_idx - 1], PHYS_PREFIX)
             # Determine pin weight on this vertex.
-            cum_length += bone_chain[i - 1].length
+            cum_length += bone_chain[vertex_idx - 1].length
             ratio = self.params.physics_chain.pin_falloff_offset - cum_length / total_length
             if self.params.physics_chain.pin_falloff == 'NONE':
-                pin_weight = 0
+                pin_weight = 0.0
             elif self.params.physics_chain.pin_falloff == 'LINEAR':
                 pin_weight = ratio
             elif self.params.physics_chain.pin_falloff == 'QUADRATIC':
@@ -136,8 +140,8 @@ class CloudPhysicsChainRig(Component_Chain_FK):
                 pin_weight = sqrt(ratio)
 
             vg = phys_obj.vertex_groups.new(name=name)
-            vg.add([i], 1, 'REPLACE')
-            pin_vg.add([i], pin_weight, 'REPLACE')
+            vg.add([vertex_idx], 1, 'REPLACE')
+            pin_vg.add([vertex_idx], pin_weight, 'REPLACE')
 
         # Create Cloth modifier.
         cloth_mod = phys_obj.modifiers.new(type='CLOTH', name="Cloth")
@@ -153,7 +157,6 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         bpy.ops.object.mode_set(mode='EDIT')
         context.tool_settings.mesh_select_mode[0] = True
         bpy.ops.mesh.select_all(action='SELECT')
-        # bpy.ops.mesh.extrude_region()
         bpy.ops.mesh.extrude_region_move(TRANSFORM_OT_translate={"value": (0, 0.01, 0)})
         bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -165,7 +168,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         return phys_obj
 
     def __make_physics_chain(self, from_chain: list[BoneInfo]):
-        # Make a chain of bones to control the physics object.
+        """Create a PSX control bone chain parented to the physics mesh, then reparent the FK chain under it."""
         next_parent = from_chain[0].parent
         for fk_ctrl in from_chain:
             phys_ctrl = self.bone_sets['Physics Bones'].new(
@@ -195,7 +198,9 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 
     @no_overlay
     def __constrain_chain_to_phys_ob(self, phys_ob: Object, bone_chain: list[BoneInfo]):
-        # For the moment, let's just slap some constraints on the FK chain.
+        """Add a Damped Track constraint on each FK bone,
+        pointing at the corresponding PSX vertex group on the phys object.
+        """
         for fk_ctrl in bone_chain:
             fk_ctrl.add_constraint(
                 'DAMPED_TRACK',
@@ -213,7 +218,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         cls.define_bone_set(n_("Physics Bones"), color_palette='THEME04', collections=['Physics Bones'])
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 

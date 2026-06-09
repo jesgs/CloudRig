@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
@@ -10,7 +12,7 @@ from bpy.props import (
     FloatProperty,
     IntVectorProperty,
 )
-from bpy.types import Action, ActionSlot, PropertyGroup
+from bpy.types import Action, ActionSlot, Context, PropertyGroup, UILayout
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.generate_animation import CloudAnimationMixin
@@ -51,14 +53,15 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     def base__apply_parent_switching(
         self,
         *,
-        child_bone=None,
-        prop_bone=None,
+        child_bone: BoneInfo | None = None,
+        prop_bone: BoneInfo | None = None,
         prop_name="",
         panel_name=n_("FK"),
         row_name="",
         label_name=n_("Parent Switching"),
         entry_name="",
     ):
+        """Apply parent switching, defaulting the prop bone to the FK properties bone."""
         super().base__apply_parent_switching(
             child_bone=child_bone,
             prop_bone=prop_bone or self.properties_bone,
@@ -75,18 +78,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         """
         return False
 
-    @no_overlay
-    def toon__make_def_chain(self, str_chain: list[BoneInfo]) -> list[BoneInfo]:
-        """Extend cloud_chain by tweaking some bbone values."""
-        def_chain = super().toon__make_def_chain(str_chain)
-
-        last_def = def_chain[-1]
-        if last_def == def_chain[0]:
-            return def_chain
-
-        return def_chain
-
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Build the FK chain: optional root, FK controls, curl control, and counter-rotation."""
         super().create_bone_infos(context)
 
         if self.params.fk_chain.root:
@@ -116,8 +109,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
                 rpt_("Chain must be exactly {req_len} connected bones.").format(req_len=req_len)
             )
 
-    def fk_chain__make_root_bone(self):
-        # Socket/Root bone to parent IK and FK to.
+    def fk_chain__make_root_bone(self) -> BoneInfo:
+        """Create the root socket bone that IK and FK chains are parented to."""
         org_bone = self.bones_org[0]
         root_bone = self.bone_sets["FK Controls Extra"].new(
             name=self.naming.add_prefix(self.base_bone_name, "ROOT"),
@@ -130,6 +123,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return root_bone
 
     def fk_chain__make(self, org_chain: list[BoneInfo]) -> list[BoneInfo]:
+        """Create one FK control per ORG bone, with optional double-first and hinge setup."""
         # Keep track of which bone will need to be parented to the Hinge helper bone.
         hng_child = None
         fk_chain = []
@@ -166,6 +160,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return fk_chain
 
     def __make_fk_bone(self, org_bone: BoneInfo) -> BoneInfo:
+        """Create a single FK control for the given ORG bone, chained to the previous FK bone."""
         rot_mode = self.params.fk_chain.rot_mode
         if rot_mode == "PROPAGATE":
             rot_mode = org_bone.rotation_mode
@@ -198,20 +193,20 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     @no_overlay
     def __make_hinge_setup(
         self,
-        bone,
-        category,
+        bone: BoneInfo,
+        category: str,
         *,
-        prop_bone,
-        prop_name,
+        prop_bone: BoneInfo,
+        prop_name: str,
         default_value=0.0,
-        parent_bone=None,
+        parent_bone: BoneInfo | None = None,
         root_bone_name="",
-        hng_name=None,
-        ui_name=None,
+        hng_name: str | None = None,
+        ui_name: str | None = None,
         bone_set=None,
         panel_name=n_("FK"),
         label_name=n_("Hinge"),
-        fk_chain: list[BoneInfo] = [],
+        fk_chain: list[BoneInfo] | None = None,
     ):
         """Create a hinge toggle for a bone.
         Bone is usually the first bone in an FK chain.
@@ -220,6 +215,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         """
 
         # Defaults for optional parameters
+        if fk_chain is None:
+            fk_chain = []
         if root_bone_name == "":
             root_bone_name = self.generator.params.ensure_root
         if parent_bone is None:
@@ -272,6 +269,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return hng_bone
 
     def __make_curl_control(self, fk_chain: list[BoneInfo]) -> BoneInfo:
+        """Create a curl control that uniformly bends the entire FK chain via copy constraints."""
         curl_control = self.bone_sets["FK Curl Control"].new(
             name=self.naming.add_prefix(self.base_bone_name, 'CURL'),
             source=fk_chain[0],
@@ -335,6 +333,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
     def fk_chain__counter_rotate_str_bones(
         self, fk_chain: list[BoneInfo], main_str_bones: list[BoneInfo], influence=0.5
     ):
+        """Add counter-rotation constraints to STR bones for a more pleasant curvature when rotating FK controls."""
         for fk_bone, main_str_bone in zip(fk_chain, main_str_bones):
             main_str_bone.add_constraint(
                 "COPY_ROTATION",
@@ -362,7 +361,11 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     @no_overlay
     def fk_chain__add_test_animation(
-        self, action: Action, slot: ActionSlot, start_frame=1, flip_xyz=[False, False, False]
+        self,
+        action: Action,
+        slot: ActionSlot,
+        start_frame=1,
+        flip_xyz=(False, False, False),
     ) -> int:
         """Add animation curves to the action to test this rig.
 
@@ -419,7 +422,8 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+        """Return whether the named bone set is used given the current params."""
         if set_name == "fk_controls_extra":
             return params.fk_chain.root
 
@@ -430,10 +434,11 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     @classmethod
     def set_param_defaults(cls, component):
+        """Default to sharp B-bones for FK chains."""
         component.params.chain.sharp = True
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()
@@ -444,14 +449,14 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return layout
 
     @classmethod
-    def draw_custom_prop_params(cls, layout, context, component):
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component):
         super().draw_custom_prop_params(layout, context, component)
         if component.params.fk_chain.hinge:
             layout.separator()
             cls.draw_prop(context, layout, component.params.fk_chain, 'default_hinge', slider=True)
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -487,7 +492,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         cls.draw_prop(context, layout, params.fk_chain, "double_first")
 
     @classmethod
-    def draw_anim_params(cls, layout, context, component):
+    def draw_anim_params(cls, layout: UILayout, _context: Context, component):
         params = component.params
         col = layout.column()
         col.enabled = params.fk_chain.test_animation_generate
@@ -501,7 +506,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         row.prop(params.fk_chain, "test_animation_axes", text="Z", toggle=True, index=2)
 
     @classmethod
-    def poll_draw_custom_prop_params(cls, context, component):
+    def poll_draw_custom_prop_params(cls, context: Context, component) -> bool:
         if super().poll_draw_custom_prop_params(context, component):
             return True
         params = component.params
@@ -527,9 +532,9 @@ class Params(PropertyGroup):
     counter_rotate_stretch_bones: FloatProperty(
         name="Counter-Rotate Stretch Controls",
         description="Rotating FK bones will counter-rotate the child stretch bones. This can result in smoother chains",
-        min=0,
-        max=1,
-        default=0,
+        min=0.0,
+        max=1.0,
+        default=0.0,
     )
     double_first: BoolProperty(
         name="Duplicate First FK",
@@ -592,9 +597,9 @@ class Params(PropertyGroup):
 
     default_hinge: FloatProperty(
         name="Default FK Hinge",
-        min=0,
-        max=1,
-        default=0,
+        min=0.0,
+        max=1.0,
+        default=0.0,
     )
 
 

@@ -11,7 +11,7 @@ from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
-from bpy.types import PropertyGroup
+from bpy.types import Context, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..bs_utils.properties import get_custom_prop_names
@@ -32,13 +32,12 @@ class Component_CopyBone(Component_Base):
     ##############################
     # Inherited functions.
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def base__apply_custom_root_parent(self, component_root: BoneInfo = None, parent_name=""):
+    def base__apply_custom_root_parent(self, _component_root: BoneInfo | None = None, parent_name=""):
+        """Always use this component's own root bone, ignoring any passed-in component_root."""
         super().base__apply_custom_root_parent(self.root_bone, parent_name)
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Copy the metarig bone to the target rig, optionally adding deform, pivot, and free-transform bones."""
         super().create_bone_infos(context)
 
         pbone = self.metarig_base_pbone
@@ -50,16 +49,14 @@ class Component_CopyBone(Component_Base):
             if color.palette == 'DEFAULT':
                 continue
             if color.palette == 'CUSTOM':
-                (
-                    self.add_log(
-                        rpt_("Custom Colors are forbidden!"),
-                        icon='COLORSET_01_VEC',
-                        trouble_bone=bone_info.name,
-                        description=rpt_(
-                            "Custom Colors are not supported in Metarigs. "
-                            "Please choose one of the preset colors. "
-                            "Try the color presets available in CloudRig's Preferences."
-                        ),
+                self.add_log(
+                    rpt_("Custom Colors are forbidden!"),
+                    icon='COLORSET_01_VEC',
+                    trouble_bone=bone_info.name,
+                    description=rpt_(
+                        "Custom Colors are not supported in Metarigs. "
+                        "Please choose one of the preset colors. "
+                        "Try the color presets available in CloudRig's Preferences."
                     ),
                 )
                 continue
@@ -75,8 +72,8 @@ class Component_CopyBone(Component_Base):
                 rpt_("Quaternion rotation"),
                 trouble_bone=self.base_bone_name,
                 description=rpt_(
-                    '"{bone}" is using Quaternion rotation mode. " \
-                    "This is unfriendly for animators who use the Graph Editor!'
+                    '"{bone}" is using Quaternion rotation mode. '
+                    'This is unfriendly for animators who use the Graph Editor!'
                 ).format(bone=bone_info.name),
                 icon='GIZMO',
                 operator='pose.cloudrig_troubleshoot_rotationmode',
@@ -109,6 +106,7 @@ class Component_CopyBone(Component_Base):
     # Single Control functions.
 
     def __make_custom_pivot(self, boneinfo: BoneInfo, bone_set: BoneSet | None = None) -> BoneInfo:
+        """Create a parent pivot bone whose local translation is not propagated to the main control."""
         if not bone_set:
             bone_set = boneinfo.bone_set
         pivot = self.create_parent_bone(boneinfo, bone_set)
@@ -180,14 +178,14 @@ class Component_CopyBone(Component_Base):
         component.params.custom_props.props_storage_bone = component.base_bone_name
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         params = component.params
         cls.draw_prop(context, layout, params.copy, 'ensure_free')
         cls.draw_prop(context, layout, params.copy, 'custom_pivot')
         cls.draw_prop(context, layout, params.copy, 'create_deform')
 
     @classmethod
-    def poll_draw_custom_prop_params(cls, context, component):
+    def poll_draw_custom_prop_params(cls, context: Context, component) -> bool:
         """Determine whether the custom property storage UI should be drawn or not."""
         if super().poll_draw_custom_prop_params(context, component):
             return True
@@ -198,7 +196,7 @@ class Component_CopyBone(Component_Base):
         return False
 
     @classmethod
-    def draw_custom_prop_params(cls, layout, context, component):
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component) -> UILayout:
         if component.params.parenting.parent_switching:
             aligned_label(layout, text=iface_("Parent Switch Property"))
             layout = super().draw_custom_prop_params(layout, context, component)
@@ -214,7 +212,7 @@ class Component_CopyBone(Component_Base):
         return layout
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
         if set_name == 'deform_bones':
             return params.copy.create_deform
 
@@ -230,7 +228,7 @@ class Component_CopyBone(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         row = layout.row()

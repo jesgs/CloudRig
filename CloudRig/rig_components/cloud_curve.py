@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import bpy
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, FloatProperty, PointerProperty
-from bpy.types import BezierSplinePoint, Curve, Object, PropertyGroup, Spline
+from bpy.types import BezierSplinePoint, Context, Curve, Object, PropertyGroup, Spline, UILayout
 from mathutils import Matrix, Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
@@ -32,7 +34,8 @@ class Component_Curve_Hooked(Component_Base):
         super().__init__(*args, **kwargs)
         self.curve__initialize()
 
-    def create_bone_infos(self, context):
+    def create_bone_infos(self, context: Context):
+        """Build the root bone and hook controls for each point on the curve's splines."""
         curve_ob = self.params.curve.target
         if not curve_ob:
             return
@@ -47,9 +50,10 @@ class Component_Curve_Hooked(Component_Base):
         self.hooks_of_splines = self.curve__make_ctrls_for_points(curve_ob)
 
     def base__relink_get_target(self, org_i: int, con: ConstraintInfo) -> BoneInfo:
+        """Return the curve root bone as the relink target for all ORG constraints."""
         return self.root_bone
 
-    def create_helper_objects(self, context):
+    def create_helper_objects(self, context: Context):
         self.__hook_curve_to_rig(context, self.hooks_of_splines)
         super().create_helper_objects(context)
 
@@ -57,6 +61,7 @@ class Component_Curve_Hooked(Component_Base):
     # Curve functions.
 
     def curve__initialize(self):
+        """Validate the curve target and pre-compute point tangents for roll alignment."""
         curve_ob = self.params.curve.target
         if not curve_ob:
             self.raise_generation_error(rpt_("Curve object not found!"))
@@ -89,7 +94,7 @@ class Component_Curve_Hooked(Component_Base):
         return root_bone
 
     @no_overlay
-    def curve__create_curve_object(self, context) -> Object:
+    def curve__create_curve_object(self, context: Context) -> Object:
         """Create an empty curve object suitable for use as the component's
         curve target. The object is named after the metarig + hook name,
         linked into the scene, has its transforms locked, and is set to 3D.
@@ -160,6 +165,7 @@ class Component_Curve_Hooked(Component_Base):
         return spline
 
     def curve__make_ctrls_for_points(self, curve_ob: Object) -> list[list[BoneInfo]]:
+        """Create hook control bones for every point on every spline in the curve."""
         hooks_of_splines: list[list[BoneInfo]] = []
 
         if self.painter and not curve_ob:
@@ -170,15 +176,15 @@ class Component_Curve_Hooked(Component_Base):
             if self.params.curve.root_per_spline:
                 loc = get_spline_bounding_box_center(spline)
                 object_offset = self.params.curve.target.matrix_world.to_translation()
-                dir = (get_spline_points(spline)[0].co.xyz - loc).normalized()
+                direction = (get_spline_points(spline)[0].co.xyz - loc).normalized()
                 spline_name = self.__get_spline_name(spline_idx)
                 if self.params.curve.x_axis_symmetry and self.naming.side_is_left(spline_name) is None:
-                    dir = self.root_bone.vector
+                    direction = self.root_bone.vector
                 spline_root = self.bone_sets['Spline Roots'].new(
                     name=spline_name,
                     source=self.root_bone,
                     head=loc + object_offset,
-                    tail=loc + object_offset + dir * self.bones_org[0].length,
+                    tail=loc + object_offset + direction * self.bones_org[0].length,
                     parent=self.root_bone,
                     custom_shape_name=self.params.curve.shape_spline_root.shape_name,
                     custom_shape_scale_xyz=Vector((1, 1, 1)) * self.bones_org[0].custom_shape_scale_xyz,
@@ -191,7 +197,7 @@ class Component_Curve_Hooked(Component_Base):
             if len(points) < 2:
                 self.raise_generation_error(rpt_("All curve splines must consist of at least 2 points"))
 
-            for point_idx, point in enumerate(points):
+            for point_idx, _point in enumerate(points):
                 hook_controls.append(
                     self.__make_ctrls_for_point(
                         spline_idx=spline_idx,
@@ -221,6 +227,7 @@ class Component_Curve_Hooked(Component_Base):
         return hooks_of_splines
 
     def __get_spline_name(self, spline_idx: int, prefix="") -> str:
+        """Build a bone name for a spline root, including X-symmetry side suffix and spline index."""
         curve = self.params.curve.target.data
         spline = curve.splines[spline_idx]
 
@@ -273,8 +280,6 @@ class Component_Curve_Hooked(Component_Base):
         if offset > threshold:
             point_path = spline_point.path_from_id()
             opp_point_path = opp_point.path_from_id()
-            point_name = ".".join(point_path.split(".")[0:])
-            opp_point_name = ".".join(opp_point_path.split(".")[0:])
             self.raise_generation_error(
                 description=rpt_(
                     'The nearest point to the X-axis flipped coordinate of point '
@@ -285,9 +290,9 @@ class Component_Curve_Hooked(Component_Base):
                     'along its X axis. If this message keeps popping up, you might be modifying '
                     'a shape key instead of the base shape.'
                 ).format(
-                    point_name=point_name,
+                    point_name=point_path,
                     vector_a=curve.path_resolve(point_path).co.xyz,
-                    opp_point_name=opp_point_name,
+                    opp_point_name=opp_point_path,
                     vector_b=curve.path_resolve(opp_point_path).co.xyz,
                     offset=offset,
                     threshold=threshold,
@@ -298,6 +303,7 @@ class Component_Curve_Hooked(Component_Base):
         return opp_spline, opp_point_idx
 
     def __get_hook_name(self, spline_idx: int, point_idx: int, prefix="") -> str:
+        """Build a bone name for a hook control, incorporating point index and X-symmetry suffix."""
         spline_name = self.__get_spline_name(spline_idx, prefix)
         hook_name = spline_name.replace("Spline", "Hook")
         prefixes, base, suffixes = self.naming.slice_name(hook_name)
@@ -335,8 +341,7 @@ class Component_Curve_Hooked(Component_Base):
         spline_idx: int,
         point_idx: int,
         parent_bone: BoneInfo,
-        cyclic=False,
-    ):
+    ) -> BoneInfo:
         """Create hook controls for a bezier curve point defined by three points (loc, loc_left, loc_right)."""
 
         curve_ob = self.params.curve.target
@@ -421,7 +426,17 @@ class Component_Curve_Hooked(Component_Base):
 
         return hook_ctr
 
-    def __make_ctrls_for_handles(self, hook_ctr, spline_idx, point_idx, loc, loc_left, loc_right, cyclic):
+    def __make_ctrls_for_handles(
+        self,
+        hook_ctr: BoneInfo,
+        spline_idx: int,
+        point_idx: int,
+        loc: Vector,
+        loc_left: Vector,
+        loc_right: Vector,
+        cyclic: bool,
+    ) -> list[BoneInfo]:
+        """Create left/right handle controls and an optional radius control for a bezier hook."""
         handles = []
 
         if self.params.curve.separate_radius:
@@ -499,7 +514,7 @@ class Component_Curve_Hooked(Component_Base):
 
         return handles
 
-    def __hook_curve_to_rig(self, context, hooks_of_splines: list[list[BoneInfo]]):
+    def __hook_curve_to_rig(self, context: Context, hooks_of_splines: list[list[BoneInfo]]):
         """Configure the Hook Modifiers for the curve.
         hooks_of_splines: List of List of BoneInfo objects that were created with __make_ctrls_for_point().
                         Each list corresponds to one curve spline.
@@ -518,7 +533,8 @@ class Component_Curve_Hooked(Component_Base):
 
         self.params.curve.target = curve_ob
 
-    def __hook_spline_to_rig(self, context, curve_ob: Object, spline_i: int, hooks: list[BoneInfo]):
+    def __hook_spline_to_rig(self, context: Context, curve_ob: Object, spline_i: int, hooks: list[BoneInfo]):
+        """Apply Hook modifiers and radius/tilt drivers for every point in one spline."""
         spline = curve_ob.data.splines[spline_i]
         points = get_spline_points(spline)
         num_points = len(points)
@@ -541,7 +557,7 @@ class Component_Curve_Hooked(Component_Base):
 
         context.view_layer.update()
 
-        for point_i in range(0, num_points):
+        for point_i in range(num_points):
             # For Beziers, handle type must be Aligned, otherwise rotations don't work.
             point = points[point_i]
             if hasattr(point, 'handle_left_type'):
@@ -655,7 +671,7 @@ class Component_Curve_Hooked(Component_Base):
         # A potential fix, D7190 was sadly rejected.
         curve_ob = self.params.curve.target
         idx_offset = 0
-        for i in range(0, spline_i):
+        for i in range(spline_i):
             spline = curve_ob.data.splines[i]
             num_points = len(get_spline_points(curve_ob.data.splines[i]))
             if spline.type == 'BEZIER':
@@ -721,7 +737,7 @@ class Component_Curve_Hooked(Component_Base):
         return params.curve.root_per_spline and params.curve.target and len(params.curve.target.data.splines) > 1
 
     @classmethod
-    def is_bone_set_used(cls, context, rig, params, set_name):
+    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
         if set_name == 'curve_handles':
             return params.curve.controls_for_handles
 
@@ -734,8 +750,8 @@ class Component_Curve_Hooked(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def curve__draw_selector_ui(cls, layout, context, params):
-        """Since this rig requires a curve object, draw with alert=True otherwise."""
+    def curve__draw_selector_ui(cls, layout: UILayout, context: Context, params):
+        """Since this component requires a curve object, draw with alert=True otherwise."""
         curve_ob = params.curve.target
         bad_curve = curve_ob is None or curve_ob.type != 'CURVE'
 
@@ -743,7 +759,7 @@ class Component_Curve_Hooked(Component_Base):
         cls.draw_prop(context, layout, params.curve, 'target', icon=icon)
 
     @classmethod
-    def draw_control_params(cls, layout, context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component):
         super().draw_control_params(layout, context, component)
         params = component.params
         cls.curve__draw_selector_ui(layout, context, params)
@@ -765,7 +781,7 @@ class Component_Curve_Hooked(Component_Base):
             cls.draw_prop(context, layout, params.curve, "inherit_scale")
 
     @classmethod
-    def draw_appearance_params(cls, layout, context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         curve_ob = params.curve.target
@@ -793,14 +809,14 @@ class Component_Curve_Hooked(Component_Base):
         ):
             cls.draw_prop_custom_shape(context, layout, params.curve, 'shape_radius')
         cls.draw_prop(context, layout, params.curve, 'shape_size', text="Size", enabled=component.appearance_enabled)
-        return layout
 
 
-def is_curve(self, obj):
+def is_curve(self, obj: Object) -> bool:
+    """PointerProperty poll: filter to Curve objects only."""
     return obj.type == 'CURVE'
 
 
-def get_points_propname(spline):
+def get_points_propname(spline: Spline) -> str:
     if spline.bezier_points:
         return 'bezier_points'
     return 'points'
