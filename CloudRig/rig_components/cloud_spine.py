@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from math import pi
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
 
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty
-from bpy.types import Context, PropertyGroup, UILayout
+from bpy.types import Context, Object, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -390,7 +394,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         )
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         if set_name == "spine_ik_secondary":
             return params.spine.use_ik
         if set_name == "spine_parent_controls":
@@ -399,7 +403,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -412,7 +416,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
         cls.draw_prop(context, layout, params.spine, "flatten_controls", enabled=(not params.spine.world_align))
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()

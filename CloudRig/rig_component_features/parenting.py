@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import bpy
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
+    from ..rig_component_features.parenting import Params as Parenting_Params
+
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
@@ -12,7 +19,7 @@ from bpy.app.translations import pgettext_tip as tip_
 # TODO: Creating a helper bone to hold the Armature constraint should also be
 # optional when using parent switching, not just for bendy bone parenting.
 from bpy.props import BoolProperty, CollectionProperty, IntProperty, StringProperty
-from bpy.types import Context, PropertyGroup, UILayout, UIList
+from bpy.types import Context, Object, PropertyGroup, UILayout, UIList
 
 from ..utils.rig import get_pbone_of_active
 from .bone_info import BoneInfo, ConstraintInfo
@@ -21,10 +28,19 @@ from .params_ui_utils import draw_label_with_linebreak
 
 
 class CLOUDRIG_UL_parent_slots(UIList):
-    def draw_item(self, _context: Context, layout: UILayout, _data, item, icon_value, _active_data, _active_propname):
-        metarig = item.id_data
+    def draw_item(
+        self,
+        _context: Context,
+        layout: UILayout,
+        _list_owner: Parenting_Params,
+        list_element: ParentSlot,
+        icon_value: int,
+        _active_prop_owner: Parenting_Params,
+        _active_prop_name: str,
+    ):
+        parent_slot = list_element
+        metarig = parent_slot.id_data
         rig = metarig.cloudrig.generator.target_rig
-        parent_slot = item
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             split = layout.split(factor=0.5, align=True)
             row = split.row(align=True)
@@ -367,7 +383,7 @@ class CloudParentingMixin:
         )
 
     @classmethod
-    def draw_parent_param(cls, layout: UILayout, context: Context, rig, params):
+    def draw_parent_param(cls, layout: UILayout, context: Context, rig: Object | None, params: ComponentParams):
         """Draw the root parent bone selection UI."""
         if not rig:
             cls.draw_prop(context, layout, params.parenting, "root_parent")
@@ -400,7 +416,7 @@ class CloudParentingMixin:
                 row.label(text="", icon="BONE_DATA")
 
     @classmethod
-    def draw_parenting_params(cls, layout: UILayout, context: Context, component):
+    def draw_parenting_params(cls, layout: UILayout, context: Context, component: RigComponent):
         """Draw the full parenting parameter panel for a rig component."""
         params = component.params
         metarig = component.id_data

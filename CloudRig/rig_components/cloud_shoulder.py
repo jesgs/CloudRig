@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from math import radians
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
 
 from bpy.props import EnumProperty
 from bpy.types import Context, PropertyGroup, UILayout
@@ -61,14 +65,14 @@ class Component_Shoulder(Component_Chain_FK):
     # Parameters
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
 
         cls.draw_prop(context, layout, params.shoulder, 'up_axis', enabled=component.appearance_enabled)
 
     @classmethod
-    def set_param_defaults(cls, component):
+    def set_param_defaults(cls, component: RigComponent):
         component.params.fk_chain.shape_fk.name = "Shoulder"
 
 

@@ -10,7 +10,7 @@ from bpy.props import (
     FloatProperty,
     StringProperty,
 )
-from bpy.types import AddonPreferences, PropertyGroup
+from bpy.types import AddonPreferences, Context, PropertyGroup
 
 from . import rig_components
 from .bs_utils.hotkeys import draw_hotkey_list
@@ -69,7 +69,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
 
     component_types: CollectionProperty(type=CloudRigComponentTypeInfo)
 
-    def on_library_set(self, _context):
+    def on_library_set(self, _context: Context):
         refresh_widget_list(force_external=True)
 
     widget_names: CollectionProperty(type=NameProperty)
@@ -182,7 +182,7 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default=True,
     )
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False

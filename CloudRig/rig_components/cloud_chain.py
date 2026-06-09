@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, FloatProperty, IntProperty
-from bpy.types import Context, PropertyGroup, UILayout
+from bpy.types import Context, Object, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
@@ -800,7 +805,7 @@ class Component_ToonChain(Component_Base):
     # Parameters
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         """Return whether the named bone set is used given the current params."""
         if set_name in ["deform_controls", "deform_helpers"]:
             return params.chain.unlock_deform
@@ -809,7 +814,7 @@ class Component_ToonChain(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         if params.chain.unlock_deform:
@@ -844,7 +849,7 @@ class Component_ToonChain(Component_Base):
         )
 
     @classmethod
-    def draw_bendy_params(cls, layout: UILayout, context: Context, component):
+    def draw_bendy_params(cls, layout: UILayout, context: Context, component: RigComponent):
         params = component.params
         cls.draw_prop(context, layout, params.chain, 'bbone_density')
         enabled = params.chain.bbone_density > 0
@@ -859,12 +864,12 @@ class Component_ToonChain(Component_Base):
             cls.draw_prop(context, layout, params.chain, 'unlock_deform')
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         cls.draw_stretch_control_params(layout, context, component)
 
     @classmethod
-    def draw_stretch_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_stretch_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         params = component.params
         cls.draw_control_label(layout, iface_("Stretch"))
         cls.draw_prop(context, layout, params.chain, 'segments')

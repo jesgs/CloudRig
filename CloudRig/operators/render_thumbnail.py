@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import os
 from contextlib import ExitStack, contextmanager, nullcontext
 from pathlib import Path
+from typing import Any
 
 import bpy
 from bpy.app.translations import pgettext_iface as iface_
@@ -113,8 +116,8 @@ class ImageProcessor:
         self.width = bpy_img.size[0]
         self.height = bpy_img.size[1]
         self.bpy_img = bpy_img
-        self._pixels = []
-        self._pixels_rgba = []
+        self._pixels: list[float] = []
+        self._pixels_rgba: list[tuple[float, ...]] = []
 
         if bpy_img.type == "RENDER_RESULT":
             filepath = os.path.join(bpy.app.tempdir, f"cr_thumb_{name}.png")
@@ -249,7 +252,7 @@ class ImageProcessor:
         return self._pixels_rgba
 
     @pixels_rgba.setter
-    def pixels_rgba(self, value):
+    def pixels_rgba(self, value: list[tuple[float, ...]]):
         self._pixels_rgba = value
 
     def save(self, filepath: str, discard=True):
@@ -274,7 +277,7 @@ def get_3d_view(context: Context) -> SpaceView3D | None:
 
 
 @contextmanager
-def temporary_setattr(obj, **kwargs):
+def temporary_setattr(obj: Any, **kwargs):
     """Temporarily set attributes on obj."""
     old_values = {name: getattr(obj, name) for name in kwargs}
     old_values = {name: value.copy() if hasattr(value, 'copy') else value for name, value in old_values.items()}

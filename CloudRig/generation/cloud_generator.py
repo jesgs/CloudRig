@@ -26,6 +26,7 @@ from bpy.props import (
 )
 from bpy.types import (
     Action,
+    Bone,
     Collection,
     Context,
     EditBone,
@@ -55,7 +56,7 @@ from ..rig_component_features.widgets.widgets import (
     set_pbone_custom_shape_data,
 )
 from ..rig_components.cloud_base import Component_Base
-from ..ui.actions_ui import ActionConstraintSetup
+from .actions_component import ActionConstraintSetup
 from ..utils.collections import assign_to_collection, ensure_collection
 from ..utils.mechanism import refresh_all_drivers
 from ..utils.misc import (
@@ -853,7 +854,7 @@ def parent_orphans(rig: Object, root_name: str):
     """Parent all top-level bones (which are not ancestors of the root) to the root bone."""
     root_pb = rig.pose.bones.get(root_name)
 
-    def is_orphan(bone):
+    def is_orphan(bone: Bone):
         pbone = rig.pose.bones[bone.name]
         if root_pb in pbone.children_recursive:
             # A bone that is the parent of the root bone is not considered orphaned.
@@ -1068,7 +1069,7 @@ class CLOUDRIG_OT_generate(Operator):
             return metarigs[0]
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         """This operator is available when we can deduce from the context which
         metarig the user wants to generate."""
         metarig = cls.get_metarig_to_generate(context)

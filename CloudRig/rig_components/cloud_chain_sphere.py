@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
+
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import PointerProperty, StringProperty
@@ -61,7 +66,7 @@ class Component_SphereChain(Component_ToonChain):
     # Parameters
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         """Return whether the named bone set is used given the current params."""
         if set_name in ["deform_controls", "deform_helpers"]:
             return params.chain.unlock_deform
@@ -70,7 +75,7 @@ class Component_SphereChain(Component_ToonChain):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.chain_sphere, 'shape_sphere_control')
@@ -85,7 +90,7 @@ class Component_SphereChain(Component_ToonChain):
         )
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
         cls.draw_prop_search(

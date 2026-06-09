@@ -417,10 +417,10 @@ class Component_Base(
         get_param_classes_ordered() once registration is complete.
         """
 
-        def update_widgets(self, _context):
+        def update_widgets(self, _context: Context):
             refresh_widget_list()
 
-        def update_pointer(self, _context):
+        def update_pointer(self, _context: Context):
             update_widgets(self, _context)
             if not self.use_pointer:
                 # Pointer was de-toggled.
@@ -454,11 +454,11 @@ class Component_Base(
                 return self.custom_shape
             return bpy.data.objects.get('WGT-' + self.shape_name)
 
-        def get_enum(self, _current_value, _is_set):
+        def get_enum(self, _current_value: int, _is_set: bool):
             value = next((w[4] for w in widgets_enum_items() if w[0] == self.name), 0)
             return value
 
-        def set_enum(self, new_value, _current_value, _is_set):
+        def set_enum(self, new_value: int, _current_value: int, _is_set: bool):
             value = widgets_enum_items()[new_value][0]
             self.name = value
             return new_value

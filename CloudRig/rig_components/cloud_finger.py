@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from math import radians
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_tip as tip_
@@ -215,7 +219,7 @@ class Component_Finger(Component_Chain_IKFK):
     # Parameters.
 
     @classmethod
-    def set_param_defaults(cls, component):
+    def set_param_defaults(cls, component: RigComponent):
         component.params.ik_chain.default_fkik = 0.0
 
 

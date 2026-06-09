@@ -10,8 +10,8 @@ from . import (
 modules = [
     cloudrig,
     troubleshooting,  # Registers LogEntry for the Generator.
+    actions_component,  # Registers ActionConstraintSetup before cloud_generator uses it.
     cloud_generator,
     naming,
-    actions_component,
     generate_test_animation,
 ]

@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
@@ -12,7 +17,7 @@ from bpy.props import (
     FloatProperty,
     IntVectorProperty,
 )
-from bpy.types import Action, ActionSlot, Context, PropertyGroup, UILayout
+from bpy.types import Action, ActionSlot, Context, Object, PropertyGroup, UILayout
 
 from ..rig_component_features.bone_info import BoneInfo
 from ..rig_component_features.generate_animation import CloudAnimationMixin
@@ -422,7 +427,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         )
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         """Return whether the named bone set is used given the current params."""
         if set_name == "fk_controls_extra":
             return params.fk_chain.root
@@ -433,12 +438,12 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def set_param_defaults(cls, component):
+    def set_param_defaults(cls, component: RigComponent):
         """Default to sharp B-bones for FK chains."""
         component.params.chain.sharp = True
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()
@@ -449,14 +454,14 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         return layout
 
     @classmethod
-    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component):
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_custom_prop_params(layout, context, component)
         if component.params.fk_chain.hinge:
             layout.separator()
             cls.draw_prop(context, layout, component.params.fk_chain, 'default_hinge', slider=True)
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -492,7 +497,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         cls.draw_prop(context, layout, params.fk_chain, "double_first")
 
     @classmethod
-    def draw_anim_params(cls, layout: UILayout, _context: Context, component):
+    def draw_anim_params(cls, layout: UILayout, _context: Context, component: RigComponent):
         params = component.params
         col = layout.column()
         col.enabled = params.fk_chain.test_animation_generate
@@ -506,7 +511,7 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         row.prop(params.fk_chain, "test_animation_axes", text="Z", toggle=True, index=2)
 
     @classmethod
-    def poll_draw_custom_prop_params(cls, context: Context, component) -> bool:
+    def poll_draw_custom_prop_params(cls, context: Context, component: RigComponent) -> bool:
         if super().poll_draw_custom_prop_params(context, component):
             return True
         params = component.params

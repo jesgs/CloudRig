@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from bpy.types import Context, PropertyGroup, UILayout
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
+
+from bpy.types import Context, Object, PropertyGroup, UILayout
 
 from .cloud_fk_chain import Component_Chain_FK
 
@@ -59,7 +64,7 @@ class Component_Feather(Component_Chain_FK):
         self.main_str_bones[-1].add_constraint('COPY_ROTATION', subtarget=bend_ctr.name, influence=0.4)
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         if set_name == 'fk_controls_extra':
             return True
 
@@ -69,7 +74,7 @@ class Component_Feather(Component_Chain_FK):
     # Parameters
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.feather, 'shape_feather')

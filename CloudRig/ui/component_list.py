@@ -4,10 +4,11 @@ from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty, StringProperty
-from bpy.types import Context, Event, Operator, PoseBone, UI_UL_list, UILayout, UIList
+from bpy.types import Context, Event, Operator, Pose, PoseBone, UI_UL_list, UILayout, UIList
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import is_cloud_metarig
+from ..properties import Properties_CloudRig
 from ..rig_component_features.properties_ui import redraw_viewport
 from ..utils.rig import get_component_in_ui, get_pbone_of_active
 from .component_param_panels import (
@@ -27,13 +28,13 @@ class CLOUDRIG_UL_rig_components(UIList):
         self,
         _context: Context,
         layout: UILayout,
-        _data: object,
-        item: PoseBone,
+        _list_owner: Pose,
+        list_element: PoseBone,
         _icon_value: int,
-        _active_data: object,
-        _active_propname: str,
+        _active_prop_owner: Properties_CloudRig,
+        _active_prop_name: str,
     ):
-        pose_bone = item
+        pose_bone = list_element
         rig_component = pose_bone.cloudrig_component
         if not rig_component.component_type:
             return

@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, IntProperty, StringProperty
-from bpy.types import Bone, EditBone, Operator, PoseBone
+from bpy.types import Bone, Context, EditBone, Event, Object, Operator, PoseBone
 
 from ..generation import naming
 from ..generation.cloudrig import active_rig, reveal_bone
@@ -16,7 +18,7 @@ class BoneSelectOperatorMixin:
         description="Bones that are already selected will remain selected",
     )
 
-    def invoke(self, context, event):
+    def invoke(self, context: Context, event: Event):
         if event.shift:
             self.extend_selection = True
         else:
@@ -25,7 +27,7 @@ class BoneSelectOperatorMixin:
         return self.execute(context)
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if not (context.active_bone or context.active_pose_bone):
             cls.poll_message_set("No active bone.")
             return False
@@ -37,7 +39,7 @@ class BoneSelectOperatorMixin:
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         if not self.extend_selection:
             deselect_all_bones(context)
 
@@ -54,14 +56,14 @@ class POSE_OT_select_bone_by_name(Operator, BoneSelectOperatorMixin):
     bone_name: StringProperty(name="Bone Name", description="Name of the bone to select")
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig = active_rig(context)
         if not rig or rig.type != 'ARMATURE':
             cls.poll_message_set("No active armature.")
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = active_rig(context)
         if rig.mode == 'EDIT':
             bone = rig.data.edit_bones.get(self.bone_name)
@@ -127,7 +129,7 @@ class POSE_OT_select_bone_by_name_relation(Operator, BoneSelectOperatorMixin):
         default=0,
     )
 
-    def execute(self, context):
+    def execute(self, context: Context):
         active_target_bone = None
 
         bone_tuples = get_selected_bone_tuples(context)
@@ -184,7 +186,7 @@ class POSE_OT_select_parent_bone(Operator, BoneSelectOperatorMixin):
     bl_label = "Select Parent Bone"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         super().execute(context)
 
         active_bone = context.active_pose_bone or context.active_bone
@@ -202,13 +204,13 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
 
     bone_name: StringProperty(name="Bone")
 
-    def invoke(self, context, _event):
+    def invoke(self, context: Context, _event: Event):
         bone = get_active_bone(context)
         if bone:
             self.bone_name = bone.name
         return context.window_manager.invoke_props_dialog(self)
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
@@ -219,7 +221,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
             layout.prop_search(self, 'bone_name', rig.data, 'bones', icon='BONE_DATA')
         layout.prop(self, 'extend_selection')
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = active_rig(context)
         bone = get_bone_by_name(rig, self.bone_name)
         if not self.extend_selection:
@@ -230,7 +232,7 @@ class POSE_OT_select_bone_by_name_search(Operator, BoneSelectOperatorMixin):
         return {'FINISHED'}
 
 
-def deselect_all_bones(context):
+def deselect_all_bones(context: Context):
     if context.mode == 'EDIT_ARMATURE':
         bones = context.selected_editable_bones
     else:
@@ -242,7 +244,7 @@ def deselect_all_bones(context):
             bone.select_tail = False
 
 
-def get_bone_by_name(rig, bone_name: str):
+def get_bone_by_name(rig: Object, bone_name: str):
     """Return PoseBone or EditBone with the given name, depending on context."""
     if rig.mode == 'EDIT_ARMATURE':
         return rig.data.edit_bones.get(bone_name)
@@ -250,7 +252,7 @@ def get_bone_by_name(rig, bone_name: str):
         return rig.pose.bones.get(bone_name)
 
 
-def is_active_bone(context, bone: Bone | EditBone | PoseBone):
+def is_active_bone(context: Context, bone: Bone | EditBone | PoseBone):
     """Return whether the passed bone is the active one"""
     if isinstance(bone, PoseBone):
         armature = bone.id_data.data
@@ -267,7 +269,7 @@ def is_active_bone(context, bone: Bone | EditBone | PoseBone):
     return False
 
 
-def set_active_bone(context, bone: Bone | EditBone | PoseBone):
+def set_active_bone(context: Context, bone: Bone | EditBone | PoseBone):
     """Set the active bone, regardless of if we're in edit mode or not.
     Also account for active vertex group when in weight paint mode.
     """
@@ -291,7 +293,7 @@ def set_active_bone(context, bone: Bone | EditBone | PoseBone):
             context.active_object.vertex_groups.active = context.active_object.vertex_groups[bone.name]
 
 
-def reveal_and_select_bone(context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
+def reveal_and_select_bone(context: Context, bone: Bone | EditBone | PoseBone, extend_selection=False, set_active=True):
     rig = active_rig(context)
 
     reveal_bone(bone)

@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from math import pi
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty, FloatProperty
@@ -320,7 +324,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         cls.define_bone_set(n_("Toon Spine Mechanism"), collections=["Mechanism Bones"], is_advanced=True)
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -332,12 +336,12 @@ class Component_Spine_Toon(Component_Chain_FK):
         )
 
     @classmethod
-    def draw_stretch_control_params(cls, _layout: UILayout, _context: Context, _component):
+    def draw_stretch_control_params(cls, _layout: UILayout, _context: Context, _component: RigComponent):
         """No-op override: toon spine has no stretch control params to draw."""
         return
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()
@@ -346,7 +350,7 @@ class Component_Spine_Toon(Component_Chain_FK):
         cls.draw_prop_custom_shape(context, layout, params.spine_toon, "shape_ik_secondary")
 
     @classmethod
-    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component):
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_custom_prop_params(layout, context, component)
         layout.separator()
         cls.draw_prop(context, layout, component.params.spine_toon, 'default_fkik', slider=True)

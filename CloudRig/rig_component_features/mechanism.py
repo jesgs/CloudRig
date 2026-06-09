@@ -96,7 +96,7 @@ class CloudMechanismMixin:
 
         return copy_first, copy_last, dt_con
 
-    def make_def_bone(self, parent_bone: BoneInfo, bone_name: str, bone_set) -> BoneInfo:
+    def make_def_bone(self, parent_bone: BoneInfo, bone_name: str, bone_set: BoneSet) -> BoneInfo:
         """Make a DEF- bone parented to bone."""
         def_bone = bone_set.new(
             name=bone_name,
@@ -115,7 +115,7 @@ class CloudMechanismMixin:
         """Return pose bone in the metarig that has this component assigned."""
         return self.get_metarig_pbone(self.base_bone_name)
 
-    def vector_along_bone_chain(self, chain, length=0, index=-1) -> tuple[Vector, Vector]:
+    def vector_along_bone_chain(self, chain: list[BoneInfo], length=0, index=-1) -> tuple[Vector, Vector]:
         """Delegate to the module-level vector_along_bone_chain."""
         return vector_along_bone_chain(chain, length, index)
 

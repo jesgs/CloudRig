@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from types import ModuleType
-from typing import Callable, get_type_hints
+from typing import TYPE_CHECKING, Any, Callable, get_type_hints
+
+if TYPE_CHECKING:
+    from .generation.cloud_generator import CloudRig_Generator
 
 from _bpy_types import _RNAMetaPropGroup
 from bpy.props import (
@@ -15,7 +18,7 @@ from bpy.props import (
     PointerProperty,
     StringProperty,
 )
-from bpy.types import ID, BoneColor, Object, PoseBone, PropertyGroup
+from bpy.types import ID, BoneColor, Context, Object, PoseBone, PropertyGroup
 
 from . import rig_component_features, rig_components
 from .bs_utils.prefs import get_addon_prefs
@@ -48,19 +51,19 @@ def mark_overlay_dirty(self):
 
 def inject_update_callback(pg_class: type) -> type:
     def wrap_setter(_prop_name: str, set_transform: Callable | None):
-        def set_transform_wrapper(self, new_value, curr_value, is_set):
+        def set_transform_wrapper(self, new_value: Any, curr_value: Any, _is_set: bool):
             if new_value != curr_value:
                 mark_overlay_dirty(self)
 
             if set_transform:
                 # Call the original call-back function.
-                return set_transform(self, new_value, curr_value, is_set)
+                return set_transform(self, new_value, curr_value, _is_set)
             return new_value
 
         return set_transform_wrapper
 
     def wrap_update(_prop_name: str, update: Callable | None):
-        def update_wrapper(self, context):
+        def update_wrapper(self, context: Context):
             mark_overlay_dirty(self)
             if update:
                 update(self, context)
@@ -336,7 +339,7 @@ class RigComponent(PropertyGroup):
                 self.reset_collections_of_bone_set(bone_set)
         self.bone_sets_active_index = min(self.bone_sets_active_index, len(self.ui_bone_sets) - 1)
 
-    def reset_collections_of_bone_set(self, bone_set):
+    def reset_collections_of_bone_set(self, bone_set: BoneSet_ForUI):
         ui_bone_set = self.ui_bone_sets[bone_set.name]
         bone_set_definitions = self.component_class.bone_set_defs
         bone_set_definition = bone_set_definitions[ui_bone_set.name]
@@ -351,7 +354,7 @@ class RigComponent(PropertyGroup):
         description="Bone Sets allow you to assign the collections and colors of bones that will be generated",
     )
 
-    def component_type_update_callback(self, context):
+    def component_type_update_callback(self, context: Context):
         # Update component order (used for sorting the UIList as well as generation order).
         self.id_data.cloudrig.refresh_generator_data()
         # Ensure this component has UI bone sets
@@ -379,10 +382,10 @@ class RigComponent(PropertyGroup):
 
     # This could be an EnumProp, but a StringProp allows us to use prop_search,
     # which is better UX.
-    def comp_type_get_transform(self, curr_value, is_set) -> str:
+    def comp_type_get_transform(self, curr_value: str, _is_set: bool) -> str:
         return get_component_ui_name(curr_value)
 
-    def comp_type_set_transform(self, new_value, curr_value, is_set) -> str:
+    def comp_type_set_transform(self, new_value: str, curr_value: str, _is_set: bool) -> str:
         """Convert the artist-friendly component name to the implementation name
         This allows changing the displayed name of component types without breakage.
         """
@@ -523,7 +526,7 @@ class RigComponent(PropertyGroup):
             pass
         return chain
 
-    def instantiate(self, generator, parent_component: RigComponent = None) -> RigComponent | None:
+    def instantiate(self, generator: CloudRig_Generator, parent_component: RigComponent = None) -> RigComponent | None:
         return self.component_class(
             generator=generator,
             bone_name=self.base_bone_name,

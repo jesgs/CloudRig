@@ -21,6 +21,7 @@ from bpy.types import (
     Bone,
     BoneCollection,
     Context,
+    Event,
     Modifier,
     Object,
     Operator,
@@ -119,7 +120,7 @@ def update_property_selector(self, context: Context):
 class CloudRigUIEditOpMixin:
     """Add a property to the rig UI. It can be a built-in property or a custom property. If it doesn't exist, it will be created if possible. It can also have an operator next to it"""
 
-    def update_use_bone_selector(self, context):
+    def update_use_bone_selector(self, _context: Context):
         if self.use_bone_selector:
             # If the use_bone_selector was just turned on, extract the bone name from the data path.
             self.use_coll_selector = False
@@ -132,7 +133,7 @@ class CloudRigUIEditOpMixin:
             # If the use_bone_selector was just turned off, turn the bone name into a data path.
             self.owner_path = f'pose.bones["{self.owner_path}"]'
 
-    def update_use_coll_selector(self, context):
+    def update_use_coll_selector(self, _context: Context):
         if self.use_coll_selector:
             # If the use_coll_selector was just turned on, extract the collection name from the data path.
             self.use_bone_selector = False
@@ -145,7 +146,7 @@ class CloudRigUIEditOpMixin:
             # If the use_coll_selector was just turned off, turn the bone name into a data path.
             self.owner_path = f'data.collections_all["{self.owner_path}"]'
 
-    def update_owner_path(self, context):
+    def update_owner_path(self, context: Context):
         update_property_selector(self, context)
 
         rig = find_cloudrig(context)
@@ -163,7 +164,7 @@ class CloudRigUIEditOpMixin:
             if self.prop_name == "" or self.prop_name not in prop_owner and not hasattr(prop_owner, self.prop_name):
                 self.prop_name = ""
 
-    def update_parent_selector(self, context):
+    def update_parent_selector(self, context: Context):
         parent_option = context.scene.cloudrig_property_parent_selector.get(self.parent_selector)
         if parent_option and parent_option.current not in self.parent_value:
             # When user selects a parent property from the drop-down,
@@ -194,7 +195,7 @@ class CloudRigUIEditOpMixin:
         update=update_use_bone_selector,
     )
 
-    def update_prop_name(self, context):
+    def update_prop_name(self, context: Context):
         rig = find_cloudrig(context)
 
         # Help initialize Bone Collection toggles.
@@ -315,14 +316,14 @@ class CloudRigUIEditOpMixin:
     )
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         rig, ui_data = get_rig_and_ui(context)
         if not rig:
             cls.poll_message_set("No active CloudRig found in this context.")
             return False
         return True
 
-    def invoke(self, context, _event):
+    def invoke(self, context: Context, _event: Event):
         # We create a keymap item to help us draw the operator setup UI.
         # KeymapItems in the default keymap will not be stored by Blender,
         # so we don't need to worry about making a mess there.
@@ -358,7 +359,7 @@ class CloudRigUIEditOpMixin:
 
         return context.window_manager.invoke_props_dialog(self, width=600)
 
-    def draw(self, context):
+    def draw(self, context: Context):
         layout = self.layout.column()
         self.err_msg = ""
 
@@ -382,7 +383,7 @@ class CloudRigUIEditOpMixin:
         row.alert = True
         row.label(text=self.err_msg, icon='ERROR')
 
-    def draw_owner_box(self, layout, context) -> bool:
+    def draw_owner_box(self, layout: UILayout, context: Context) -> bool:
         """Returns whether UI drawing should be interrupted after this."""
         rig = find_cloudrig(context)
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
@@ -432,7 +433,7 @@ class CloudRigUIEditOpMixin:
 
         return False
 
-    def draw_prop_box(self, layout, context) -> bool:
+    def draw_prop_box(self, layout: UILayout, context: Context) -> bool:
         """Returns whether UI drawing should be interrupted after this."""
         rig = find_cloudrig(context)
         prop_owner, full_path, owner_path, brackets_prop_name, prop_value = get_data_paths(self, rig)
@@ -448,7 +449,9 @@ class CloudRigUIEditOpMixin:
         prop_row = prop_box.row(align=True)
 
         if self.use_batch_add:
-            prop_row.label(text=iface_("Add all {num_props} custom properties to the UI").format(num_props=len(drawable_props)))
+            prop_row.label(
+                text=iface_("Add all {num_props} custom properties to the UI").format(num_props=len(drawable_props))
+            )
             prop_row.prop(self, 'use_batch_add', icon='ALIGN_JUSTIFY', text="")
             return True
 
@@ -627,7 +630,7 @@ class CloudRigUIEditOpMixin:
 
         add_slider_ui_paths_recursive(ui_data, ui_path=[], display_name="")
 
-    def execute(self, context):
+    def execute(self, context: Context):
         if self.err_msg:
             self.report({'ERROR'}, self.err_msg)
             return {'CANCELLED'}
@@ -761,7 +764,7 @@ class CLOUDRIG_OT_edit_property_in_ui(CloudRigUIEditOpMixin, Operator):
         description="Internal. List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the slider name",
     )
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = find_cloudrig(context)
         ui_path = json.loads(self.ui_path)
 
@@ -812,11 +815,11 @@ class CLOUDRIG_OT_remove_property_from_ui(Operator):
         description="Instead of just removing the property from the interface, actually remove it from its owner. Only for Custom Properties",
     )
 
-    def invoke(self, context, event):
+    def invoke(self, context: Context, event: Event):
         self.delete_actual_prop = event.shift
         return self.execute(context)
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = find_cloudrig(context)
         assert rig
         ui_path = json.loads(self.ui_path)
@@ -856,7 +859,7 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         description="List of entry names to follow the nesting of the UIData dictionary, starting with the panel name and ending with the row name",
     )
 
-    def invoke(self, context, event):
+    def invoke(self, context: Context, event: Event):
         self.mouse_initial = event.mouse_y
         self.index_offset = 0
         rig, ui_data = get_rig_and_ui(context)
@@ -876,7 +879,7 @@ class CLOUDRIG_OT_reorder_rows(Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
-    def modal(self, context, event):
+    def modal(self, context: Context, event: Event):
         rig = find_cloudrig(context)
         self.index_offset = 0
         if event.type in {'W', 'UP_ARROW'} and not event.is_repeat and event.value != 'RELEASE':
@@ -905,7 +908,7 @@ class CLOUDRIG_OT_reorder_rows(Operator):
 
         return {'RUNNING_MODAL'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         rig = find_cloudrig(context)
         ui_path = json.loads(self.ui_path)
 
@@ -925,7 +928,7 @@ class CLOUDRIG_OT_reorder_rows(Operator):
             return {'CANCELLED'}
 
 
-def path_resolve_safe(owner, data_path: str):
+def path_resolve_safe(owner: Any, data_path: str):
     """Call owner.path_resolve(data_path), returning None instead of raising ValueError."""
     try:
         return owner.path_resolve(data_path)
@@ -933,7 +936,7 @@ def path_resolve_safe(owner, data_path: str):
         return
 
 
-def ensure_custom_property(prop_bone, prop_id: str, default=0.0, overwrite=False, **kwargs):
+def ensure_custom_property(prop_bone: Any, prop_id: str, default=0.0, overwrite=False, **kwargs):
     """Create prop_id on prop_bone if it doesn't exist, or update it if overwrite is True."""
     if 'BoneInfo' in str(type(prop_bone)):
         kwargs['default'] = default
@@ -950,7 +953,7 @@ def ensure_custom_property(prop_bone, prop_id: str, default=0.0, overwrite=False
 def make_property(
     owner: bpy_struct,
     name: str,
-    default,
+    default: Any,
     *,
     value=None,
     id_type=None,
@@ -1003,7 +1006,7 @@ def make_property(
 
 def add_property_to_ui(
     *,
-    obj,
+    obj: Object,
     owner_path: str,
     prop_name: str,
     ###
@@ -1090,7 +1093,7 @@ def add_property_to_ui(
 
 
 def remove_property_from_ui(
-    obj,
+    obj: Object,
     ui_path: list[str],
     panels=None,
 ) -> tuple[OrderedDict, list[tuple[OrderedDict, str, str]], int]:
@@ -1130,7 +1133,7 @@ def remove_property_from_ui(
     return ui_entry_data, parents, index
 
 
-def reorder_ui_row(*, obj, ui_path: list[str], index_offset=1, panels=None) -> tuple[OrderedDict, bool]:
+def reorder_ui_row(*, obj: Object, ui_path: list[str], index_offset=1, panels=None) -> tuple[OrderedDict, bool]:
     """Re-order a row of the rig UI, provided a list of names representing the path of
     nesting to follow in the UI data which is a nested OrderedDict.
 
@@ -1210,12 +1213,12 @@ def ordereddict_move_to_index(od: OrderedDict, from_idx: int, to_idx: int):
     od.update(reordered_dict)
 
 
-def supports_custom_props(prop_owner) -> bool:
+def supports_custom_props(prop_owner: Any) -> bool:
     """Return True if prop_owner can hold custom properties."""
     return isinstance(prop_owner, ID) or type(prop_owner) in {PoseBone, BoneCollection}
 
 
-def get_drawable_custom_properties(prop_owner):
+def get_drawable_custom_properties(prop_owner: Any):
     """Yield the names of custom properties on prop_owner that can be drawn in the rig UI."""
     if not supports_custom_props(prop_owner):
         return []
@@ -1228,7 +1231,7 @@ def get_drawable_custom_properties(prop_owner):
         yield prop_name
 
 
-def get_drawable_builtin_properties(prop_owner):
+def get_drawable_builtin_properties(prop_owner: Any):
     """Yield the names of built-in RNA properties on prop_owner that can be drawn in the rig UI."""
     if not hasattr(prop_owner, 'bl_rna'):
         return
@@ -1257,7 +1260,7 @@ class HiddenPrints:
             # Workaround, relies on this class having a write() method.
             sys.stdout = self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, _exc_type: type | None, _exc_val: BaseException | None, _exc_tb: Any):
         sys.stdout.close()
         sys.stdout = self._original_stdout
 

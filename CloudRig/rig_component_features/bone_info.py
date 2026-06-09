@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Any, Iterator
 
 if TYPE_CHECKING:
     from ..generation.cloud_generator import CloudRig_Generator
@@ -867,14 +867,14 @@ class BoneInfo:
                 return "." + data_path
             return data_path
 
-        def make_driver_safe(ob, *, target_id, **kwargs):
+        def make_driver_safe(owner: Any, *, target_id: Any, **kwargs):
             try:
-                make_driver(ob, target_id=target_id, **kwargs)
+                make_driver(owner, target_id=target_id, **kwargs)
             except TypeError:
                 if 'index' in kwargs:
                     del kwargs['index']
                 try:
-                    make_driver(ob, target_id=target_id, **kwargs)
+                    make_driver(owner, target_id=target_id, **kwargs)
                 except Exception as e:
                     self.bone_set.rig_component.add_log(
                         rpt_("Failed to create Driver"),

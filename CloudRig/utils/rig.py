@@ -1,19 +1,22 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from __future__ import annotations
 
+from collections.abc import Iterator
 from math import atan2, pi
 from typing import TYPE_CHECKING
 
-from bpy.types import Armature, Bone, EditBone, Object, PoseBone
+from bpy.types import ID, Armature, Bone, Context, EditBone, Object, PoseBone
+from mathutils import Vector
 
 if TYPE_CHECKING:
     from ..properties import RigComponent
-from mathutils import Vector
 
 from ..bs_utils.prefs import get_addon_prefs
 from ..generation.cloudrig import active_rig, calculate_ik_pole_vector
 
 
-def get_pbone_of_active(context) -> PoseBone | None:
+def get_pbone_of_active(context: Context) -> PoseBone | None:
     """Return the PoseBone of the active bone. Can be None. Useful for drawing
     data stored on the PoseBone, in Edit Mode.
     """
@@ -26,7 +29,7 @@ def get_pbone_of_active(context) -> PoseBone | None:
     return rig.pose.bones.get(bone.name)
 
 
-def get_component_in_ui(context) -> RigComponent | None:
+def get_component_in_ui(context: Context) -> RigComponent | None:
     """Return whatever component's parameters should be currently getting drawn in the UI."""
     prefs = get_addon_prefs(context)
     active_pb = get_pbone_of_active(context)
@@ -54,12 +57,13 @@ def get_component_in_ui(context) -> RigComponent | None:
     return comp
 
 
-def get_pbones_of_selected(context, whole_ebone=True) -> list[PoseBone]:
+def get_pbones_of_selected(context: Context, whole_ebone=True) -> list[PoseBone]:
+    """Return selected PoseBones in the current context mode."""
     if context.mode in ('PAINT_WEIGHT', 'POSE'):
         return context.selected_pose_bones
     elif context.mode == 'EDIT_ARMATURE':
 
-        def is_ebone_select(eb):
+        def is_ebone_select(eb: EditBone) -> bool:
             if whole_ebone:
                 return eb.select and eb.select_head and eb.select_tail
             return eb.select or eb.select_head or eb.select_tail
@@ -71,7 +75,8 @@ def get_pbones_of_selected(context, whole_ebone=True) -> list[PoseBone]:
         return []
 
 
-def bone_is_visible(bone: Bone | PoseBone | EditBone):
+def bone_is_visible(bone: Bone | PoseBone | EditBone) -> bool:
+    """Return whether the given bone is visible, taking collections and hide flags into account."""
     pbone = None
     if isinstance(bone, PoseBone):
         pbone = bone
@@ -95,7 +100,7 @@ def bone_is_visible(bone: Bone | PoseBone | EditBone):
     return True
 
 
-def get_selected_bone_tuples(context, exclude_active=False) -> list[tuple[Object, Bone | EditBone]]:
+def get_selected_bone_tuples(context: Context, exclude_active=False) -> list[tuple[Object, Bone | EditBone]]:
     """Return a list of Bones or EditBones depending on context."""
     bone_tuples = []
     if context.mode in ('POSE', 'PAINT_WEIGHT'):
@@ -118,7 +123,8 @@ def get_selected_bone_tuples(context, exclude_active=False) -> list[tuple[Object
     return bone_tuples
 
 
-def get_current_rigs(context):
+def get_current_rigs(context: Context) -> Iterator[Object]:
+    """Yield all armature objects that are selected or active in the current mode."""
     objs = set(context.selected_objects)
     objs.add(active_rig(context))
 
@@ -130,10 +136,11 @@ def get_current_rigs(context):
 
 
 def get_parentless_pbones(rig: Object) -> list[PoseBone]:
+    """Return pose bones with no parent bone."""
     return [pb for pb in rig.pose.bones if pb.bone and not pb.bone.parent]
 
 
-def get_active_bone(context) -> EditBone | PoseBone | None:
+def get_active_bone(context: Context) -> EditBone | PoseBone | None:
     """Return active PoseBone or EditBone, depending on context."""
     if context.mode == 'EDIT_ARMATURE':
         return context.active_bone
@@ -141,7 +148,8 @@ def get_active_bone(context) -> EditBone | PoseBone | None:
         return get_pbone_of_active(context)
 
 
-def is_rna_path_driven(obj, data_path: str, index=-1) -> bool:
+def is_rna_path_driven(obj: ID, data_path: str, index=-1) -> bool:
+    """Return whether the given RNA data path on obj is controlled by a driver FCurve."""
     anim_data = obj.animation_data
     if not anim_data:
         return False
@@ -164,16 +172,19 @@ def wrap_angle_pi(angle: float) -> float:
 
 
 def align_bone_axis_to_vector(ebone: EditBone, vector: Vector, axis="+Z"):
+    """Set ebone's roll so that the given local axis points towards vector."""
     ebone.roll = calc_roll_to_align_axis(ebone, vector, axis)
 
 
 def project_point_to_plane(point: Vector, plane_point: Vector, plane_normal: Vector) -> Vector:
+    """Project a point onto a plane defined by a point on the plane and its normal."""
     if plane_normal.length == 0:
         raise ValueError(f"This normal vector cannot define a plane! ({plane_normal})")
     return point - plane_normal * (point - plane_point).dot(plane_normal)
 
 
 def calc_roll_to_align_axis(ebone: EditBone, vector: Vector, axis="+Z") -> float:
+    """Calculate the roll value needed to align ebone's given local axis towards a world-space vector."""
     offset_map = {
         "+Z": 0,
         "-Z": pi,
@@ -218,6 +229,7 @@ def get_armature_bounding_box(armature_obj: Object) -> tuple[Vector, Vector]:
 
 
 def get_armature_dimensions(armature_obj: Object) -> Vector:
+    """Return the dimensions (bounding box size) of an armature in its rest pose."""
     min_corner, max_corner = get_armature_bounding_box(armature_obj)
     return max_corner - min_corner
 
@@ -226,14 +238,15 @@ def get_armature_dimensions(armature_obj: Object) -> Vector:
 ### IK Chain functions.
 
 
-def ik_chain_flatten_single_iter(eb_chain, axis="+Z") -> bool:
+def ik_chain_flatten_single_iter(eb_chain: list[EditBone], axis="+Z") -> bool:
+    """Flatten the bone chain onto its plane and align rolls to the pole direction. Return whether anything changed."""
     coords = get_flattened_coords(eb_chain)
     assert coords
 
     THRESHOLD = eb_chain[0].length * 0.01
     did_anything = False
-    for i, edit_bone in enumerate(eb_chain):
-        flattened_head, flattened_tail = coords[i]
+    for bone_idx, edit_bone in enumerate(eb_chain):
+        flattened_head, flattened_tail = coords[bone_idx]
         if (edit_bone.head - flattened_head).length > THRESHOLD or (edit_bone.tail - flattened_tail).length > THRESHOLD:
             edit_bone.head = flattened_head
             edit_bone.tail = flattened_tail
@@ -266,7 +279,7 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
         return False
 
     THRESHOLD = chain[0].length * 0.01
-    ROLL_THREHSOLD = 0.001
+    ROLL_THRESHOLD = 0.001
 
     for (flattened_head, flattened_tail), ebone in zip(flattened_coords, chain):
         if not flattened_head:
@@ -282,13 +295,14 @@ def is_ideal_ik_chain(chain: list[EditBone]) -> bool:
         wrapped_roll = wrap_angle_pi(ebone.roll)
         # Allow any 90-degree increment.
         good_rolls = (wrapped_roll, wrapped_roll + pi, wrapped_roll - pi, wrapped_roll + pi / 2, wrapped_roll - pi / 2)
-        if not any((abs(desired_roll - good_roll) < ROLL_THREHSOLD for good_roll in good_rolls)):
+        if not any((abs(desired_roll - good_roll) < ROLL_THRESHOLD for good_roll in good_rolls)):
             return False
 
     return True
 
 
-def points_define_plane(p1, p2, p3, eps=1e-12) -> bool:
+def points_define_plane(p1: Vector, p2: Vector, p3: Vector, eps=1e-12) -> bool:
+    """Return True if three points define a valid plane (i.e. are not collinear)."""
     v1 = p2 - p1
     v2 = p3 - p1
     # length_squared is cheaper, it avoids a squareroot op.

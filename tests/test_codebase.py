@@ -136,7 +136,7 @@ def test_operators_have_tooltips(parsed_codebase: ParsedFiles):
 
             if not (has_docstring or has_bl_description or has_description_method):
                 rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
-                hits.append(f"    {rel}:{node.lineno}  →  class {node.name}")
+                hits.append(f"    {_file_link(path, node.lineno, f'{rel}:{node.lineno}')}  →  class {node.name}")
 
     if hits:
         pytest.fail("Operators missing a tooltip (docstring, bl_description, or description classmethod):\n\n" + "\n".join(hits))
@@ -210,7 +210,7 @@ def test_props_have_tooltips(parsed_codebase: ParsedFiles):
                 hint = "missing " + " and ".join(f"{m}=" for m in missing)
             rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
             line_text = source_lines[node.lineno - 1].strip()
-            hits.append(f"    {rel}:{node.lineno}  →  {line_text}  ({hint})")
+            hits.append(f"    {_file_link(path, node.lineno, f'{rel}:{node.lineno}')}  →  {line_text}  ({hint})")
 
     if hits:
         pytest.fail("bpy.props declarations missing name= and/or description=:\n\n" + "\n".join(hits))
@@ -254,7 +254,7 @@ def test_no_bpy_context_in_functions_with_context_param(parsed_codebase: ParsedF
                         and inner.attr == 'context'):
                     rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
                     line_text = source_lines[inner.lineno - 1].strip()
-                    hits.append(f"    {rel}:{inner.lineno}  →  {line_text}")
+                    hits.append(f"    {_file_link(path, inner.lineno, f'{rel}:{inner.lineno}')}  →  {line_text}")
 
     if hits:
         pytest.fail("Use the `context` parameter instead of `bpy.context`:\n\n" + "\n".join(hits))
@@ -275,7 +275,7 @@ def test_no_any_all_with_list_comprehension(parsed_codebase: ParsedFiles):
                     and isinstance(node.args[0], ast.ListComp)):
                 rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
                 line_text = source_lines[node.lineno - 1].strip()
-                hits.append(f"    {rel}:{node.lineno}  →  {line_text}")
+                hits.append(f"    {_file_link(path, node.lineno, f'{rel}:{node.lineno}')}  →  {line_text}")
 
     if hits:
         pytest.fail("Use a generator expression instead of a list comprehension with any()/all():\n\n" + "\n".join(hits))
@@ -312,7 +312,7 @@ def test_class_names(parsed_codebase: ParsedFiles):
 
             if not re.match(rf'^[A-Z][A-Z0-9_]*_{sep}_[a-z][a-z0-9_]*$', node.name):
                 rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
-                hits.append(f"    {rel}:{node.lineno}  →  class {node.name}  (expected UPPER_{sep}_lower)")
+                hits.append(f"    {_file_link(path, node.lineno, f'{rel}:{node.lineno}')}  →  class {node.name}  (expected UPPER_{sep}_lower)")
 
     if hits:
         pytest.fail("Operator/Menu/Panel class names don't follow Blender's naming convention:\n\n" + "\n".join(hits))
@@ -333,12 +333,12 @@ def test_no_legacy_typing(parsed_codebase: ParsedFiles):
                     and node.value.id == 'typing'
                     and node.attr in LEGACY_NAMES):
                 rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
-                hits.append(f"    {rel}:{node.lineno}  →  {source_lines[node.lineno - 1].strip()}")
+                hits.append(f"    {_file_link(path, node.lineno, f'{rel}:{node.lineno}')}  →  {source_lines[node.lineno - 1].strip()}")
             elif (isinstance(node, ast.ImportFrom)
                     and node.module == 'typing'
                     and any(alias.name in LEGACY_NAMES for alias in node.names)):
                 rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
-                hits.append(f"    {rel}:{node.lineno}  →  {source_lines[node.lineno - 1].strip()}")
+                hits.append(f"    {_file_link(path, node.lineno, f'{rel}:{node.lineno}')}  →  {source_lines[node.lineno - 1].strip()}")
 
     if hits:
         pytest.fail("Use native types instead of typing.Dict/List/Tuple/etc.:\n\n" + "\n".join(hits))
@@ -368,7 +368,7 @@ def test_no_string_annotations(parsed_codebase: ParsedFiles):
             if anno is not None and is_str_const(anno) and anno.lineno not in flagged_lines:
                 flagged_lines.add(anno.lineno)
                 rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
-                hits.append(f"    {rel}:{anno.lineno}  →  {source_lines[anno.lineno - 1].strip()}")
+                hits.append(f"    {_file_link(path, anno.lineno, f'{rel}:{anno.lineno}')}  →  {source_lines[anno.lineno - 1].strip()}")
 
     if hits:
         pytest.fail("Use `from __future__ import annotations` instead of string annotations:\n\n" + "\n".join(hits))
@@ -404,7 +404,7 @@ def parse_files(files: list[Path]) -> tuple[ParsedFiles, list[Path]]:
 
 
 def _file_link(path: Path, line_no: int, display: str) -> str:
-    uri = f"vscode://file{path}:{line_no}:1"
+    uri = f"vscode://file/{path.as_posix().lstrip('/')}:{line_no}:1"
     return f"\033]8;;{uri}\033\\{display}\033]8;;\033\\"
 
 

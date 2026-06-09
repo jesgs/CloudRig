@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_tip as tip_
 from bpy.props import BoolProperty, FloatProperty, StringProperty
-from bpy.types import Context, PropertyGroup, UILayout
+from bpy.types import Context, Object, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..rig_component_features.bone_info import BoneInfo
@@ -319,7 +324,7 @@ class Component_Aim(Component_Base):
     # Parameters
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         """Return whether the named bone set is used given the current params."""
         if set_name == 'deform_bones':
             return params.aim.deform
@@ -344,7 +349,7 @@ class Component_Aim(Component_Base):
         cls.define_bone_set(n_("Aim Deform"), collections=['Deform Bones'], is_advanced=True)
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.aim, 'shape_eye')
@@ -356,7 +361,7 @@ class Component_Aim(Component_Base):
         cls.draw_prop(context, layout, params.aim, 'target_size', enabled=component.appearance_enabled)
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         params = component.params
         cls.draw_prop(context, layout, params.aim, 'group')
         cls.draw_prop(context, layout, params.aim, 'target_distance')

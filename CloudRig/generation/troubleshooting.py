@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..generation.cloud_generator import CloudRig_Generator
+    from ..generation.cloud_generator import CloudRig_Generator, GeneratorProperties
     from ..rig_component_features.overlay_painter import OverlayPainter
 
 import json
@@ -30,7 +30,19 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
-from bpy.types import Constraint, Context, DriverTarget, Event, ID, Object, Operator, PropertyGroup, UILayout, UIList
+from bpy.types import (
+    ID,
+    Collection,
+    Constraint,
+    Context,
+    DriverTarget,
+    Event,
+    Object,
+    Operator,
+    PropertyGroup,
+    UILayout,
+    UIList,
+)
 from mathutils import Color, Vector
 
 from ..bs_utils.prefs import get_addon_prefs
@@ -174,21 +186,21 @@ def get_pretty_stack() -> str:
     lines = []
     after_generator = False
 
-    def get_short_filepath(i: int, frame) -> str:
+    def get_short_filepath(frame_idx: int, frame: traceback.FrameSummary) -> str:
         # Shorten the file name; Anything before the CloudRig extension folder is irrelevant.
         short_file = frame.filename
         if 'extensions' in short_file:
             short_file = os.sep.join(frame.filename.split("extensions")[1].split(os.sep)[3:])
 
         # Also avoid repeating the same filepath, put spaces instead.
-        if i > 0 and frame.filename == stack[i - 1].filename:
+        if frame_idx > 0 and frame.filename == stack[frame_idx - 1].filename:
             short_file = " " * int(len(short_file))
 
         return short_file
 
     longest_frame_name = max([len(frame.name) for frame in stack])
     longest_file_name = max([len(get_short_filepath(i, frame)) for i, frame in enumerate(stack)])
-    for i, frame in enumerate(stack):
+    for frame_idx, frame in enumerate(stack):
         if 'generator' in frame.filename:
             after_generator = True
         if not after_generator:
@@ -201,12 +213,12 @@ def get_pretty_stack() -> str:
         ):
             break
 
-        short_file = get_short_filepath(i, frame)
+        short_file = get_short_filepath(frame_idx, frame)
 
         fill_file = " " * (longest_file_name - len(short_file))
         fill_frame = " " * (longest_frame_name - len(frame.name))
         right_arrow = chr(0x2192)
-        first_arrow = right_arrow if frame.filename != stack[i - 1].filename else chr(0x2937)
+        first_arrow = right_arrow if frame.filename != stack[frame_idx - 1].filename else chr(0x2937)
         lines.append(
             f"{short_file}{fill_file} {first_arrow} {frame.name}{fill_frame} {right_arrow} line {frame.lineno}"
         )
@@ -471,7 +483,7 @@ class CloudLogManager:
                     self.report_invalid_drivers_on_datablock(ms.material)
                     self.report_invalid_drivers_on_datablock(ms.material.node_tree, owner_datablock=ms.material)
 
-    def report_widgets(self, widget_collection):
+    def report_widgets(self, widget_collection: Collection):
         """Find and log unused and duplicate widgets."""
 
         widgets = widget_collection.all_objects
@@ -742,17 +754,26 @@ class CLOUDRIG_UL_log_entry_slots(UIList):
     when the active object is a CloudRig Metarig.
     """
 
-    def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
-        log = item
+    def draw_item(
+        self,
+        _context: Context,
+        layout: UILayout,
+        _list_owner: GeneratorProperties,
+        list_element: CloudRigLogEntry,
+        _icon_value: int,
+        _active_prop_owner: GeneratorProperties,
+        _active_prop_name: str,
+    ):
+        log_entry = list_element
         row = layout.row()
-        text = rpt_(log.description_short)
-        if log.is_fatal:
+        text = rpt_(log_entry.description_short)
+        if log_entry.is_fatal:
             text = rpt_("(Fatal) ") + text
-        row.label(text=text, icon=log.icon)
-        if log.note != "":
-            row.prop(log, 'note', emboss=False, text="", icon=log.note_icon or 'NONE')
-        elif log.base_bone_name != "":
-            row.prop(log, 'base_bone_name', text="", emboss=False, icon='BONE_DATA')
+        row.label(text=text, icon=log_entry.icon)
+        if log_entry.note != "":
+            row.prop(log_entry, 'note', emboss=False, text="", icon=log_entry.note_icon or 'NONE')
+        elif log_entry.base_bone_name != "":
+            row.prop(log_entry, 'base_bone_name', text="", emboss=False, icon='BONE_DATA')
 
 
 def draw_log_panel(context: Context, layout: UILayout):
@@ -1418,7 +1439,7 @@ class CLOUDRIG_OT_remove_old_properties(Operator):
 def find_leftover_properties(metarig: Object) -> list[tuple[str, str]]:
     leftover_props = []
 
-    def report_recursive_sus_props(rna_path: str, prop_owner):
+    def report_recursive_sus_props(rna_path: str, prop_owner: PropertyGroup):
         from _bpy_types import PropertyGroup as PG
 
         for key in prop_owner.keys():

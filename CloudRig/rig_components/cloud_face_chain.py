@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
+
 from bpy.app.translations import pgettext_n as n_
 from bpy.props import BoolProperty
 from bpy.types import Context, PropertyGroup, UILayout
@@ -171,13 +176,13 @@ class Component_FaceChain(Component_ToonChain):
         )
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
         cls.draw_prop(context, layout, params.face_chain, 'merge')
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.face_chain, 'shape_intersection')

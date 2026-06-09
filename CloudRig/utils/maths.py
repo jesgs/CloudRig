@@ -36,7 +36,7 @@ def bounding_box_center(points: list[Vector]) -> Vector:
     return bbox_low + (bbox_high - bbox_low) / 2
 
 
-def scale_points_from_center(points, scale) -> list[Vector]:
+def scale_points_from_center(points: list[Vector], scale: Vector | float) -> list[Vector]:
     center = bounding_box_center(points)
     new_points = []
     for p in points:

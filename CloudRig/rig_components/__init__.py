@@ -34,7 +34,7 @@ def load_components(dir_path: str, relative=True) -> dict[str, ModuleType]:
     return component_modules
 
 
-def import_from_path(module_name, file_path) -> ModuleType:
+def import_from_path(module_name: str, file_path: str) -> ModuleType:
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module

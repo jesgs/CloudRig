@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from gpu import GPUBatch
@@ -436,7 +436,9 @@ def get_components_to_draw(context: Context) -> set[RigComponent]:
     return final_components
 
 
-def generated_comp_to_geos(generated_component: Component_Base, context: Context, painter: OverlayPainter) -> dict[str, Geo]:
+def generated_comp_to_geos(
+    generated_component: Component_Base, context: Context, painter: OverlayPainter
+) -> dict[str, Geo]:
     """Convert all drawable BoneInfos of a generated component into Geo objects."""
     geos = {}
 
@@ -529,7 +531,7 @@ def no_overlay(_func=None, *, return_value=None):
     for a small performance boost in overlay drawing. But USE CAREFULLY!!!
     """
 
-    def decorator(func):
+    def decorator(func: Callable):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             if hasattr(self, 'painter') and self.painter:

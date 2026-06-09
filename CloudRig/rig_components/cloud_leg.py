@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from math import pi
 from math import radians as rad
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
 
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
-from bpy.types import Context, PropertyGroup, UILayout
+from bpy.types import Context, Object, PropertyGroup, UILayout
 from mathutils import Vector
 from mathutils.geometry import intersect_point_line
 
@@ -473,7 +477,7 @@ class Component_Limb_BipedLeg(Component_Limb):
     # Parameters
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         if set_name == 'foot_reverse_ik_control':
             return params.leg.use_foot_roll
 
@@ -491,12 +495,12 @@ class Component_Limb_BipedLeg(Component_Limb):
         )
 
     @classmethod
-    def set_param_defaults(cls, component):
+    def set_param_defaults(cls, component: RigComponent):
         component.params.ik_chain.shape_ik_master.shape_name = 'Foot'
         component.params.ik_chain.default_ik_pole_follow = 1.0
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -521,7 +525,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         cls.draw_prop(context, layout, params.leg, "create_forefoot")
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()

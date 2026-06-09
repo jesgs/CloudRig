@@ -1,4 +1,8 @@
-from typing import Iterable, Sequence
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
 
 import bpy
 from bpy.types import (
@@ -181,8 +185,8 @@ def make_driver(
     # Fill in new data
     if not isinstance(variables, dict):
         # variables = [ info, ... ]
-        for i, var_info in enumerate(variables):
-            var_name = 'var' if i == 0 else 'var' + str(i)
+        for var_idx, var_info in enumerate(variables):
+            var_name = 'var' if var_idx == 0 else 'var' + str(var_idx)
             _add_driver_variable(drv, var_name, var_info, target_id)
     else:
         # variables = { 'varname': info, ... }
@@ -210,15 +214,15 @@ def _add_driver_variable(drv: Driver, var_name: str, var_info: dict | tuple, tar
         # { 'type': 'SINGLE_PROP', 'targets':[...] }
         var.type = var_info['type']
 
-        for p, v in var_info.items():
-            if p == 'targets':
-                for i, tdata in enumerate(v):
-                    _init_driver_target(var.targets[i], tdata, target_id)
-            elif p != 'type':
-                setattr(var, p, v)
+        for key, val in var_info.items():
+            if key == 'targets':
+                for target_idx, target_data in enumerate(val):
+                    _init_driver_target(var.targets[target_idx], target_data, target_id)
+            elif key != 'type':
+                setattr(var, key, val)
 
 
-def _init_driver_target(drv_target: DriverTarget, var_info, target_id: ID | None):
+def _init_driver_target(drv_target: DriverTarget, var_info: dict | tuple, target_id: ID | None):
     """Initialize a driver variable target from a specification."""
 
     # Parse the simple list format for the common case.
@@ -268,8 +272,8 @@ def _init_driver_target(drv_target: DriverTarget, var_info, target_id: ID | None
         if target_id is not None:
             drv_target.id = target_id
 
-        for tp, tv in var_info.items():
-            setattr(drv_target, tp, tv)
+        for key, val in var_info.items():
+            setattr(drv_target, key, val)
 
 
 def driver_var_transform(
@@ -303,11 +307,11 @@ def driver_var_transform(
     return {'type': 'TRANSFORMS', 'targets': [target_map]}
 
 
-def refresh_drivers(id: ID):
+def refresh_drivers(datablock: ID):
     """Cause all drivers belonging to the object to be re-evaluated, clearing any errors."""
 
     # Refresh object's own drivers if any
-    anim_data = getattr(id, 'animation_data', None)
+    anim_data = getattr(datablock, 'animation_data', None)
 
     if anim_data:
         for fcu in anim_data.drivers:

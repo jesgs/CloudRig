@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from math import radians
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
 
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
@@ -627,7 +631,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         )
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -651,7 +655,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
         split.operator("armature.flatten_ik_chain")
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()
@@ -661,7 +665,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
             cls.draw_prop_custom_shape(context, layout, params.ik_chain, 'shape_pole')
 
     @classmethod
-    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component):
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_custom_prop_params(layout, context, component)
         layout.separator()
         cls.draw_prop(context, layout, component.params.ik_chain, 'default_fkik', slider=True)

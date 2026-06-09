@@ -11,6 +11,7 @@ import pytest
 from .test_codebase import (
     CODEBASE_ROOT,
     SCANNED_EXTENSIONS,
+    _file_link,
     check_forbidden_patterns,
     collect_files,
     parse_files,
@@ -66,3 +67,49 @@ def test_no_cloudrig_forbidden_patterns():
     failures = check_forbidden_patterns(CLOUDRIG_FORBIDDEN_PATTERNS, files)
     if failures:
         pytest.fail("Forbidden patterns found:\n\n" + "\n\n".join(failures))
+
+
+def test_params_have_annotations_or_defaults():
+    """Assert that all function parameters have a type annotation or a default value.
+    Excludes self/cls, *args/**kwargs, and Blender-mandated operator/panel methods.
+    """
+    EXEMPT_METHOD_NAMES = {}
+
+    files = collect_files(CODEBASE_ROOT.resolve(), SCANNED_EXTENSIONS)
+    parsed, _ = parse_files(files)
+    hits: list[str] = []
+
+    for path, (source, tree) in parsed.items():
+        source_lines = source.splitlines()
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.name in EXEMPT_METHOD_NAMES:
+                continue
+
+            args = node.args
+            regular_args = args.posonlyargs + args.args
+
+            # defaults aligns to the END of regular_args.
+            args_with_defaults: set[str] = {
+                arg.arg
+                for arg, _ in zip(reversed(regular_args), reversed(args.defaults))
+            }
+            for arg, default in zip(args.kwonlyargs, args.kw_defaults):
+                if default is not None:
+                    args_with_defaults.add(arg.arg)
+
+            for arg in regular_args + args.kwonlyargs:
+                if arg.arg in ('self', 'cls'):
+                    continue
+                if arg.annotation is not None or arg.arg in args_with_defaults:
+                    continue
+                rel = path.relative_to(CODEBASE_ROOT.resolve().parent)
+                display = f"./{rel}:{node.lineno}"
+                line_text = source_lines[node.lineno - 1].strip()
+                hits.append(f"    {_file_link(path, node.lineno, display)}  →  {line_text}  (param: {arg.arg})")
+
+    if hits:
+        pytest.fail(
+            "Function parameters missing type annotation or default value:\n\n" + "\n".join(hits)
+        )

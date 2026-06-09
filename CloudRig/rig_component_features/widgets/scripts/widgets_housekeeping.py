@@ -8,7 +8,7 @@ import bpy
 from bpy.types import MeshVertex, Object
 
 
-def pre_save(scene, context):
+def pre_save(_scene=None, _context=None):
     widgets = [o for o in bpy.data.objects if o.name.startswith("WGT-")]
     row_max = int(math.sqrt(len(widgets)))
     spacing = 3
@@ -186,7 +186,7 @@ def set_filebrowser_path():
     file_browser.spaces.active.params.directory = thumb_dir.as_posix().encode("utf-8")
 
 
-def load_post(scene, context):
+def load_post(_scene=None, _context=None):
     bpy.app.timers.register(set_filebrowser_path, first_interval=0.2)
 
 

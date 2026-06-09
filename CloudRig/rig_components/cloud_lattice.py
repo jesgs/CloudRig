@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
+
 import bpy
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
@@ -156,19 +161,19 @@ class Component_Lattice(Component_Base):
         cls.define_bone_set(n_("Lattice Controls"), color_palette='THEME12', wire_width=2.0)
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         if set_name == 'deform_bones':
             return False
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         params = component.params
         cls.draw_prop(context, layout, params.lattice, "lattice")
         cls.draw_prop(context, layout, params.lattice, "regenerate")
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         cls.draw_prop_custom_shape(context, layout, params.lattice, 'shape_root')

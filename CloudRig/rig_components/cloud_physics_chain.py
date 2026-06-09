@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from math import sqrt
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
 
 import bmesh
 import bpy
@@ -218,7 +222,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
         cls.define_bone_set(n_("Physics Bones"), color_palette='THEME04', collections=['Physics Bones'])
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
 

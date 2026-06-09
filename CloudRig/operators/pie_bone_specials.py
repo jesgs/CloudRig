@@ -150,10 +150,11 @@ class POSE_OT_dissolve_bones(Operator):
 
 def can_dissolve_any(bones: list[EditBone | PoseBone]) -> bool:
     """Return True if any bone in the list has a connected parent or connected children."""
-    def any_connected_children(bone) -> bool:
+
+    def any_connected_children(bone: EditBone | PoseBone) -> bool:
         return any(child.use_connect for child in bone.children)
 
-    def has_connected_parent(bone) -> bool:
+    def has_connected_parent(bone: EditBone | PoseBone) -> bool:
         return bone.parent and bone.use_connect
 
     return any(has_connected_parent(bone) or any_connected_children(bone) for bone in bones)

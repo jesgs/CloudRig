@@ -198,7 +198,7 @@ class POSE_OT_reload_selected_custom_shape(Operator):
         cls.poll_message_set("No selected bones use a CloudRig custom shape.")
         return False
 
-    def execute(self, context):
+    def execute(self, context: Context):
         for i, pb in enumerate(self.get_bones_to_reload(context)):
             pb.custom_shape = ensure_widget(pb.custom_shape.name, overwrite=True)
 
@@ -338,7 +338,7 @@ class POSE_OT_duplicate_and_edit_widget_of_selected_bones(POSE_OT_edit_widget_of
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         if not cls.poll_without_linked_check(context):
             return False
         return True

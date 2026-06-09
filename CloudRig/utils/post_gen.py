@@ -5,6 +5,8 @@ This file contains a list of utility functions that can be useful to call from
 post-generation scripts.
 """
 
+from typing import Any
+
 import bpy
 from bpy.types import ID, Object, PoseBone
 from rna_prop_ui import rna_idprop_ui_prop_update
@@ -117,7 +119,7 @@ def GLOBAL_clean_custom_properties(bad_prop_names=[]):
             'BBN_info',
         ]
 
-    def clean_prop_owner(prop_owner, bad_keys):
+    def clean_prop_owner(prop_owner: Any, bad_keys: list[str]):
         for key, _value in list(prop_owner.items()):
             if key in bad_keys:
                 del prop_owner[key]

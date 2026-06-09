@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
+
 import bpy
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
@@ -353,7 +358,7 @@ class Component_Curve_Hooked(Component_Base):
         # Function to convert a location vector in the curve's local space into world space.
         # For some reason this doesn't work when the curve object is parented to something, and we need it to be parented to the root bone kindof.
         # Use matrix_basis instead of matrix_world in case there are constraints on the curve.
-        def worldspace(loc):
+        def worldspace(loc: Vector):
             return (curve_ob.matrix_basis @ Matrix.Translation(loc.xyz)).to_translation()
 
         point_loc = worldspace(point.co.xyz)
@@ -733,11 +738,11 @@ class Component_Curve_Hooked(Component_Base):
         )
 
     @classmethod
-    def creates_spline_roots(cls, params) -> bool:
+    def creates_spline_roots(cls, params: ComponentParams) -> bool:
         return params.curve.root_per_spline and params.curve.target and len(params.curve.target.data.splines) > 1
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         if set_name == 'curve_handles':
             return params.curve.controls_for_handles
 
@@ -750,7 +755,7 @@ class Component_Curve_Hooked(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def curve__draw_selector_ui(cls, layout: UILayout, context: Context, params):
+    def curve__draw_selector_ui(cls, layout: UILayout, context: Context, params: ComponentParams):
         """Since this component requires a curve object, draw with alert=True otherwise."""
         curve_ob = params.curve.target
         bad_curve = curve_ob is None or curve_ob.type != 'CURVE'
@@ -759,7 +764,7 @@ class Component_Curve_Hooked(Component_Base):
         cls.draw_prop(context, layout, params.curve, 'target', icon=icon)
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
         cls.curve__draw_selector_ui(layout, context, params)
@@ -781,7 +786,7 @@ class Component_Curve_Hooked(Component_Base):
             cls.draw_prop(context, layout, params.curve, "inherit_scale")
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         curve_ob = params.curve.target

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import OrderedDict
+from typing import Any
 
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
@@ -94,7 +95,7 @@ class CloudUIMixin:
 
     @classmethod
     def draw_prop(
-        cls, _context: Context, layout: UILayout, prop_owner, prop_name: str, enabled=True, **kwargs
+        cls, _context: Context, layout: UILayout, prop_owner: Any, prop_name: str, enabled=True, **kwargs
     ) -> UILayout | None:
         """Draw a property row, skipping it silently if it is forced (overridden)."""
         is_forced = cls.is_forced_param(prop_name)
@@ -112,9 +113,9 @@ class CloudUIMixin:
         cls,
         context: Context,
         layout: UILayout,
-        prop_owner,
+        prop_owner: Any,
         prop_name: str,
-        collection,
+        collection: Any,
         coll_prop_name: str,
         alert=False,
         **kwargs,
@@ -132,7 +133,7 @@ class CloudUIMixin:
         return row
 
     @classmethod
-    def draw_prop_custom_shape(cls, context: Context, layout: UILayout, prop_owner, prop_name: str):
+    def draw_prop_custom_shape(cls, context: Context, layout: UILayout, prop_owner: Any, prop_name: str):
         """Draw the custom shape selector widget for a given property."""
         prefs = get_addon_prefs(context)
         pgroup = getattr(prop_owner, prop_name)
@@ -197,7 +198,7 @@ def draw_label_with_linebreak(context: Context, layout: UILayout, text: str, ale
     return col
 
 
-def draw_prop(layout: UILayout, prop_owner, prop_name: str, enabled=True, **kwargs) -> UILayout:
+def draw_prop(layout: UILayout, prop_owner: Any, prop_name: str, enabled=True, **kwargs) -> UILayout:
     """Draw a property in a row and return that row."""
     row = layout.row(align=True)
     row.prop(prop_owner, prop_name, **kwargs)
@@ -206,7 +207,7 @@ def draw_prop(layout: UILayout, prop_owner, prop_name: str, enabled=True, **kwar
 
 
 def draw_prop_search(
-    layout: UILayout, prop_owner, prop_name: str, collection, coll_prop_name: str, alert: bool, **kwargs
+    layout: UILayout, prop_owner: Any, prop_name: str, collection: Any, coll_prop_name: str, alert: bool, **kwargs
 ) -> UILayout:
     """Draw a property search widget in a row and return that row."""
     row = layout.row()

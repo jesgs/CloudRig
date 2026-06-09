@@ -6,16 +6,21 @@ from collections import OrderedDict
 from typing import TYPE_CHECKING, Iterator
 
 if TYPE_CHECKING:
+    from ..properties import BoneSet_ForUI, ComponentParams, NameProperty, RigComponent
     from ..rig_components.cloud_base import Component_Base
+
+from typing import Any
 
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.types import (
     Context,
+    Object,
     Operator,
     PoseBone,
     UI_UL_list,
+    UILayout,
     UIList,
 )
 
@@ -31,7 +36,7 @@ class LinkedList(list):
         super().__init__()
         self.first = self.last = None
 
-    def remove(self, value):
+    def remove(self, value: Any):
         """Remove value and relink its neighbours."""
         super().remove(value)
         if value.prev:
@@ -39,7 +44,7 @@ class LinkedList(list):
         if value.next:
             value.next.prev = value.prev
 
-    def append(self, value):
+    def append(self, value: Any):
         """Append value and link it to the previous tail."""
         if len(self) > 0:
             self[-1].next = value
@@ -199,7 +204,7 @@ class BoneSetMixin:
     ##############################
     # UI
     @classmethod
-    def draw_bone_set_params(cls, layout, context: Context, component, only_colors=False):
+    def draw_bone_set_params(cls, layout: UILayout, context: Context, component: RigComponent, only_colors=False):
         """Bone Organization panel of the Component Parameters."""
         if not (component and component.enabled_with_parents):
             return
@@ -271,7 +276,7 @@ class BoneSetMixin:
         col.operator('pose.cloudrig_bone_set_collection_reset', icon='FILE_REFRESH', text="")
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, _rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, _rig: Object, params: ComponentParams, set_name: str) -> bool:
         """Override in child classes to be able to check for unused bone sets based on current parameters."""
         set_name = set_name.replace(" ", "_").lower()
         bone_set = getattr(params.bone_sets, set_name)
@@ -347,9 +352,18 @@ class BoneSetMixin:
 
 
 class CLOUDRIG_UL_bone_set_collections(UIList):
-    def draw_item(self, _context, layout, _data, item, _icon_value, _active_data, _active_propname):
-        collection = item
-        metarig_ob = item.id_data
+    def draw_item(
+        self,
+        _context: Context,
+        layout: UILayout,
+        _list_owner: BoneSet_ForUI,
+        list_element: NameProperty,
+        _icon_value: int,
+        _active_prop_owner: BoneSet_ForUI,
+        _active_prop_name: str,
+    ):
+        collection = list_element
+        metarig_ob = collection.id_data
 
         row = layout.row()
         split = row.split(factor=0.85)
@@ -367,14 +381,14 @@ class CLOUDRIG_UL_bone_set_collections(UIList):
 class CLOUDRIG_UL_bone_sets(UIList):
     flt_flags = []
 
-    def draw_filter(self, context, layout):
+    def draw_filter(self, _context: Context, layout: UILayout):
         layout.prop(self, 'filter_name', text="")
 
-    def filter_items(self, context, data, propname):
+    def filter_items(self, context: Context, component: RigComponent, prop_name: str):
         flt_flags = []
         flt_neworder = []
-        component = data
-        ui_bone_sets = getattr(component, propname)
+        component = component
+        ui_bone_sets = getattr(component, prop_name)
 
         helper_funcs = UI_UL_list
 
@@ -411,9 +425,18 @@ class CLOUDRIG_UL_bone_sets(UIList):
         type(self).flt_flags = flt_flags
         return flt_flags, flt_neworder
 
-    def draw_item(self, context, layout, data, item, _icon_value, _active_data, _active_propname):
-        ui_bone_set = item
-        component = data
+    def draw_item(
+        self,
+        context: Context,
+        layout: UILayout,
+        list_owner: RigComponent,
+        list_element: BoneSet_ForUI,
+        _icon_value: int,
+        _active_prop_owner: RigComponent,
+        _active_propname: str,
+    ):
+        component = list_owner
+        ui_bone_set = list_element
         bone_set = getattr(component.params.bone_sets, ui_bone_set.name)
 
         prefs = get_addon_prefs(context)
@@ -437,7 +460,7 @@ class CLOUDRIG_OT_bone_set_collection_add(Operator):
     bl_label = "Add Collection"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         component = get_component_in_ui(context)
         bone_set = component.active_bone_set
         bone_set.collections.add()
@@ -454,7 +477,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         component = get_component_in_ui(context)
         bone_set = component.active_bone_set
         if len(bone_set.collections) == 1:
@@ -465,7 +488,7 @@ class CLOUDRIG_OT_bone_set_collection_remove(Operator):
             return False
         return True
 
-    def execute(self, context):
+    def execute(self, context: Context):
         component = get_component_in_ui(context)
         bone_set = component.active_bone_set
         coll_name = bone_set.collections[bone_set.collections_active_index].name
@@ -487,7 +510,7 @@ class CLOUDRIG_OT_bone_set_collection_reset(Operator):
     bl_label = "Reset Collections"
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
 
-    def execute(self, context):
+    def execute(self, context: Context):
         component = get_component_in_ui(context)
         component.reset_collections_of_bone_set(component.active_bone_set)
         self.report(

@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from math import radians
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
 
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
@@ -288,7 +292,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         )
 
     @classmethod
-    def curve__draw_selector_ui(cls, layout: UILayout, context: Context, params):
+    def curve__draw_selector_ui(cls, layout: UILayout, context: Context, params: ComponentParams):
         # The curve is optional here — it'll be auto-generated if missing.
         curve_ob = params.curve.target
         # TODO: UI consistency - If we want to use an Add icon when a pointer wasn't specified yet, just do it
@@ -297,7 +301,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
         cls.draw_prop(context, layout, params.curve, 'target', icon=icon)
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -315,7 +319,7 @@ class Component_Curve_IK_Hooked(Component_Curve_Hooked):
                 cls.draw_prop(context, layout, params.spline_ik, 'handle_length')
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         layout.separator()

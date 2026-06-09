@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
 from math import pow
 
 from bpy.app.translations import pgettext_iface as iface_
@@ -484,7 +488,7 @@ class Component_Limb(Component_Chain_IKFK):
         )
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_control_params(layout, context, component)
         params = component.params
 
@@ -505,7 +509,7 @@ class Component_Limb(Component_Chain_IKFK):
             cls.draw_prop(context, split.row(), params.limb, 'auto_hose_type', expand=True)
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         if params.limb.auto_hose:

@@ -5,7 +5,7 @@ import time
 
 import addon_utils
 import bpy
-from bpy.types import Object, Text
+from bpy.types import Context, Object, Text
 from bpy.utils import flip_name
 
 
@@ -52,7 +52,7 @@ class Timer:
     def __init__(self):
         self.start_time = self.last_time = time.time()
 
-    def tick(self, string):
+    def tick(self, string: str):
         t = time.time()
         print(string + "%.3f" % (t - self.last_time))
         self.last_time = t
@@ -62,7 +62,7 @@ class Timer:
         print(string + "%.3f" % (t - self.start_time))
 
 
-def check_addon(context, addon_name: str) -> bool:
+def check_addon(context: Context, addon_name: str) -> bool:
     """Same as addon_utils.check() but account for workspace-specific disabling.
     Return whether an addon is enabled in this context.
     """

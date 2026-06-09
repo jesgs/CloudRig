@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
+from typing import Any
 
 import bpy
-from bpy.types import ImagePreview, Object, Operator, PoseBone
+from bpy.types import Context, ImagePreview, Object, Operator, PoseBone
 from mathutils import Euler, Vector
 
 from ...bs_utils.prefs import get_addon_prefs
@@ -13,7 +14,7 @@ EXTERNAL_WIDGETS: dict[str, ImagePreview] = {}
 LOCAL_WIDGETS: dict[str, ImagePreview] = {}
 
 
-def ensure_widget(wgt_name, overwrite=True, clear_asset=True) -> Object | None:
+def ensure_widget(wgt_name: str, overwrite=True, clear_asset=True) -> Object | None:
     """Ensure a custom shapes exists:
     1. If the widget is in the current .blend file already, return it (unless we want to overwrite or link)
     2. Try to append/link it from the external .blend the user may have specified in the preferences.
@@ -237,7 +238,7 @@ def get_nonlocal_widgets():
     return ret
 
 
-def get_pbone_custom_shape_data(pose_bone: PoseBone) -> dict[str]:
+def get_pbone_custom_shape_data(pose_bone: PoseBone) -> dict[str, Any]:
     """
     Saves all custom shape properties of a pose bone.
     Returns a dictionary with the object and its settings.
@@ -302,7 +303,7 @@ class CLOUDRIG_OT_refresh_widget_list(Operator):
     bl_label = "Refresh Widget List"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
+    def execute(self, _context: Context):
         refresh_widget_list(force_cloudrig=True, force_external=True)
         self.report({'INFO'}, 'Refreshed all widgets and icons.')
         return {'FINISHED'}

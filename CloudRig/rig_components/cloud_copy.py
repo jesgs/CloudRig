@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from ..properties import ComponentParams, RigComponent
     from ..rig_component_features.bone_set import BoneInfo, BoneSet
 
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
-from bpy.types import Context, PropertyGroup, UILayout
+from bpy.types import Context, Object, PropertyGroup, UILayout
 from mathutils import Vector
 
 from ..bs_utils.properties import get_custom_prop_names
@@ -173,19 +174,19 @@ class Component_CopyBone(Component_Base):
     # Parameters
 
     @classmethod
-    def set_param_defaults(cls, component):
+    def set_param_defaults(cls, component: RigComponent):
         component.params.custom_props.props_storage = 'CUSTOM'
         component.params.custom_props.props_storage_bone = component.base_bone_name
 
     @classmethod
-    def draw_control_params(cls, layout: UILayout, context: Context, component):
+    def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
         params = component.params
         cls.draw_prop(context, layout, params.copy, 'ensure_free')
         cls.draw_prop(context, layout, params.copy, 'custom_pivot')
         cls.draw_prop(context, layout, params.copy, 'create_deform')
 
     @classmethod
-    def poll_draw_custom_prop_params(cls, context: Context, component) -> bool:
+    def poll_draw_custom_prop_params(cls, context: Context, component: RigComponent) -> bool:
         """Determine whether the custom property storage UI should be drawn or not."""
         if super().poll_draw_custom_prop_params(context, component):
             return True
@@ -196,7 +197,7 @@ class Component_CopyBone(Component_Base):
         return False
 
     @classmethod
-    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component) -> UILayout:
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component: RigComponent) -> UILayout:
         if component.params.parenting.parent_switching:
             aligned_label(layout, text=iface_("Parent Switch Property"))
             layout = super().draw_custom_prop_params(layout, context, component)
@@ -212,7 +213,7 @@ class Component_CopyBone(Component_Base):
         return layout
 
     @classmethod
-    def is_bone_set_used(cls, context: Context, rig, params, set_name: str) -> bool:
+    def is_bone_set_used(cls, context: Context, rig: Object, params: ComponentParams, set_name: str) -> bool:
         if set_name == 'deform_bones':
             return params.copy.create_deform
 
@@ -228,7 +229,7 @@ class Component_CopyBone(Component_Base):
         return super().is_bone_set_used(context, rig, params, set_name)
 
     @classmethod
-    def draw_appearance_params(cls, layout: UILayout, context: Context, component):
+    def draw_appearance_params(cls, layout: UILayout, context: Context, component: RigComponent):
         super().draw_appearance_params(layout, context, component)
         params = component.params
         row = layout.row()

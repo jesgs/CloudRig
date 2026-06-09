@@ -13,7 +13,10 @@ import json
 import re
 import sys
 from collections import OrderedDict, defaultdict
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
 
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
@@ -152,7 +155,7 @@ def find_cloudrig(context: Context, *, allow_metarigs=True, filter_func: Callabl
     return that generated rig.
     """
 
-    def is_good_rig(rig):
+    def is_good_rig(rig: Object | None):
         return rig and (is_generated_cloudrig(rig) or (allow_metarigs and is_cloud_metarig(rig)))
 
     if not filter_func:
@@ -185,7 +188,7 @@ def get_deforming_armature(meshob: Object, filter_func=lambda o: True):
     return None, None
 
 
-def poll_cloudrig_operator(operator, context: Context, modes: set[str] = {}, **kwargs):
+def poll_cloudrig_operator(operator: Operator, context: Context, modes: set[str] = {}, **kwargs):
     if modes and context.mode not in modes:
         operator.poll_message_set("Must be in mode: {modes}".format(modes=modes))
         return False
@@ -1229,7 +1232,7 @@ def context_filter_ui_data(context: Context, ui_data: OrderedDict) -> OrderedDic
         # Treat missing or empty context_bones as "always show".
         return not node.get('context_bones') or bool(set(node['context_bones']) & selected_pbone_names)
 
-    def filter_node(node) -> OrderedDict | None:
+    def filter_node(node: Any) -> OrderedDict | None:
         if not isinstance(node, dict):
             # This is not actually a UI element, but some flag.
             return node
@@ -1827,7 +1830,7 @@ class CloudRigBoneCollection(PropertyGroup):
             self.name = unique_name
             return
 
-        def cleanup_garbage_bone_sets(component):
+        def cleanup_garbage_bone_sets(component: RigComponent):
             # Clean up old bone set data.
             for bone_set_name in list(component.params.bone_sets.keys()):
                 if not hasattr(component.params.bone_sets, bone_set_name):
@@ -1980,13 +1983,13 @@ class CLOUDRIG_UL_collections(UIList):
         self,
         context: Context,
         layout: UILayout,
-        armature: Object,
-        item: BoneCollection,
+        _list_owner: Armature,
+        list_element: BoneCollection,
         _icon_value: int,
-        _active_data,
-        _active_propname,
+        _active_prop_owner: CloudRig_RigPreferences,
+        _active_prop_name: str,
     ):
-        self.draw_collection(context, layout, item)
+        self.draw_collection(context, layout, list_element)
 
     @staticmethod
     def draw_collection(context: Context, layout: UILayout, collection: BoneCollection):
@@ -2092,7 +2095,7 @@ class CLOUDRIG_UL_collections(UIList):
 
         return main_row
 
-    def draw_filter(self, context, layout):
+    def draw_filter(self, context: Context, layout: UILayout):
         """Don't draw sorting buttons here, since the displayed order should ALWAYS
         show the order in which the rig components will be executed during generation.
         """
@@ -2100,7 +2103,7 @@ class CLOUDRIG_UL_collections(UIList):
         layout.prop(rig.cloudrig_prefs, "collection_filter", text="")
 
     @staticmethod
-    def get_visual_collection_order(rig, filtered=False) -> list[BoneCollection]:
+    def get_visual_collection_order(rig: Object, filtered=False) -> list[BoneCollection]:
         """Return the collections of the rig in the order they are currently to be displayed in the UIList.
         If filtered, only include those collections in the list which aren't being filtered, eg. by collapsing parents, or search.
         """
@@ -2110,7 +2113,7 @@ class CLOUDRIG_UL_collections(UIList):
         root_colls = [coll for coll in all_collections if not coll.parent]
         sorted_colls = []
 
-        def add_children_recursive(parent_coll):
+        def add_children_recursive(parent_coll: BoneCollection):
             sorted_colls.append(parent_coll)
             for child in parent_coll.children:
                 add_children_recursive(child)
@@ -2158,8 +2161,8 @@ class CLOUDRIG_UL_collections(UIList):
         # Filter out collections whose parents are collapsed
         return [flag * int(all_collections[i].cloudrig_info.are_parents_unfolded) for i, flag in enumerate(flt_flags)]
 
-    def filter_items(self, context, data, propname):
-        all_collections = getattr(data, propname)
+    def filter_items(self, context: Context, armature: Armature, prop_name: str):
+        all_collections = getattr(armature, prop_name)
         rig = find_cloudrig(context)
 
         flt_flags = self.get_filter_flags(all_collections, rig.cloudrig_prefs.collection_filter)
@@ -2358,7 +2361,7 @@ class CLOUDRIG_MT_collections_quick_select(Menu):
 
         rig = find_cloudrig(context, allow_metarigs=False)
 
-        def collections_recursive(colls):
+        def collections_recursive(colls: list[BoneCollection]):
             """This has a different order from collections_all, which aligns with
             user expectation (UI top to bottom order)."""
             for coll in colls:

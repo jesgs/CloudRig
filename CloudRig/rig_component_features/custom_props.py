@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..properties import RigComponent
+
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import EnumProperty, StringProperty
@@ -88,7 +93,7 @@ class CloudCustomPropertiesMixin:
         return prop_bone
 
     @classmethod
-    def poll_draw_custom_prop_params(cls, _context: Context, component) -> bool:
+    def poll_draw_custom_prop_params(cls, _context: Context, component: RigComponent) -> bool:
         """Determine whether the custom property storage UI should be drawn or not."""
         params = component.params
         if cls.always_use_custom_props:
@@ -98,7 +103,7 @@ class CloudCustomPropertiesMixin:
         return False
 
     @classmethod
-    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component) -> UILayout:
+    def draw_custom_prop_params(cls, layout: UILayout, context: Context, component: RigComponent) -> UILayout:
         """Draw the custom property storage UI."""
         metarig = component.id_data
         rig = metarig.cloudrig.generator.target_rig
