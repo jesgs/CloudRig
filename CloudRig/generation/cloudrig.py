@@ -15,9 +15,6 @@ import sys
 from collections import OrderedDict, defaultdict
 from typing import TYPE_CHECKING, Any, Callable
 
-if TYPE_CHECKING:
-    from ..properties import RigComponent
-
 import bpy
 from bl_ui.generic_ui_list import draw_ui_list
 from bpy.app.translations import pgettext_iface as iface_
@@ -66,6 +63,12 @@ if submodule:
     cr_module_name = ".".join(submodule.split(".")[:-2])
     icons = importlib.import_module(cr_module_name + ".icons")
     hotkeys = importlib.import_module(cr_module_name + ".bs_utils.hotkeys")
+
+
+if TYPE_CHECKING and cloudrig_installed:
+    from ..properties import RigComponent
+else:
+    RigComponent = type
 
 #######################################
 ############ Context Checks ###########

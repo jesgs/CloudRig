@@ -8,6 +8,7 @@ CloudRig-specific checks live in test_codebase_cloudrig.py.
 import ast
 import re
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 
@@ -404,7 +405,7 @@ def parse_files(files: list[Path]) -> tuple[ParsedFiles, list[Path]]:
 
 
 def _file_link(path: Path, line_no: int, display: str) -> str:
-    uri = f"vscode://file/{path.as_posix().lstrip('/')}:{line_no}:1"
+    uri = f"vscode://file/{quote(path.as_posix().lstrip('/'), safe='/')}:{line_no}:1"
     return f"\033]8;;{uri}\033\\{display}\033]8;;\033\\"
 
 
