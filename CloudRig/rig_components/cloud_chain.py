@@ -474,12 +474,12 @@ class Component_ToonChain(Component_Base):
                 bbone_x, bbone_z = org_bone.bbone_x, org_bone.bbone_z
 
             def_bone = self.bones_def.new(
-                name=str_bone.name.replace("STR", "DEF"),
+                name=str_bone.name.replace("STR", "DEF" if self.params.chain.use_deform else "BB"),
                 source=org_bone,
                 parent=next_parent,
                 head=head,
                 tail=tail,
-                use_deform=True,
+                use_deform=self.params.chain.use_deform,
                 inherit_scale='NONE',
                 bbone_x=bbone_x,
                 bbone_z=bbone_z,
@@ -857,6 +857,7 @@ class Component_ToonChain(Component_Base):
         cls.draw_prop(context, layout, params.chain, 'smooth_spline', enabled=enabled)
 
         if cls.is_advanced_mode(context):
+            cls.draw_prop(context, layout, params.chain, 'use_deform')
             cls.draw_prop(context, layout, params.chain, 'preserve_volume')
             if params.chain.preserve_volume:
                 cls.draw_prop(context, layout, params.chain, 'volume_variation')
@@ -883,6 +884,11 @@ class Params(PropertyGroup):
         default=1,
         min=1,
         max=9,
+    )
+    use_deform: BoolProperty(
+        name="Deforming",
+        description="Generated bendy bones will have Deform enabled, contributing to Armature deformation",
+        default=True,
     )
     bbone_density: IntProperty(
         name="B-Bone Density",

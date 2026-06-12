@@ -852,10 +852,9 @@ class BoneInfo:
             self.bone_set.rig_component.add_log(
                 rpt_("Non-deforming DEF bone"),
                 trouble_bone=self.name,
-                description=rpt_(
-                    'Bone name "{bone}" begins with "DEF" but Deform checkbox is not enabled. '
-                    'This bone will not be keyframed by the "Whole Character" keying set!'
-                ).format(bone=self.name),
+                description=rpt_('Bone name "{bone}" begins with "DEF" but Deform checkbox is not enabled.').format(
+                    bone=self.name
+                ),
                 operator='object.cloudrig_rename_bone',
                 op_kwargs={'old_name': bone.name},
             )
