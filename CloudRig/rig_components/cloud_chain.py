@@ -423,36 +423,40 @@ class Component_ToonChain(Component_Base):
         )
         str_bone.custom_data['tangent_helper'] = tangent_helper
 
-        tangent_helper.add_constraint(
-            'COPY_LOCATION',
-            name="Copy Location (Smooth Spline)",
-            subtarget=str_bone.name,
-            space='WORLD',
-        )
-        self.chain__set_next_prev(str_bone)
-
-        tangent_helper.add_constraint(
-            'COPY_TRANSFORMS',
-            name="Copy STR Transforms (Smooth Spline)",
-            subtarget=str_bone.name,
-            target_space='LOCAL_OWNER_ORIENT',
-            mix_mode='BEFORE',
-        )
-        tangent_helper.add_constraint(
-            'COPY_LOCATION',
-            name="Copy Location For Display (Smooth Spline)",
-            subtarget=str_bone.name,
-            space='WORLD',
-        )
         str_bone.custom_shape_transform = tangent_helper
 
-        tangent_helper.add_constraint(
-            'COPY_SCALE',
-            name="Copy Scale (Smooth Spline)",
-            subtarget=str_bone.name,
-            space='POSE',
-            use_offset=False,
-        )
+        if self.params.chain.smooth_spline:
+            tangent_helper.add_constraint(
+                'COPY_LOCATION',
+                name="Copy Location (Smooth Spline)",
+                subtarget=str_bone.name,
+                space='WORLD',
+            )
+            self.chain__set_next_prev(str_bone)
+
+            tangent_helper.add_constraint(
+                'COPY_TRANSFORMS',
+                name="Copy STR Transforms (Smooth Spline)",
+                subtarget=str_bone.name,
+                target_space='LOCAL_OWNER_ORIENT',
+                mix_mode='BEFORE',
+            )
+            tangent_helper.add_constraint(
+                'COPY_LOCATION',
+                name="Copy Location For Display (Smooth Spline)",
+                subtarget=str_bone.name,
+                space='WORLD',
+            )
+
+            tangent_helper.add_constraint(
+                'COPY_SCALE',
+                name="Copy Scale (Smooth Spline)",
+                subtarget=str_bone.name,
+                space='POSE',
+                use_offset=False,
+            )
+        elif str_bone in self.main_str_bones:
+            tangent_helper.parent = str_bone
 
         return tangent_helper
 
@@ -490,7 +494,7 @@ class Component_ToonChain(Component_Base):
                 head=head,
                 tail=tail,
                 use_deform=self.params.chain.use_deform,
-                inherit_scale='NONE',
+                inherit_scale='ALIGNED' if self.params.chain.unlock_deform else 'NONE',
                 bbone_x=bbone_x,
                 bbone_z=bbone_z,
             )
@@ -504,7 +508,7 @@ class Component_ToonChain(Component_Base):
                 def_bone.parent = str_bone
 
             if self.params.chain.unlock_deform:
-                self.__make_def_control(str_bone, def_bone)
+                def_bone.custom_data['def_ctr'] = self.__make_def_control(str_bone, def_bone)
 
             if i == len(str_chain) - 1 and not self.is_cyclic:
                 # The last deform bone when there's no STR control at the tip of the chain
@@ -536,15 +540,17 @@ class Component_ToonChain(Component_Base):
             def_bone.add_constraint('COPY_ROTATION', subtarget=str_bone, space='WORLD')
 
         # Stretch to next STR bone.
-        if not self.params.chain.unlock_deform:
-            def_bone.add_constraint(
-                'STRETCH_TO',
-                subtarget=next_str_bone,
-                use_bulge_min=not self.params.chain.preserve_volume,
-                use_bulge_max=True,
-                bulge_max=5.0 if self.params.chain.preserve_volume else 1.0,
-                bulge=self.params.chain.volume_variation,
-            )
+        stretching_bone = def_bone
+        if self.params.chain.unlock_deform:
+            stretching_bone = def_bone.custom_data['def_ctr'].parent_helper
+        stretching_bone.add_constraint(
+            'STRETCH_TO',
+            subtarget=next_str_bone,
+            use_bulge_min=not self.params.chain.preserve_volume,
+            use_bulge_max=True,
+            bulge_max=5.0 if self.params.chain.preserve_volume else 1.0,
+            bulge=self.params.chain.volume_variation,
+        )
 
         # Set BBone Segments according to BBone Density param.
         def_bone.bbone_segments = self.toon__get_num_segments(org_bone, def_bone)
@@ -568,42 +574,42 @@ class Component_ToonChain(Component_Base):
         # B-Bone ease
         def_bone.bbone_handle_type_start = 'TANGENT'
         def_bone.bbone_handle_type_end = 'TANGENT'
-        start_handle = str_bone.custom_data.get('tangent_helper', str_bone)
-        end_handle = next_str_bone.custom_data.get('tangent_helper', next_str_bone)
-        def_bone.bbone_custom_handle_start = start_handle
-        def_bone.bbone_custom_handle_end = end_handle
+        start_tangent = str_bone.custom_data.get('tangent_helper') or str_bone
+        if not def_bone.bbone_custom_handle_start:
+            def_bone.bbone_custom_handle_start = start_tangent or str_bone
+        if not def_bone.bbone_custom_handle_end:
+            def_bone.bbone_custom_handle_end = next_str_bone.custom_data.get('tangent_helper', next_str_bone)
 
-        for handle_bone, prop_name in zip([start_handle, end_handle], ['bbone_scalein', 'bbone_scaleout']):
+        start_handle, end_handle = def_bone.bbone_custom_handle_start, def_bone.bbone_custom_handle_end
+
+        for i, (handle_bone, prop_name) in enumerate(
+            zip([start_handle, end_handle], ['bbone_scalein', 'bbone_scaleout'])
+        ):
             if not handle_bone:
                 # This happens when Tip Control param is off so there's no next_str_bone.
                 continue
             for axis, idx in zip(('X', 'Z'), (0, 2)):
+                vars = {}
+                bone = handle_bone
+                bone_count = 1
+                while bone:
+                    vars[f"scale_{bone_count}"] = {
+                        'type': 'TRANSFORMS',
+                        'targets': [
+                            {
+                                'bone_target': bone.name,
+                                'transform_space': 'LOCAL_SPACE',
+                                'transform_type': f'SCALE_{axis}',
+                            }
+                        ],
+                    }
+                    bone = bone.parent
+                    bone_count += 1
                 driver = {
                     'prop': prop_name,
                     'index': idx,
-                    'expression': f"parent_{axis} * direct_{axis}",
-                    'variables': {
-                        f'parent_{axis}': {
-                            'type': 'TRANSFORMS',
-                            'targets': [
-                                {
-                                    'bone_target': handle_bone.parent.name,
-                                    'transform_space': 'LOCAL_SPACE',
-                                    'transform_type': f'SCALE_{axis}',
-                                }
-                            ],
-                        },
-                        f'direct_{axis}': {
-                            'type': 'TRANSFORMS',
-                            'targets': [
-                                {
-                                    'bone_target': handle_bone.name,
-                                    'transform_space': 'LOCAL_SPACE',
-                                    'transform_type': f'SCALE_{axis}',
-                                }
-                            ],
-                        },
-                    },
+                    'expression': " * ".join(vars),
+                    'variables': vars,
                 }
                 def_bone.drivers.append(driver)
 
@@ -656,50 +662,48 @@ class Component_ToonChain(Component_Base):
         """Create CTR-DEF controls that can be used to nudge deform bones
         completely independently from their neighbours.
         """
-        def_bone_control = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
-        def_bone_control.name = def_bone_control.name.replace("DEF-P-", "CTR-DEF-")
-        def_bone_control.inherit_scale = 'ALIGNED'
-        def_bone_parent = self.create_parent_bone(def_bone_control, bone_set=self.bone_sets['Deform Helpers'])
-        def_bone_parent.parent = str_bone.parent
-        def_bone_parent.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
-        def_bone_control.head = def_bone_control.center
-        def_bone_control.custom_shape_scale_xyz *= 0.7
+        def_ctr = self.create_parent_bone(def_bone, bone_set=self.bone_sets['Deform Controls'])
+        dsp_bone = self.create_dsp_bone(def_ctr)
+        dsp_bone.add_constraint('COPY_TRANSFORMS', space='WORLD', subtarget=def_bone, head_tail=0.5)
+        def_ctr.name = def_ctr.name.replace("DEF-P-", "CTR-DEF-")
+        def_ctr.inherit_scale = 'ALIGNED'
+        parent_helper = self.create_parent_bone(def_ctr, bone_set=self.bone_sets['Deform Helpers'])
+        parent_helper.parent = str_bone.parent
+        parent_helper.add_constraint('COPY_LOCATION', subtarget=str_bone.name, space='WORLD')
+        def_ctr.head = def_ctr.center
+        def_ctr.custom_shape_scale_xyz *= 0.7
+        def_ctr.custom_shape_name = self.params.chain.shape_def_control.shape_name
+        def_ctr.custom_shape_scale_xyz.y = 0.1
+        def_ctr.collections = self.bone_sets['Deform Controls'].collections
 
-        if str_bone.next:
-            def_bone_parent.add_constraint(
-                'STRETCH_TO',
-                subtarget=str_bone.next.name,
-                use_bulge_min=not self.params.chain.preserve_volume,
-                use_bulge_max=True,
-                bulge_max=5.0,
-                bulge=self.params.chain.volume_variation,
+        for str, prefix, prop_name in zip(
+            (str_bone, str_bone.next), ("START", "END"), ("bbone_custom_handle_start", "bbone_custom_handle_end")
+        ):
+            tangent_helper = str.custom_data.get('tangent_helper')
+            sub_tangent_helper = self.bone_sets['Deform Helpers'].new(
+                source=tangent_helper,
+                parent=tangent_helper,
+                name=prefix + "-" + def_bone.name,
             )
-        def_bone_control.custom_shape_name = self.params.chain.shape_def_control.shape_name
-        def_bone_control.custom_shape_scale_xyz.y = 0.1
-        def_bone_control.collections = self.bone_sets['Deform Controls'].collections
+            setattr(def_bone, prop_name, sub_tangent_helper)
+            sub_tangent_helper.add_constraint(
+                'COPY_TRANSFORMS',
+                name="Copy CTR-DEF Transforms (Unlock Deform)",
+                subtarget=def_ctr,
+                target_space='LOCAL_OWNER_ORIENT',
+                mix_mode='BEFORE',
+            )
+            sub_tangent_helper.add_constraint(
+                'LIMIT_SCALE',
+                name="Limit Scale (Unlock Deform, scale inheritance)",
+                space='WORLD',
+                min_xyz=[1.0, 1.0, 1.0],
+                max_xyz=[1.0, 1.0, 1.0],
+                use_min_xyz=[True, True, True],
+                use_max_xyz=[True, True, True],
+            )
 
-        # Add drivers to BBone Roll so that rotating CTR-DEF controls on
-        # local Y axis gives the results an animator might expect.
-        for rna_prop in ['bbone_rollin', 'bbone_rollout']:
-            roll_driver = {
-                'prop': rna_prop,
-                'variables': {
-                    'var': {
-                        'type': 'TRANSFORMS',
-                        'targets': [
-                            {
-                                'bone_target': def_bone_control.name,
-                                'transform_space': 'LOCAL_SPACE',
-                                'rotation_mode': 'SWING_TWIST_Y',
-                                'transform_type': 'ROT_Y',
-                            }
-                        ],
-                    }
-                },
-            }
-            def_bone.drivers.append(roll_driver)
-
-        return def_bone_control
+        return def_ctr
 
     @no_overlay
     def __make_shape_key_helper(self, def_bone_1: BoneInfo, def_bone_2: BoneInfo) -> BoneInfo:
@@ -763,7 +767,11 @@ class Component_ToonChain(Component_Base):
 
     @property
     def needs_tangent_helpers(self) -> bool:
-        return self.params.chain.bbone_density > 0 and self.params.chain.smooth_spline and len(self.str_chain) > 1
+        return (
+            self.params.chain.bbone_density > 0
+            and len(self.str_chain) > 1
+            and (self.params.chain.smooth_spline or self.params.chain.unlock_deform)
+        )
 
     def __connect_parent_component(self):
         """If the parent component can be connected, connect it:
@@ -774,7 +782,7 @@ class Component_ToonChain(Component_Base):
         if not self.do_connect:
             return
 
-        parent_component = self.parent_component
+        parent_component: Component_ToonChain = self.parent_component
         last_str = parent_component.str_chain[-1]
         last_str.next = self.str_chain[0]
         last_str.custom_shape_name = self.str_chain[0].custom_shape_name = self.params.chain.shape_stretch.shape_name
