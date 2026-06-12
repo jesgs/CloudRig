@@ -207,7 +207,7 @@ def assert_matching_pose(
     for bone_name, old_data in old_pose.items():
         new_data = new_pose.get(bone_name)
         if not new_data:
-            errors.append(f"Bone missing: {bone_name}")
+            errors.append(f"Bone missing: {rig.name} -> {bone_name}")
             continue
 
         for key, old_value in old_data.items():

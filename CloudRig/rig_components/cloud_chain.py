@@ -267,7 +267,7 @@ class Component_ToonChain(Component_Base):
 
             section = self.__make_sub_str_section(org_bone, main_start, main_end)
             sections[idx][1] = section
-            main_start.sub_bones = section
+            main_start.custom_data['sub_bones'] = section
 
         return sections
 
@@ -357,8 +357,7 @@ class Component_ToonChain(Component_Base):
         tangent_helpers = []
 
         for i, str_bone in enumerate(str_chain):
-            str_bone.tangent_helper = self.__make_tangent_helper(str_bone=str_bone)
-            tangent_helpers.append(str_bone.tangent_helper)
+            tangent_helpers.append(self.__make_tangent_helper(str_bone=str_bone))
 
         return tangent_helpers
 
@@ -372,10 +371,15 @@ class Component_ToonChain(Component_Base):
             prev_bone = self.parent_component.main_str_bones[-1]
 
         prev_con = next(
-            (con for con in str_bone.tangent_helper.constraint_infos if con.name.startswith("Damped Track Prev")), None
+            (
+                con
+                for con in str_bone.custom_data['tangent_helper'].constraint_infos
+                if con.name.startswith("Damped Track Prev")
+            ),
+            None,
         )
         if not prev_con and prev_bone:
-            prev_con = str_bone.tangent_helper.add_constraint(
+            prev_con = str_bone.custom_data['tangent_helper'].add_constraint(
                 'DAMPED_TRACK',
                 name="Damped Track Prev (Smooth Spline)",
                 index=1,
@@ -387,10 +391,15 @@ class Component_ToonChain(Component_Base):
             prev_con.subtarget = prev_bone.name
 
         next_con = next(
-            (con for con in str_bone.tangent_helper.constraint_infos if con.name.startswith("Damped Track Next")), None
+            (
+                con
+                for con in str_bone.custom_data['tangent_helper'].constraint_infos
+                if con.name.startswith("Damped Track Next")
+            ),
+            None,
         )
         if not next_con and next_bone:
-            next_con = str_bone.tangent_helper.add_constraint(
+            next_con = str_bone.custom_data['tangent_helper'].add_constraint(
                 'DAMPED_TRACK',
                 name="Damped Track Next (Smooth Spline)",
                 index=2,
@@ -405,13 +414,14 @@ class Component_ToonChain(Component_Base):
     def __make_tangent_helper(self, str_bone: BoneInfo) -> BoneInfo:
         """Create a child bone for an STR bone with Damped Track constraints
         to aim at the previous and next STR bones if Smooth Curve is enabled."""
-        str_bone.tangent_helper = tangent_helper = self.bone_sets['Stretch Helpers'].new(
+        tangent_helper = self.bone_sets['Stretch Helpers'].new(
             name=str_bone.name.replace("STR-", "STR-TAN-"),
             source=str_bone,
-            parent=str_bone.parent,  # For main STR bones the parent is the ORG bone. For sub STR bones it's the STR-H bone.
+            parent=str_bone.parent,  # ORG bone of main STR controls, or STR-H helper of sub-STR controls.
             length=str_bone.length * 0.2,
             bbone_width=str_bone.bbone_width * 1.5,
         )
+        str_bone.custom_data['tangent_helper'] = tangent_helper
 
         tangent_helper.add_constraint(
             'COPY_LOCATION',
@@ -558,13 +568,8 @@ class Component_ToonChain(Component_Base):
         # B-Bone ease
         def_bone.bbone_handle_type_start = 'TANGENT'
         def_bone.bbone_handle_type_end = 'TANGENT'
-        start_handle = str_bone
-        end_handle = next_str_bone
-        if hasattr(start_handle, 'tangent_helper'):
-            start_handle = start_handle.tangent_helper
-        if hasattr(end_handle, 'tangent_helper'):
-            # This can be False when connecting to a parent chain rig that has Smooth Spline=False.
-            end_handle = end_handle.tangent_helper
+        start_handle = str_bone.custom_data.get('tangent_helper', str_bone)
+        end_handle = next_str_bone.custom_data.get('tangent_helper', next_str_bone)
         def_bone.bbone_custom_handle_start = start_handle
         def_bone.bbone_custom_handle_end = end_handle
 

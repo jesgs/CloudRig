@@ -212,7 +212,7 @@ class Component_Curve_Hooked(Component_Base):
                 )
 
             for i, hook in enumerate(hook_controls):
-                if not hook.is_bezier:
+                if not hook.custom_data.get('is_bezier'):
                     if i + 1 < len(hook_controls):
                         bone_to_stretch = hook
                         subtarget = hook_controls[i + 1]
@@ -399,18 +399,18 @@ class Component_Curve_Hooked(Component_Base):
         assert self.point_tangents
         hook_ctr.roll_align_vector(point_loc + self.point_tangents[spline_idx][point_idx])
 
-        hook_ctr.invert_tilt = False
+        hook_ctr.custom_data['invert_tilt'] = False
         if self.params.curve.x_axis_symmetry:
             opp_hook_ctr = self.generator.find_bone_info(self.naming.flip_name(hook_ctr))
             if opp_hook_ctr and opp_hook_ctr != hook_ctr:
                 hook_ctr.tail = opp_hook_ctr.tail * Vector((-1, 1, 1))
                 hook_ctr.roll_flip()
-                hook_ctr.invert_tilt = True
-        hook_ctr.is_bezier = is_bezier
+                hook_ctr.custom_data['invert_tilt'] = True
+        hook_ctr.custom_data['is_bezier'] = is_bezier
 
-        hook_ctr.spline_idx = spline_idx
-        hook_ctr.left_handle_control = None
-        hook_ctr.right_handle_control = None
+        hook_ctr.custom_data['spline_idx'] = spline_idx
+        hook_ctr.custom_data['left_ctr'] = None
+        hook_ctr.custom_data['right_ctr'] = None
         swap_em = False
 
         if is_bezier and self.params.curve.controls_for_handles:
@@ -422,9 +422,9 @@ class Component_Curve_Hooked(Component_Base):
                 hook_ctr, spline_idx, point_idx, point_loc, left_handle_loc, right_handle_loc, cyclic
             )
             if swap_em:
-                hook_ctr.left_handle_control, hook_ctr.right_handle_control = (
-                    hook_ctr.right_handle_control,
-                    hook_ctr.left_handle_control,
+                hook_ctr.custom_data['left_ctr'], hook_ctr.custom_data['right_ctr'] = (
+                    hook_ctr.custom_data['right_ctr'],
+                    hook_ctr.custom_data['left_ctr'],
                 )
 
         hook_ctr.custom_shape_name = shape
@@ -455,7 +455,7 @@ class Component_Curve_Hooked(Component_Base):
             radius_control.length *= 0.8
             self.lock_transforms(radius_control, loc=True, rot=True, scale=[False, True, False])
             self.lock_transforms(hook_ctr, loc=False, rot=False, scale=[True, False, True])
-            hook_ctr.radius_control = radius_control
+            hook_ctr.custom_data['radius_control'] = radius_control
             hook_ctr.custom_shape_transform = radius_control
 
         LEFT = "L"
@@ -483,7 +483,7 @@ class Component_Curve_Hooked(Component_Base):
             )
             handle_left_ctr.reverse()
             handle_left_ctr.roll_align_other(hook_ctr)
-            hook_ctr.left_handle_control = handle_left_ctr
+            hook_ctr.custom_data['left_ctr'] = handle_left_ctr
             handles.append(handle_left_ctr)
 
         last_point_idx = len(get_spline_points(self.params.curve.target.data.splines[spline_idx])) - 1
@@ -500,7 +500,7 @@ class Component_Curve_Hooked(Component_Base):
                 use_custom_shape_bone_size=True,
                 inherit_scale='ALIGNED',
             )
-            hook_ctr.right_handle_control = handle_right_ctr
+            hook_ctr.custom_data['right_ctr'] = handle_right_ctr
             handles.append(handle_right_ctr)
 
         for handle in handles:
@@ -591,21 +591,21 @@ class Component_Curve_Hooked(Component_Base):
                     main_handle=True,
                     **shared_kwargs,
                 )
-                if hook_b.left_handle_control:
+                if hook_b.custom_data['left_ctr']:
                     self.__hook_point_to_rig(
-                        bonename=hook_b.left_handle_control.name,
+                        bonename=hook_b.custom_data['left_ctr'].name,
                         left_handle=True,
                         **shared_kwargs,
                     )
-                if hook_b.right_handle_control:
+                if hook_b.custom_data['right_ctr']:
                     self.__hook_point_to_rig(
-                        bonename=hook_b.right_handle_control.name,
+                        bonename=hook_b.custom_data['right_ctr'].name,
                         right_handle=True,
                         **shared_kwargs,
                     )
 
             # Add Radius driver
-            data_path = f"splines[{hook_b.spline_idx}].{get_points_propname(spline)}[{point_i}].radius"
+            data_path = f"splines[{hook_b.custom_data['spline_idx']}].{get_points_propname(spline)}[{point_i}].radius"
             curve_ob.data.driver_remove(data_path)
 
             fc = curve_ob.data.driver_add(data_path)
@@ -623,17 +623,17 @@ class Component_Curve_Hooked(Component_Base):
             var_tgt.data_path = f'pose.bones["{hooks[point_i].name}"].matrix'
             driver.expression = "var.to_scale().x"
 
-            if self.params.curve.separate_radius and hasattr(hooks[point_i], 'radius_control'):
-                var_tgt.data_path = f'pose.bones["{hooks[point_i].radius_control.name}"].matrix'
+            if self.params.curve.separate_radius and hooks[point_i].custom_data.get('radius_control'):
+                var_tgt.data_path = f'pose.bones["{hooks[point_i].custom_data["radius_control"].name}"].matrix'
 
             # Add Tilt driver
-            data_path = f"splines[{hook_b.spline_idx}].{get_points_propname(spline)}[{point_i}].tilt"
+            data_path = f"splines[{hook_b.custom_data['spline_idx']}].{get_points_propname(spline)}[{point_i}].tilt"
             curve_ob.data.driver_remove(data_path)
 
             fc = curve_ob.data.driver_add(data_path)
             driver = fc.driver
 
-            if hook_b.invert_tilt:
+            if hook_b.custom_data.get('invert_tilt'):
                 driver.expression = "var"
             else:
                 driver.expression = "-var"

@@ -64,17 +64,15 @@ class Component_FaceChain(Component_ToonChain):
         """Relink target should become the intersection control if there is one."""
         relink_tgt: BoneInfo = super().base__relink_get_target(org_i, con)
 
-        is_intersection = False
-        if hasattr(relink_tgt, 'intersection_ctrl') and relink_tgt.intersection_ctrl:
-            relink_tgt = relink_tgt.intersection_ctrl
-            is_intersection = True
+        intersection = relink_tgt.custom_data.get('intersection_ctrl')
+        relink_tgt = intersection or relink_tgt
 
-        if con.type == 'ARMATURE':
-            if not hasattr(relink_tgt, "parent_helper") and not is_intersection:
+        if con.type == 'ARMATURE' and not intersection:
+            if not hasattr(relink_tgt, "parent_helper"):
                 relink_tgt = relink_tgt.parent_helper = self.create_parent_bone(relink_tgt, self.bones_mch)
-            elif not is_intersection and relink_tgt.parent_helper:
+            elif relink_tgt.parent_helper:
                 relink_tgt = relink_tgt.parent_helper
-            elif not is_intersection:
+            else:
                 if 'NOHLP' not in con.name:
                     con.name += "_NOHLP"
 
@@ -141,7 +139,7 @@ class Component_FaceChain(Component_ToonChain):
         # Parent the bones
         parent_cluster_to_intersection(cluster, intersection_control)
 
-        intersection_control.str_bones = cluster
+        intersection_control.custom_data['str_bones'] = cluster
         return intersection_control
 
     def __setup_all_intersections(self):
@@ -192,7 +190,7 @@ def parent_cluster_to_intersection(cluster: list[BoneInfo], intersection: BoneIn
     """Parent each STR bone in the cluster to the intersection control and configure smooth-intersection constraints."""
     for str_bone in cluster:
         component = str_bone.owner_component
-        str_bone.intersection_ctrl = intersection
+        str_bone.custom_data['intersection_ctrl'] = intersection
 
         if str_bone.owner_component.params.chain.bbone_density > 0:
             arm_con = str_bone.parent_armature_constraint
@@ -300,8 +298,8 @@ def do_centered_cluster(cluster: list[BoneInfo], intersection: BoneInfo, is_anch
         str_bone.flatten(axis=x_axis)
         str_bone.roll_align_vector(str_bone.head + z_axis_sum)
         if str_bone.owner_component.needs_tangent_helpers:
-            str_bone.tangent_helper.flatten(axis=x_axis)
-            str_bone.tangent_helper.roll_align_vector(str_bone.head + z_axis_sum)
+            str_bone.custom_data['tangent_helper'].flatten(axis=x_axis)
+            str_bone.custom_data['tangent_helper'].roll_align_vector(str_bone.head + z_axis_sum)
         if str_bone.owner_component.needs_tangent_helpers and opposite_bone.owner_component.needs_tangent_helpers:
             if not str_bone.next:
                 str_bone.next = opposite_bone.prev

@@ -50,8 +50,7 @@ class Component_Eyelid(Component_FaceChain):
 
         main_controls = []
         for str_ctr in self.main_str_bones:
-            if hasattr(str_ctr, 'intersection_ctrl'):
-                str_ctr = str_ctr.intersection_ctrl
+            str_ctr = str_ctr.custom_data.get('intersection_ctrl', str_ctr)
             if str_ctr not in main_controls:
                 main_controls.append(str_ctr)
 

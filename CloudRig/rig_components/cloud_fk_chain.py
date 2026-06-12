@@ -182,11 +182,11 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
         if self.params.fk_chain.display_center:
             fk_bone.custom_shape_along_length = 0.5
 
-        org_bone.fk_bone = fk_bone
+        org_bone.custom_data['fk_bone'] = fk_bone
 
         # Parent FK bone to previous FK bone.
         if org_bone.prev:
-            fk_bone.parent = org_bone.prev.fk_bone
+            fk_bone.parent = org_bone.prev.custom_data['fk_bone']
             if self.params.fk_chain.curl_each:
                 fk_bone.add_constraint('COPY_ROTATION', mix_mode='ADD', subtarget=fk_bone.parent)
         else:

@@ -172,6 +172,10 @@ class BoneInfo:
 
         self.constraint_infos: list[ConstraintInfo] = []
 
+        # Custom generation data. Identical to arbitrary instance attribute assignments which Python allows natively,
+        # but I prefer to have an explicit dictionary for it, imo making code more readable.
+        self.custom_data: dict[str, Any] = {}
+
         self.name = name
         self._parent: BoneInfo = None
         self.parent_helper: BoneInfo = None
@@ -224,6 +228,18 @@ class BoneInfo:
             if isinstance(value, Vector) or isinstance(value, Matrix) or type(value) is dict or type(value) is list:
                 value = value.copy()
             setattr(self, key, value)
+
+        self._initialized = True
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if not self.__dict__.get('_initialized'):
+            super().__setattr__(name, value)
+            return
+        if name not in self.__dict__ and not hasattr(type(self), name):
+            raise AttributeError(
+                f"BoneInfo has no attribute '{name}'\nBoneInfo forbids instance properties. Use the `custom_data` dict instead!"
+            )
+        super().__setattr__(name, value)
 
     def __load_data_from_real_pbone(
         self,

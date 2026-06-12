@@ -50,8 +50,8 @@ class Component_Limb(Component_Chain_IKFK):
         super().create_bone_infos(context)
         segments = self.params.chain.segments
         if self.params.limb.auto_hose and segments > 1:
-            upper_section = self.main_str_bones[0].sub_bones
-            lower_section = self.main_str_bones[1].sub_bones
+            upper_section = self.main_str_bones[0].custom_data['sub_bones']
+            lower_section = self.main_str_bones[1].custom_data['sub_bones']
             self.__make_rubber_hose(self.bones_org[0], self.bones_org[1], upper_section, lower_section)
 
     @no_overlay

@@ -178,7 +178,7 @@ class Component_Limb_BipedLeg(Component_Limb):
     @no_overlay
     def ik_chain__world_align_fk(self):
         """Make 2nd-to-last FK bone (ie. FK Foot) world-aligned."""
-        self.ik_chain__world_aligned_helper(self.bones_org[-2].fk_bone)
+        self.ik_chain__world_aligned_helper(self.bones_org[-2].custom_data['fk_bone'])
 
     ##############################
     # Leg functions.
@@ -460,7 +460,7 @@ class Component_Limb_BipedLeg(Component_Limb):
         fk_toe = self.fk_chain[-1]
         self.create_driven_armature_constraint(
             fk_toe,
-            target_bones=[self.bones_org[-2].fk_bone, self.ik_chain[-1]],
+            target_bones=[self.bones_org[-2].custom_data['fk_bone'], self.ik_chain[-1]],
             prop_bone=self.properties_bone,
             prop_name=self.ikfk_name,
             name="Armature (Toe FK/IK)",
