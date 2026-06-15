@@ -571,7 +571,7 @@ class Component_ToonChain(Component_Base):
             if next_str_bone in self.main_str_bones:
                 def_bone.bbone_easeout = 0
 
-        # B-Bone ease
+        # B-Bone handles
         def_bone.bbone_handle_type_start = 'TANGENT'
         def_bone.bbone_handle_type_end = 'TANGENT'
         start_tangent = str_bone.custom_data.get('tangent_helper') or str_bone
@@ -605,10 +605,18 @@ class Component_ToonChain(Component_Base):
                     }
                     bone = bone.parent
                     bone_count += 1
+
+                if self.params.chain.unlock_deform:
+                    if self.params.chain.smooth_spline:
+                        expression = "scale_1 / scale_3"
+                    else:
+                        expression = "scale_3"
+                else:
+                    expression = " * ".join(vars)
                 driver = {
                     'prop': prop_name,
                     'index': idx,
-                    'expression': " * ".join(vars),
+                    'expression': expression,
                     'variables': vars,
                 }
                 def_bone.drivers.append(driver)
@@ -622,7 +630,7 @@ class Component_ToonChain(Component_Base):
             def_bone.drivers.append(
                 {
                     'prop': prop_name,
-                    'expression': "abs(scale_Y/((scale_X+scale_Z)/2)) - 1",
+                    'expression': "abs(scale_Y/max(0.01, (scale_X+scale_Z)/2)) - 1",
                     'variables': {
                         f'scale_{axis}': {
                             'type': 'TRANSFORMS',
@@ -684,6 +692,7 @@ class Component_ToonChain(Component_Base):
                 source=tangent_helper,
                 parent=tangent_helper,
                 name=prefix + "-" + def_bone.name,
+                inherit_scale='NONE',
             )
             setattr(def_bone, prop_name, sub_tangent_helper)
             sub_tangent_helper.add_constraint(
@@ -694,13 +703,10 @@ class Component_ToonChain(Component_Base):
                 mix_mode='BEFORE',
             )
             sub_tangent_helper.add_constraint(
-                'LIMIT_SCALE',
-                name="Limit Scale (Unlock Deform, scale inheritance)",
+                'COPY_SCALE',
+                name="Copy Scale (Unlock Deform)",
+                subtarget=tangent_helper,
                 space='WORLD',
-                min_xyz=[1.0, 1.0, 1.0],
-                max_xyz=[1.0, 1.0, 1.0],
-                use_min_xyz=[True, True, True],
-                use_max_xyz=[True, True, True],
             )
 
         return def_ctr
