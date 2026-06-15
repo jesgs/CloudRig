@@ -656,8 +656,6 @@ class CloudLogManager:
             if hasattr(con, 'target') and not con.target:
                 return n_("Target object not provided.")
             if hasattr(con, 'subtarget'):
-                if not con.subtarget:
-                    return n_("Subtarget not provided.")
                 if con.target.type == 'ARMATURE' and con.subtarget not in con.target.pose.bones:
                     return n_("Target bone not found in target armature.")
                 elif (
