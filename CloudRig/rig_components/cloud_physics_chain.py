@@ -28,6 +28,7 @@ class CloudPhysicsChainRig(Component_Chain_FK):
 
     ui_name = "Chain: Physics"
     forced_params = {
+        'chain.parent_chain': "",
         'fk_chain.double_first': False,
         'fk_chain.root': True,
         'fk_chain.hinge': False,

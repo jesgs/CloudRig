@@ -10,14 +10,15 @@ if TYPE_CHECKING:
 from bpy.app.translations import pgettext_iface as iface_
 from bpy.app.translations import pgettext_n as n_
 from bpy.app.translations import pgettext_rpt as rpt_
-from bpy.props import BoolProperty, FloatProperty, IntProperty
-from bpy.types import Context, Object, PropertyGroup, UILayout
+from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
+from bpy.types import Context, Object, PoseBone, PropertyGroup, UILayout
 from mathutils import Vector
 
+from ..bs_utils.prefs import get_addon_prefs
 from ..rig_component_features.bone_info import BoneInfo, ConstraintInfo
 from ..rig_component_features.bone_set import BoneSet
 from ..rig_component_features.overlay_painter import no_overlay
-from ..utils.maths import lerp
+from ..utils.maths import lerp, point_to_segment_dist
 from .cloud_base import Component_Base
 
 
@@ -85,6 +86,7 @@ class Component_ToonChain(Component_Base):
         self.toon__make_def_chain(str_chain=self.str_chain)
 
         self.__connect_parent_component()
+        self.__attach_to_parent_chain()
 
     def base__relink_single(self, org_idx: int, con_info: ConstraintInfo):
         """Move a constraint to its target, replacing the parent helper's Armature constraint if needed."""
@@ -760,6 +762,39 @@ class Component_ToonChain(Component_Base):
         )
         return skh_bone
 
+    def __attach_to_parent_chain(self):
+        """If parent_chain is set, constrain each main STR bone's parent helper
+        to the closest DEF bone of the named parent chain component."""
+        chain_name = self.params.chain.parent_chain
+        if not chain_name:
+            return
+
+        parent_chain_comp: Component_ToonChain | None = next(
+            (
+                comp
+                for comp in self.generator.all_components
+                if isinstance(comp, Component_ToonChain) and comp.base_bone_name == chain_name
+            ),
+            None,
+        )
+        if not parent_chain_comp:
+            self.raise_generation_error(rpt_('Parent Chain component "{name}" not found.').format(name=chain_name))
+
+        parent_def_bones = list(parent_chain_comp.bones_def)
+        if not parent_def_bones:
+            return
+
+        for str_bone in self.main_str_bones:
+            closest_def = min(parent_def_bones, key=lambda d: point_to_segment_dist(str_bone.head, d.head, d.tail))
+
+            arm_con = str_bone.parent_armature_constraint
+            if arm_con:
+                arm_con.targets = [closest_def.name]
+            else:
+                parent_helper = self.create_parent_bone(str_bone, bone_set=self.bones_mch)
+                parent_helper.add_constraint('ARMATURE', subtarget=closest_def)
+                parent_helper.parent = None
+
     def __can_connect(self) -> bool:
         parent_component = self.parent_component
         if not parent_component:
@@ -882,6 +917,8 @@ class Component_ToonChain(Component_Base):
                 cls.draw_prop(context, layout, params.chain, 'volume_variation')
             cls.draw_prop(context, layout, params.chain, 'shape_key_helpers')
             cls.draw_prop(context, layout, params.chain, 'unlock_deform')
+            if get_addon_prefs(context).experimental_mode:
+                cls.draw_prop(context, layout, params.chain, 'parent_chain', icon='BONE_DATA')
 
     @classmethod
     def draw_control_params(cls, layout: UILayout, context: Context, component: RigComponent):
@@ -894,6 +931,31 @@ class Component_ToonChain(Component_Base):
         cls.draw_control_label(layout, iface_("Stretch"))
         cls.draw_prop(context, layout, params.chain, 'segments')
         cls.draw_prop(context, layout, params.chain, 'tip_control')
+
+
+def _search_parent_chain(self, context: Context, edit_text: str) -> list[str]:
+    if not context.object or not context.object.pose:
+        return []
+
+    def parents_recursive(pbone: PoseBone) -> list[PoseBone]:
+        parents = []
+        parent = pbone.parent
+        while parent:
+            parents.append(parent)
+            parent = parent.parent
+        return parents
+
+    active_pbone = context.active_pose_bone
+    parents = parents_recursive(active_pbone)
+
+    return [
+        pbone.name
+        for pbone in context.object.pose.bones
+        if pbone.cloudrig_component.component_type
+        and issubclass(pbone.cloudrig_component.component_class, Component_ToonChain)
+        and pbone != active_pbone
+        and pbone in parents
+    ]
 
 
 class Params(PropertyGroup):
@@ -934,6 +996,13 @@ class Params(PropertyGroup):
         name="Smooth Spline",
         description="B-Bone Splines affect their neighbours for smoother curves",
         default=False,
+    )
+    parent_chain: StringProperty(
+        name="Parent Chain",
+        description="Select a parent Chain Component. The STR controls of this component will be attached to the bendy bones of the selected component",
+        default="",
+        search=_search_parent_chain,
+        search_options={'SORT'},
     )
 
     # This parameter is not exposed, and only exists for backwards compatibility currently.

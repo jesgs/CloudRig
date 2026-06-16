@@ -28,6 +28,7 @@ class Component_Limb(Component_Chain_IKFK):
     ui_name = "Limb: Generic"
     forced_params = {
         'chain.sharp': True,
+        'chain.parent_chain': "",
         'fk_chain.root': True,
         'ik_chain.at_tip': False,
     }

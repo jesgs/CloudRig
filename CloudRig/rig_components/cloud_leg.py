@@ -28,9 +28,10 @@ class Component_Limb_BipedLeg(Component_Limb):
     ui_name = "Limb: Biped Leg"
     forced_params = {
         'chain.tip_control': True,
+        'chain.sharp': True,
+        'chain.parent_chain': "",
         'fk_chain.root': True,
         'ik_chain.at_tip': False,
-        'chain.sharp': True,
     }
 
     required_chain_length = 4

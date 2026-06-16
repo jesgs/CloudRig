@@ -128,6 +128,8 @@ def draw_general_panel(context: Context, layout: UILayout):
     generator = metarig.cloudrig.generator
 
     layout.prop(prefs, 'advanced_mode')
+    if prefs.advanced_mode:
+        layout.prop(prefs, 'experimental_mode')
 
     layout = layout.column()
     layout.prop(generator, 'target_rig')

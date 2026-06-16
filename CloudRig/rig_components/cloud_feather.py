@@ -18,6 +18,7 @@ class Component_Feather(Component_Chain_FK):
     ui_name = "Feather"
     forced_params = {
         'chain.segments': 1,
+        'chain.parent_chain': "",
         'chain.tip_control': True,
         'fk_chain.display_center': False,
     }

@@ -26,6 +26,7 @@ class Component_Spine_Squashy(Component_Chain_FK):
     forced_params = {
         'chain.segments': 1,
         'chain.tip_control': True,
+        'chain.parent_chain': "",
         'fk_chain.hinge': False,
         'fk_chain.root': True,
     }

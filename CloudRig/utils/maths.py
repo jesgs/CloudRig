@@ -106,3 +106,13 @@ def clamp(val: float | int, _min=0, _max=1) -> float | int:
     if val > _max:
         return _max
     return val
+
+
+def point_to_segment_dist(point: Vector, seg_head: Vector, seg_tail: Vector) -> float:
+    """Distance from point to the nearest point on a line segment."""
+    ab = seg_tail - seg_head
+    ab_len_sq = ab.dot(ab)
+    if ab_len_sq == 0.0:
+        return (point - seg_head).length
+    t = max(0.0, min(1.0, (point - seg_head).dot(ab) / ab_len_sq))
+    return (point - (seg_head + t * ab)).length

@@ -80,6 +80,12 @@ class CloudRigPreferences(PrefsFileSaveLoadMixin, AddonPreferences):
         default=False,
         update=update_prefs_on_file,
     )
+    experimental_mode: BoolProperty(
+        name="Experimental Mode",
+        description="Enable new experimental features which may be removed or modified in future versions",
+        default=False,
+        update=update_prefs_on_file,
+    )
     bone_set_show_advanced: BoolProperty(
         name="Show Internal Bone Sets",
         description="Reveal bone sets that are marked as internal, ie. mechanism bones. You would customize these much less frequently than the controls, which are exposed to animators",

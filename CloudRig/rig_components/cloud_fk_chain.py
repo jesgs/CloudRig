@@ -30,6 +30,10 @@ class Component_Chain_FK(Component_ToonChain, CloudAnimationMixin):
 
     ui_name = "Chain: FK"
 
+    forced_params = {
+        'chain.parent_chain': "",
+    }
+
     relink_default_prefix = "FK"
 
     has_test_animation = True

@@ -37,6 +37,7 @@ class Component_Chain_IKFK(Component_Chain_FK):
     always_use_custom_props = True
 
     forced_params = {
+        'chain.parent_chain': "",
         "fk_chain.root": True,
     }
 

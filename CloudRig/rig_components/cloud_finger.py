@@ -21,10 +21,11 @@ class Component_Finger(Component_Chain_IKFK):
 
     ui_name = "Chain: Finger"
     forced_params = {
-        'ik_chain.at_tip': True,
         'chain.tip_control': True,
+        'chain.parent_chain': "",
         'fk_chain.root': True,
         'fk_chain.double_first': False,
+        'ik_chain.at_tip': True,
         'ik_chain.world_align': False,
         'ik_chain.flatten_controls': False,
     }

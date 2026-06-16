@@ -20,11 +20,12 @@ class Component_Shoulder(Component_Chain_FK):
 
     ui_name = "Shoulder Bone"
     forced_params = {
+        'chain.segments': 1,
+        'chain.parent_chain': "",
         'fk_chain.display_center': False,
         'fk_chain.create_curl_control': False,
         'fk_chain.counter_rotate_stretch_bones': 0.0,
         'fk_chain.double_first': False,
-        'chain.segments': 1,
     }
 
     max_bones_in_chain = 1

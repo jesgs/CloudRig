@@ -27,6 +27,7 @@ class Component_Spine_IKFK(Component_Chain_FK):
     ui_name = "Spine: IK/FK"
     forced_params = {
         'chain.segments': 1,
+        'chain.parent_chain': "",
         'fk_chain.double_first': False,
         'fk_chain.hinge': False,
         'fk_chain.create_curl_control': False,
